@@ -1,0 +1,11 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: harmonia
+      POSTGRES_USER: harmonia
+      POSTGRES_PASSWORD: harmonia
+    ports: ["5432:5432"]
+    volumes: ["harmonia_pg:/var/lib/postgresql/data"]
+volumes:
+  harmonia_pg:

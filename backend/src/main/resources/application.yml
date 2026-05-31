@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: harmonia
+  datasource:
+    url: jdbc:postgresql://localhost:5432/harmonia
+    username: harmonia
+    password: harmonia
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+app:
+  rsa:
+    private-key: classpath:certs/private.pem
+    public-key: classpath:certs/public.pem
+  jwt:
+    access-ttl-minutes: 15
+    refresh-ttl-days: 7
+  storage:
+    local-dir: ./storage
