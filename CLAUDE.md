@@ -195,6 +195,20 @@ lib/http/            ← cliente HTTP central (JWT, refresh, tratamento de erro)
 
 > Catálogo completo de permissões + seed de roles em `docs/modelo-de-dados.md`.
 
+## Boot 4 — gotchas (descobertos no Plano 1; aplicar nos próximos)
+
+Os planos foram escritos com premissas Spring Boot 3. Diferenças reais do Boot 4:
+- **Parent** `4.0.6` (não `4.0.6.RELEASE` — o Initializr devolve `.RELEASE`, que não existe no Central).
+- **Starters renomeados:** `spring-boot-starter-webmvc` (não `-web`), `spring-boot-starter-flyway`, `spring-boot-starter-security-oauth2-resource-server`. Test starters split por módulo (`spring-boot-starter-webmvc-test`, etc.).
+- **JSON é opt-in:** adicionar `spring-boot-starter-json`. Default agora é **Jackson 3** (`tools.jackson.databind.ObjectMapper`); Jackson 2 (`com.fasterxml`) existe mas **sem bean** — não autowire o de 2.x.
+- **Testes:** `@AutoConfigureMockMvc` → `org.springframework.boot.webmvc.test.autoconfigure`. Em IT, extrair JSON com `com.jayway.jsonpath.JsonPath`, não `ObjectMapper`.
+- **Testcontainers:** usar `TestcontainersConfiguration` gerada (`@ServiceConnection`) + `@Import(...)`. Classe `org.testcontainers.postgresql.PostgreSQLContainer`.
+- **`*IT` exige `maven-failsafe-plugin` + `mvn verify`** (Surefire só roda `*Test`/`*Tests`). Já configurado no pom.
+- `new DaoAuthenticationProvider(uds)` + `setPasswordEncoder(enc)`. Chaves RSA via `RsaKeyConverters.x509()/pkcs8()`.
+- Scaffold via Spring Initializr (gera `mvnw` wrapper). Maven global não instalado — usar `./mvnw`.
+
+> Admin seed: usuário `admin` / senha `Admin@123` (trocar em prod). Postgres dev: `docker compose up -d` em `backend/`.
+
 ## Documentação (docs/)
 - `docs/modelo-de-dados.md` — ER (Mermaid) + dicionário das 20 entidades + RBAC/PBAC.
 - `docs/superpowers/specs/2026-05-31-harmonia-mvp-design.md` — spec do MVP (API, segurança, gamificação).
