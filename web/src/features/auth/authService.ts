@@ -1,0 +1,24 @@
+import { api } from "@/lib/http";
+import { authStorage } from "@/lib/http/authStorage";
+
+export type AuthResponse = {
+  accessToken: string;
+  refreshToken: string;
+  username: string;
+  authorities: string[];
+};
+
+export type Me = { username: string; authorities: string[]; displayName: string };
+
+export const authService = {
+  async login(login: string, senha: string) {
+    const r = await api.post<AuthResponse>("/auth/login", { login, senha });
+    authStorage.set(r.accessToken, r.refreshToken);
+    return r;
+  },
+  me: () => api.get<Me>("/auth/me"),
+  forgot: (email: string) => api.post("/auth/forgot-password", { email }),
+};
+
+export const has = (authorities: string[] | undefined, role: string) =>
+  !!authorities?.includes(role);
