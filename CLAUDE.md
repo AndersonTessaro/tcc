@@ -218,6 +218,9 @@ Os planos foram escritos com premissas Spring Boot 3. Diferenças reais do Boot 
 - `docs/superpowers/plans/2026-05-31-web-client.md` — **Plano 4** (web: Aluno+Professor+Admin, pós-MVP).
 
 ## Próximos passos
-1. ✅ Requisitos · 2. ✅ MVP (Aluno+Professor) · 3. ✅ Modelo de dados (ER) · 4. ✅ Spec MVP ·
-5. ✅ Planos de implementação (3) · 6. **`git init`** + executar Plano 1 → 2 → 3 ·
-7. Evoluir Figma (Admin) · 8. Diagramas UML/sequência (entrega TCC).
+1. ✅ Requisitos · 2. ✅ MVP · 3. ✅ Modelo de dados · 4. ✅ Spec · 5. ✅ Planos (4) ·
+6. ✅ **Plano 1 executado** (auth/RBAC/JWT — na `main`, 22 testes verdes c/ Plano 2) ·
+7. ✅ **Plano 2 executado** (domínio + `/me` + `/professor` + gamificação) ·
+8. ⏭️ **Plano 3** (mobile Expo) · 9. Plano 4 (web) · 10. Figma Admin + diagramas UML (entrega TCC).
+
+> Build/test backend: `cd backend && docker compose up -d && ./mvnw verify`. Admin: `admin`/`Admin@123`.
