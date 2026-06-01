@@ -1,6 +1,7 @@
 package br.com.harmonia.presentation.error;
 
 import br.com.harmonia.application.security.PasswordResetUseCase.InvalidResetTokenException;
+import br.com.harmonia.domain.comum.OwnershipException;
 import br.com.harmonia.infrastructure.security.TokenService.BadRefreshTokenException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +35,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> denied(AccessDeniedException e) {
         return build(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "Sem permissão", List.of());
+    }
+
+    @ExceptionHandler(OwnershipException.class)
+    public ResponseEntity<ApiError> ownership(OwnershipException e) {
+        return build(HttpStatus.FORBIDDEN, "OWNERSHIP_DENIED", e.getMessage(), List.of());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
