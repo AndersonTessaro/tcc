@@ -221,6 +221,9 @@ Os planos foram escritos com premissas Spring Boot 3. Diferenças reais do Boot 
 1. ✅ Requisitos · 2. ✅ MVP · 3. ✅ Modelo de dados · 4. ✅ Spec · 5. ✅ Planos (4) ·
 6. ✅ **Plano 1 executado** (auth/RBAC/JWT — na `main`, 22 testes verdes c/ Plano 2) ·
 7. ✅ **Plano 2 executado** (domínio + `/me` + `/professor` + gamificação) ·
-8. ⏭️ **Plano 3** (mobile Expo) · 9. Plano 4 (web) · 10. Figma Admin + diagramas UML (entrega TCC).
+8. ✅ **Plano 3 executado** (mobile Expo — branch `feat/mobile-expo`; tsc clean, jest verde; falta smoke test E2E c/ backend no ar) ·
+9. ⏭️ Plano 4 (web) · 10. Figma Admin + diagramas UML (entrega TCC).
 
 > Build/test backend: `cd backend && docker compose up -d && ./mvnw verify`. Admin: `admin`/`Admin@123`.
+> Mobile: `cd mobile && npm start` (Expo SDK 56, router em `src/app`). Test/typecheck: `npx jest && npx tsc --noEmit`.
+> Android emul: `EXPO_PUBLIC_API_URL=http://10.0.2.2:8080`.
