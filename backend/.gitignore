@@ -34,4 +34,4 @@ build/
 
 # Harmonia
 src/main/resources/certs/*.pem
-storage/
+/storage/
