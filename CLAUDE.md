@@ -178,7 +178,7 @@ lib/http/            ← cliente HTTP central (JWT, refresh, tratamento de erro)
 - Nomes que revelam intenção; funções curtas; sem comentário óbvio (código se explica).
 - Testes: domínio e use cases com unit test (sem Spring); integração nas bordas.
 - Mobile: componentes focados, estilo via NativeWind, chamadas via cliente HTTP central com refresh de token.
-- Idioma do domínio: **português** (nomes de entidade/campo seguem o negócio).
+- **Idioma do código: INGLÊS em tudo.** Classes, métodos, variáveis, pacotes, DTOs, **endpoints REST**, **campos JSON**, **tabelas e colunas do banco**, nomes de permissão (`student.read`) e roles (`STUDENT`/`TEACHER`/`ADMIN`) — todos em inglês. **Único conteúdo em português: texto exibido na tela** (labels, mensagens, placeholders, toasts). Glossário canônico PT→EN em `docs/glossario-en.md` — consultar antes de nomear.
 
 ## Segurança & Autenticação (espelha marreh_spring_integrations)
 
