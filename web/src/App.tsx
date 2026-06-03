@@ -4,11 +4,11 @@ import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
 import AppLayout from "@/components/layout/AppLayout";
 import Login from "@/features/auth/pages/Login";
 import Forgot from "@/features/auth/pages/Forgot";
-import Usuarios from "@/features/admin/pages/Usuarios";
+import Users from "@/features/admin/pages/Users";
 import Roles from "@/features/admin/pages/Roles";
-import Permissoes from "@/features/admin/pages/Permissoes";
-import Cadastros from "@/features/admin/pages/Cadastros";
-import Configuracoes from "@/features/admin/pages/Configuracoes";
+import Permissions from "@/features/admin/pages/Permissions";
+import Registrations from "@/features/admin/pages/Registrations";
+import Settings from "@/features/admin/pages/Settings";
 import { Button } from "@/components/ui";
 
 const ADMIN_AUTHORITIES = ["ROLE_ADMIN", "auth.user.manage", "auth.role.manage"];
@@ -18,7 +18,7 @@ function Home() {
   if (loading) return <div className="p-8 text-gray-500">Carregando...</div>;
   if (!user) return <Navigate to="/login" replace />;
   if (user.authorities.some((a) => ADMIN_AUTHORITIES.includes(a)))
-    return <Navigate to="/admin/usuarios" replace />;
+    return <Navigate to="/admin/users" replace />;
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
       <p className="text-gray-600">
@@ -48,12 +48,12 @@ export default function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="/admin/usuarios" replace />} />
-            <Route path="usuarios" element={<Usuarios />} />
+            <Route index element={<Navigate to="/admin/users" replace />} />
+            <Route path="users" element={<Users />} />
             <Route path="roles" element={<Roles />} />
-            <Route path="permissoes" element={<Permissoes />} />
-            <Route path="cadastros" element={<Cadastros />} />
-            <Route path="configuracoes" element={<Configuracoes />} />
+            <Route path="permissions" element={<Permissions />} />
+            <Route path="registrations" element={<Registrations />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

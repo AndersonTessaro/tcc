@@ -1,6 +1,6 @@
 import { Card, PageTitle } from "@/components/ui";
 
-export default function Configuracoes() {
+export default function Settings() {
   return (
     <div>
       <PageTitle>Configurações</PageTitle>

@@ -11,8 +11,8 @@ export type AuthResponse = {
 export type Me = { username: string; authorities: string[]; displayName: string };
 
 export const authService = {
-  async login(login: string, senha: string) {
-    const r = await api.post<AuthResponse>("/auth/login", { login, senha });
+  async login(login: string, password: string) {
+    const r = await api.post<AuthResponse>("/auth/login", { login, password });
     authStorage.set(r.accessToken, r.refreshToken);
     return r;
   },

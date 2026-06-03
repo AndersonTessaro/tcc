@@ -1,20 +1,20 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { adminService } from "../adminService";
-import type { RoleDto, UsuarioDto } from "../adminService";
+import type { RoleDto, UserDto } from "../adminService";
 import { Button, Card, PageTitle } from "@/components/ui";
 
-export default function Usuarios() {
-  const [usuarios, setUsuarios] = useState<UsuarioDto[]>([]);
+export default function Users() {
+  const [users, setUsers] = useState<UserDto[]>([]);
   const [roles, setRoles] = useState<RoleDto[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = () => {
     setLoading(true);
-    Promise.all([adminService.usuarios(), adminService.roles()])
+    Promise.all([adminService.users(), adminService.roles()])
       .then(([u, r]) => {
-        setUsuarios(u);
+        setUsers(u);
         setRoles(r);
       })
       .catch(() => toast.error("Erro ao carregar usuários"))
@@ -22,28 +22,28 @@ export default function Usuarios() {
   };
   useEffect(load, []);
 
-  const toggleStatus = async (u: UsuarioDto) => {
+  const toggleStatus = async (u: UserDto) => {
     try {
-      await adminService.setStatus(u.id, !u.ativo);
-      toast.success(`${u.username} ${!u.ativo ? "ativado" : "desativado"}`);
+      await adminService.setStatus(u.id, !u.active);
+      toast.success(`${u.username} ${!u.active ? "ativado" : "desativado"}`);
       load();
     } catch {
       toast.error("Erro ao alterar status");
     }
   };
 
-  const resetSenha = async (u: UsuarioDto) => {
-    const nova = window.prompt(`Nova senha para ${u.username} (mín. 8):`);
-    if (!nova) return;
+  const resetPassword = async (u: UserDto) => {
+    const next = window.prompt(`Nova senha para ${u.username} (mín. 8):`);
+    if (!next) return;
     try {
-      await adminService.resetSenha(u.id, nova);
+      await adminService.resetPassword(u.id, next);
       toast.success("Senha redefinida");
     } catch {
       toast.error("Erro ao redefinir senha (mín. 8 caracteres)");
     }
   };
 
-  const toggleRole = async (u: UsuarioDto, roleId: number) => {
+  const toggleRole = async (u: UserDto, roleId: number) => {
     const current = new Set(u.roles.map((r) => r.id));
     if (current.has(roleId)) current.delete(roleId);
     else current.add(roleId);
@@ -73,13 +73,13 @@ export default function Usuarios() {
             </tr>
           </thead>
           <tbody>
-            {usuarios.map((u) => (
+            {users.map((u) => (
               <tr key={u.id} className="border-b border-gray-100 align-top">
                 <td className="p-3 font-medium">{u.username}</td>
                 <td className="p-3 text-gray-600">{u.email}</td>
                 <td className="p-3">
-                  <span className={u.ativo ? "text-accent" : "text-red-500"}>
-                    {u.ativo ? "Ativo" : "Inativo"}
+                  <span className={u.active ? "text-accent" : "text-red-500"}>
+                    {u.active ? "Ativo" : "Inativo"}
                   </span>
                 </td>
                 <td className="p-3">
@@ -106,9 +106,9 @@ export default function Usuarios() {
                       {editing === u.id ? "Fechar" : "Roles"}
                     </Button>
                     <Button variant="ghost" onClick={() => toggleStatus(u)}>
-                      {u.ativo ? "Desativar" : "Ativar"}
+                      {u.active ? "Desativar" : "Ativar"}
                     </Button>
-                    <Button variant="ghost" onClick={() => resetSenha(u)}>
+                    <Button variant="ghost" onClick={() => resetPassword(u)}>
                       Senha
                     </Button>
                   </div>

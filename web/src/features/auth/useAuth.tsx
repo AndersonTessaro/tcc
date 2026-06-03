@@ -9,7 +9,7 @@ export type SessionUser = { username: string; authorities: string[]; displayName
 type AuthState = {
   user: SessionUser | null;
   loading: boolean;
-  login: (login: string, senha: string) => Promise<void>;
+  login: (login: string, password: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -35,8 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => authEvents.onLogout(() => setUser(null)), []);
 
-  const login = async (login: string, senha: string) => {
-    const r = await authService.login(login, senha);
+  const login = async (login: string, password: string) => {
+    const r = await authService.login(login, password);
     setUser({ username: r.username, authorities: r.authorities });
   };
 

@@ -3,11 +3,11 @@ import { useAuth } from "@/features/auth/useAuth";
 import { Button } from "@/components/ui";
 
 const nav = [
-  { to: "/admin/usuarios", label: "Usuários" },
+  { to: "/admin/users", label: "Usuários" },
   { to: "/admin/roles", label: "Roles" },
-  { to: "/admin/permissoes", label: "Permissões" },
-  { to: "/admin/cadastros", label: "Cadastros" },
-  { to: "/admin/configuracoes", label: "Configurações" },
+  { to: "/admin/permissions", label: "Permissões" },
+  { to: "/admin/registrations", label: "Cadastros" },
+  { to: "/admin/settings", label: "Configurações" },
 ];
 
 export default function AppLayout() {

@@ -1,20 +1,20 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { adminService } from "../adminService";
-import type { Permissao, RoleDto } from "../adminService";
+import type { Permission, RoleDto } from "../adminService";
 import { Button, Card, Input, PageTitle } from "@/components/ui";
 
 export default function Roles() {
   const [roles, setRoles] = useState<RoleDto[]>([]);
-  const [perms, setPerms] = useState<Permissao[]>([]);
+  const [perms, setPerms] = useState<Permission[]>([]);
   const [open, setOpen] = useState<number | null>(null);
-  const [novoNome, setNovoNome] = useState("");
-  const [novaDesc, setNovaDesc] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newDesc, setNewDesc] = useState("");
   const [loading, setLoading] = useState(true);
 
   const load = () => {
     setLoading(true);
-    Promise.all([adminService.roles(), adminService.permissoes()])
+    Promise.all([adminService.roles(), adminService.permissions()])
       .then(([r, p]) => {
         setRoles(r);
         setPerms(p);
@@ -24,13 +24,13 @@ export default function Roles() {
   };
   useEffect(load, []);
 
-  const criar = async () => {
-    if (!novoNome.trim() || !novaDesc.trim()) return;
+  const create = async () => {
+    if (!newName.trim() || !newDesc.trim()) return;
     try {
-      await adminService.criarRole(novoNome.trim(), novaDesc.trim());
+      await adminService.createRole(newName.trim(), newDesc.trim());
       toast.success("Role criada");
-      setNovoNome("");
-      setNovaDesc("");
+      setNewName("");
+      setNewDesc("");
       load();
     } catch {
       toast.error("Erro ao criar role");
@@ -42,7 +42,7 @@ export default function Roles() {
     if (current.has(permId)) current.delete(permId);
     else current.add(permId);
     try {
-      await adminService.setPerms(role.id, [...current]);
+      await adminService.setPermissions(role.id, [...current]);
       toast.success("Permissões atualizadas");
       load();
     } catch {
@@ -59,9 +59,9 @@ export default function Roles() {
       <Card className="mb-6">
         <p className="mb-3 font-medium">Nova role</p>
         <div className="flex flex-wrap items-center gap-2">
-          <Input className="max-w-[180px]" placeholder="NOME" value={novoNome} onChange={(e) => setNovoNome(e.target.value)} />
-          <Input className="max-w-xs" placeholder="Descrição" value={novaDesc} onChange={(e) => setNovaDesc(e.target.value)} />
-          <Button onClick={criar}>Criar</Button>
+          <Input className="max-w-[180px]" placeholder="NOME" value={newName} onChange={(e) => setNewName(e.target.value)} />
+          <Input className="max-w-xs" placeholder="Descrição" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} />
+          <Button onClick={create}>Criar</Button>
         </div>
       </Card>
 

@@ -1,36 +1,36 @@
 import { api } from "@/lib/http";
 
-export type Permissao = { id: number; name: string; description: string };
-export type RoleDto = { id: number; name: string; description: string; permissions: Permissao[] };
-export type UsuarioDto = {
+export type Permission = { id: number; name: string; description: string };
+export type RoleDto = { id: number; name: string; description: string; permissions: Permission[] };
+export type UserDto = {
   id: string;
   username: string;
   email: string;
   displayName: string | null;
-  ativo: boolean;
+  active: boolean;
   roles: RoleDto[];
 };
 
 export const adminService = {
-  usuarios: () => api.get<UsuarioDto[]>("/admin/security/usuarios"),
+  users: () => api.get<UserDto[]>("/admin/security/users"),
   roles: () => api.get<RoleDto[]>("/admin/security/roles"),
-  permissoes: () => api.get<Permissao[]>("/admin/security/permissoes"),
+  permissions: () => api.get<Permission[]>("/admin/security/permissions"),
   setRoles: (userId: string, roleIds: number[]) =>
-    api.put<UsuarioDto>(`/admin/security/usuarios/${userId}/roles`, { roleIds }),
-  setStatus: (userId: string, ativo: boolean) =>
-    api.put<void>(`/admin/security/usuarios/${userId}/status`, { ativo }),
-  resetSenha: (userId: string, novaSenha: string) =>
-    api.put<void>(`/admin/security/usuarios/${userId}/senha`, { novaSenha }),
-  criarRole: (name: string, description: string) =>
+    api.put<UserDto>(`/admin/security/users/${userId}/roles`, { roleIds }),
+  setStatus: (userId: string, active: boolean) =>
+    api.put<void>(`/admin/security/users/${userId}/status`, { active }),
+  resetPassword: (userId: string, newPassword: string) =>
+    api.put<void>(`/admin/security/users/${userId}/password`, { newPassword }),
+  createRole: (name: string, description: string) =>
     api.post<RoleDto>("/admin/security/roles", { name, description }),
-  setPerms: (roleId: number, permissionIds: number[]) =>
-    api.put<RoleDto>(`/admin/security/roles/${roleId}/permissoes`, { permissionIds }),
-  // cadastros (Plano 2)
-  criarInstrumento: (nome: string) => api.post<{ id: string }>("/admin/instrumentos", { nome }),
-  criarAluno: (b: NovoUsuario) => api.post<{ id: string }>("/admin/alunos", b),
-  criarProfessor: (b: NovoUsuario) => api.post<{ id: string }>("/admin/professores", b),
-  criarMatricula: (b: { alunoId: string; professorId: string; instrumentoId: string }) =>
-    api.post<{ id: string }>("/admin/matriculas", b),
+  setPermissions: (roleId: number, permissionIds: number[]) =>
+    api.put<RoleDto>(`/admin/security/roles/${roleId}/permissions`, { permissionIds }),
+  // registrations (Plan 2)
+  createInstrument: (name: string) => api.post<{ id: string }>("/admin/instruments", { name }),
+  createStudent: (b: NewUser) => api.post<{ id: string }>("/admin/students", b),
+  createTeacher: (b: NewUser) => api.post<{ id: string }>("/admin/teachers", b),
+  createEnrollment: (b: { studentId: string; teacherId: string; instrumentId: string }) =>
+    api.post<{ id: string }>("/admin/enrollments", b),
 };
 
-export type NovoUsuario = { username: string; email: string; senha: string; nome: string };
+export type NewUser = { username: string; email: string; password: string; name: string };
