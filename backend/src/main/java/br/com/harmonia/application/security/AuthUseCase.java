@@ -1,8 +1,8 @@
 package br.com.harmonia.application.security;
 
-import br.com.harmonia.application.security.port.UsuarioRepository;
+import br.com.harmonia.application.security.port.UserRepository;
 import br.com.harmonia.infrastructure.persistence.security.RefreshToken;
-import br.com.harmonia.infrastructure.persistence.security.Usuario;
+import br.com.harmonia.infrastructure.persistence.security.User;
 import br.com.harmonia.infrastructure.security.TokenService;
 import br.com.harmonia.presentation.auth.dto.AuthResponse;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -17,28 +17,28 @@ import java.util.List;
 public class AuthUseCase {
     private final AuthenticationManager authManager;
     private final TokenService tokens;
-    private final UsuarioRepository usuarios;
+    private final UserRepository users;
 
-    public AuthUseCase(AuthenticationManager authManager, TokenService tokens, UsuarioRepository usuarios) {
+    public AuthUseCase(AuthenticationManager authManager, TokenService tokens, UserRepository users) {
         this.authManager = authManager;
         this.tokens = tokens;
-        this.usuarios = usuarios;
+        this.users = users;
     }
 
     @Transactional
-    public AuthResponse login(String login, String senha) {
-        var auth = authManager.authenticate(new UsernamePasswordAuthenticationToken(login, senha));
-        UserDetails user = (UserDetails) auth.getPrincipal();
-        Usuario usuario = usuarios.findByUsernameOrEmail(user.getUsername(), user.getUsername()).orElseThrow();
-        return build(user, usuario, tokens.issueRefreshToken(usuario));
+    public AuthResponse login(String login, String password) {
+        var auth = authManager.authenticate(new UsernamePasswordAuthenticationToken(login, password));
+        UserDetails principal = (UserDetails) auth.getPrincipal();
+        User user = users.findByUsernameOrEmail(principal.getUsername(), principal.getUsername()).orElseThrow();
+        return build(principal, user, tokens.issueRefreshToken(user));
     }
 
     @Transactional
     public AuthResponse refresh(String rawRefresh) {
         RefreshToken rt = tokens.validateRefreshToken(rawRefresh);
         tokens.revoke(rt);
-        Usuario usuario = rt.getUser();
-        return build(usuario, usuario, tokens.issueRefreshToken(usuario));
+        User user = rt.getUser();
+        return build(user, user, tokens.issueRefreshToken(user));
     }
 
     @Transactional
@@ -46,8 +46,8 @@ public class AuthUseCase {
         tokens.revoke(tokens.validateRefreshToken(rawRefresh));
     }
 
-    private AuthResponse build(UserDetails user, Usuario usuario, String refresh) {
-        List<String> auths = user.getAuthorities().stream().map(a -> a.getAuthority()).toList();
-        return new AuthResponse(tokens.generateAccessToken(user), refresh, usuario.getUsername(), auths);
+    private AuthResponse build(UserDetails principal, User user, String refresh) {
+        List<String> auths = principal.getAuthorities().stream().map(a -> a.getAuthority()).toList();
+        return new AuthResponse(tokens.generateAccessToken(principal), refresh, user.getUsername(), auths);
     }
 }

@@ -28,7 +28,7 @@ class PasswordResetIT {
     @Test
     void reset_invalidToken_is400() throws Exception {
         mvc.perform(post("/auth/reset-password").contentType("application/json")
-                .content("{\"token\":\"xxx\",\"novaSenha\":\"NovaSenha1\"}"))
+                .content("{\"token\":\"xxx\",\"newPassword\":\"NovaSenha1\"}"))
             .andExpect(status().isBadRequest());
     }
 }

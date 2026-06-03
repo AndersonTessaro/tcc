@@ -3,7 +3,7 @@ package br.com.harmonia.presentation.admin;
 import br.com.harmonia.application.admin.SecurityAdminUseCase;
 import br.com.harmonia.infrastructure.persistence.security.Permission;
 import br.com.harmonia.infrastructure.persistence.security.Role;
-import br.com.harmonia.infrastructure.persistence.security.Usuario;
+import br.com.harmonia.infrastructure.persistence.security.User;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -26,53 +26,53 @@ public class SecurityAdminController {
     }
 
     public record SetRoles(@NotNull Set<Long> roleIds) {}
-    public record SetStatus(boolean ativo) {}
-    public record ResetSenha(@NotBlank @Size(min = 8) String novaSenha) {}
-    public record SetPerms(@NotNull Set<Long> permissionIds) {}
-    public record NovaRole(@NotBlank String name, @NotBlank String description) {}
+    public record SetStatus(boolean active) {}
+    public record ResetPassword(@NotBlank @Size(min = 8) String newPassword) {}
+    public record SetPermissions(@NotNull Set<Long> permissionIds) {}
+    public record NewRole(@NotBlank String name, @NotBlank String description) {}
 
-    @GetMapping("/usuarios")
-    public List<Usuario> usuarios() {
-        return uc.listarUsuarios();
+    @GetMapping("/users")
+    public List<User> users() {
+        return uc.listUsers();
     }
 
     @GetMapping("/roles")
     public List<Role> roles() {
-        return uc.listarRoles();
+        return uc.listRoles();
     }
 
-    @GetMapping("/permissoes")
-    public List<Permission> permissoes() {
-        return uc.listarPermissoes();
+    @GetMapping("/permissions")
+    public List<Permission> permissions() {
+        return uc.listPermissions();
     }
 
-    @PutMapping("/usuarios/{id}/roles")
+    @PutMapping("/users/{id}/roles")
     @PreAuthorize("hasAuthority('auth.user.manage')")
-    public Usuario setRoles(@PathVariable UUID id, @Valid @RequestBody SetRoles r) {
-        return uc.definirRoles(id, r.roleIds());
+    public User setRoles(@PathVariable UUID id, @Valid @RequestBody SetRoles r) {
+        return uc.setRoles(id, r.roleIds());
     }
 
-    @PutMapping("/usuarios/{id}/status")
+    @PutMapping("/users/{id}/status")
     @PreAuthorize("hasAuthority('auth.user.manage')")
     public void setStatus(@PathVariable UUID id, @RequestBody SetStatus r) {
-        uc.definirStatus(id, r.ativo());
+        uc.setStatus(id, r.active());
     }
 
-    @PutMapping("/usuarios/{id}/senha")
+    @PutMapping("/users/{id}/password")
     @PreAuthorize("hasAuthority('auth.user.manage')")
-    public void resetSenha(@PathVariable UUID id, @Valid @RequestBody ResetSenha r) {
-        uc.resetarSenha(id, r.novaSenha());
+    public void resetPassword(@PathVariable UUID id, @Valid @RequestBody ResetPassword r) {
+        uc.resetPassword(id, r.newPassword());
     }
 
     @PostMapping("/roles")
     @PreAuthorize("hasAuthority('auth.role.manage')")
-    public Role criarRole(@Valid @RequestBody NovaRole r) {
-        return uc.criarRole(r.name(), r.description());
+    public Role createRole(@Valid @RequestBody NewRole r) {
+        return uc.createRole(r.name(), r.description());
     }
 
-    @PutMapping("/roles/{id}/permissoes")
+    @PutMapping("/roles/{id}/permissions")
     @PreAuthorize("hasAuthority('auth.role.manage')")
-    public Role setPerms(@PathVariable Long id, @Valid @RequestBody SetPerms r) {
-        return uc.definirPermissoesDaRole(id, r.permissionIds());
+    public Role setPermissions(@PathVariable Long id, @Valid @RequestBody SetPermissions r) {
+        return uc.setRolePermissions(id, r.permissionIds());
     }
 }

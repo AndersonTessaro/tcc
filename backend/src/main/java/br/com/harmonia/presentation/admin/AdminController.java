@@ -1,6 +1,6 @@
 package br.com.harmonia.presentation.admin;
 
-import br.com.harmonia.application.admin.AdminCadastroUseCase;
+import br.com.harmonia.application.admin.AdminRegistrationUseCase;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -15,38 +15,38 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/admin")
 public class AdminController {
-    private final AdminCadastroUseCase uc;
+    private final AdminRegistrationUseCase uc;
 
-    public AdminController(AdminCadastroUseCase uc) {
+    public AdminController(AdminRegistrationUseCase uc) {
         this.uc = uc;
     }
 
-    public record NovoUsuario(@NotBlank String username, @Email String email,
-                              @NotBlank @Size(min = 8) String senha, @NotBlank String nome) {}
-    public record NovoInstrumento(@NotBlank String nome) {}
-    public record NovaMatricula(@NotNull UUID alunoId, @NotNull UUID professorId, @NotNull UUID instrumentoId) {}
+    public record NewUser(@NotBlank String username, @Email String email,
+                          @NotBlank @Size(min = 8) String password, @NotBlank String name) {}
+    public record NewInstrument(@NotBlank String name) {}
+    public record NewEnrollment(@NotNull UUID studentId, @NotNull UUID teacherId, @NotNull UUID instrumentId) {}
 
-    @PostMapping("/alunos")
-    @PreAuthorize("hasAuthority('aluno.manage')")
-    public Map<String, UUID> aluno(@Valid @RequestBody NovoUsuario r) {
-        return Map.of("id", uc.criarAluno(r.username(), r.email(), r.senha(), r.nome()));
+    @PostMapping("/students")
+    @PreAuthorize("hasAuthority('student.manage')")
+    public Map<String, UUID> student(@Valid @RequestBody NewUser r) {
+        return Map.of("id", uc.createStudent(r.username(), r.email(), r.password(), r.name()));
     }
 
-    @PostMapping("/professores")
-    @PreAuthorize("hasAuthority('professor.manage')")
-    public Map<String, UUID> professor(@Valid @RequestBody NovoUsuario r) {
-        return Map.of("id", uc.criarProfessor(r.username(), r.email(), r.senha(), r.nome()));
+    @PostMapping("/teachers")
+    @PreAuthorize("hasAuthority('teacher.manage')")
+    public Map<String, UUID> teacher(@Valid @RequestBody NewUser r) {
+        return Map.of("id", uc.createTeacher(r.username(), r.email(), r.password(), r.name()));
     }
 
-    @PostMapping("/instrumentos")
-    @PreAuthorize("hasAuthority('instrumento.manage')")
-    public Map<String, UUID> instrumento(@Valid @RequestBody NovoInstrumento r) {
-        return Map.of("id", uc.criarInstrumento(r.nome()));
+    @PostMapping("/instruments")
+    @PreAuthorize("hasAuthority('instrument.manage')")
+    public Map<String, UUID> instrument(@Valid @RequestBody NewInstrument r) {
+        return Map.of("id", uc.createInstrument(r.name()));
     }
 
-    @PostMapping("/matriculas")
-    @PreAuthorize("hasAuthority('matricula.manage')")
-    public Map<String, UUID> matricula(@Valid @RequestBody NovaMatricula r) {
-        return Map.of("id", uc.criarMatricula(r.alunoId(), r.professorId(), r.instrumentoId()));
+    @PostMapping("/enrollments")
+    @PreAuthorize("hasAuthority('enrollment.manage')")
+    public Map<String, UUID> enrollment(@Valid @RequestBody NewEnrollment r) {
+        return Map.of("id", uc.createEnrollment(r.studentId(), r.teacherId(), r.instrumentId()));
     }
 }

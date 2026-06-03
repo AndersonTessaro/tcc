@@ -13,9 +13,9 @@ CREATE TABLE auth_permission (
 );
 
 CREATE TABLE auth_role_permissions (
-    role_id        BIGINT NOT NULL REFERENCES auth_role(id) ON DELETE CASCADE,
-    permissions_id BIGINT NOT NULL REFERENCES auth_permission(id) ON DELETE CASCADE,
-    PRIMARY KEY (role_id, permissions_id)
+    role_id       BIGINT NOT NULL REFERENCES auth_role(id) ON DELETE CASCADE,
+    permission_id BIGINT NOT NULL REFERENCES auth_permission(id) ON DELETE CASCADE,
+    PRIMARY KEY (role_id, permission_id)
 );
 
 CREATE TABLE auth_user (
@@ -24,15 +24,15 @@ CREATE TABLE auth_user (
     email          VARCHAR(255) NOT NULL UNIQUE,
     password       VARCHAR(100) NOT NULL,
     display_name   VARCHAR(150),
-    ativo          BOOLEAN NOT NULL DEFAULT TRUE,
+    active         BOOLEAN NOT NULL DEFAULT TRUE,
     email_verified BOOLEAN NOT NULL DEFAULT FALSE,
-    criado_em      TIMESTAMP NOT NULL DEFAULT now()
+    created_at     TIMESTAMP NOT NULL DEFAULT now()
 );
 
 CREATE TABLE auth_user_roles (
-    user_id  UUID   NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
-    roles_id BIGINT NOT NULL REFERENCES auth_role(id) ON DELETE CASCADE,
-    PRIMARY KEY (user_id, roles_id)
+    user_id UUID   NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    role_id BIGINT NOT NULL REFERENCES auth_role(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, role_id)
 );
 
 CREATE TABLE auth_refresh_token (

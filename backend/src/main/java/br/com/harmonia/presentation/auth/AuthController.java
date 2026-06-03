@@ -2,7 +2,7 @@ package br.com.harmonia.presentation.auth;
 
 import br.com.harmonia.application.security.AuthUseCase;
 import br.com.harmonia.application.security.PasswordResetUseCase;
-import br.com.harmonia.application.security.port.UsuarioRepository;
+import br.com.harmonia.application.security.port.UserRepository;
 import br.com.harmonia.presentation.auth.dto.*;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -18,17 +18,17 @@ import java.util.Map;
 public class AuthController {
     private final AuthUseCase auth;
     private final PasswordResetUseCase reset;
-    private final UsuarioRepository usuarios;
+    private final UserRepository users;
 
-    public AuthController(AuthUseCase auth, PasswordResetUseCase reset, UsuarioRepository usuarios) {
+    public AuthController(AuthUseCase auth, PasswordResetUseCase reset, UserRepository users) {
         this.auth = auth;
         this.reset = reset;
-        this.usuarios = usuarios;
+        this.users = users;
     }
 
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest req) {
-        return auth.login(req.login(), req.senha());
+        return auth.login(req.login(), req.password());
     }
 
     @PostMapping("/refresh")
@@ -44,11 +44,11 @@ public class AuthController {
 
     @GetMapping("/me")
     public Map<String, Object> me(@AuthenticationPrincipal Jwt jwt) {
-        var usuario = usuarios.findByUsername(jwt.getSubject()).orElseThrow();
+        var user = users.findByUsername(jwt.getSubject()).orElseThrow();
         Map<String, Object> body = new HashMap<>();
-        body.put("username", usuario.getUsername());
-        body.put("email", usuario.getEmail());
-        body.put("displayName", usuario.getDisplayName());
+        body.put("username", user.getUsername());
+        body.put("email", user.getEmail());
+        body.put("displayName", user.getDisplayName());
         body.put("authorities", jwt.getClaimAsStringList("authorities"));
         return body;
     }
@@ -61,7 +61,7 @@ public class AuthController {
 
     @PostMapping("/reset-password")
     public ResponseEntity<Void> reset(@Valid @RequestBody ResetPasswordRequest req) {
-        reset.reset(req.token(), req.novaSenha());
+        reset.reset(req.token(), req.newPassword());
         return ResponseEntity.noContent().build();
     }
 }

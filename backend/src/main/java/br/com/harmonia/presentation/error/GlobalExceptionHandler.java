@@ -1,7 +1,7 @@
 package br.com.harmonia.presentation.error;
 
 import br.com.harmonia.application.security.PasswordResetUseCase.InvalidResetTokenException;
-import br.com.harmonia.domain.comum.OwnershipException;
+import br.com.harmonia.domain.common.OwnershipException;
 import br.com.harmonia.infrastructure.security.TokenService.BadRefreshTokenException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +19,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiError> badCredentials(BadCredentialsException e) {
-        return build(HttpStatus.UNAUTHORIZED, "BAD_CREDENTIALS", "Login ou senha inválidos", List.of());
+        return build(HttpStatus.UNAUTHORIZED, "BAD_CREDENTIALS", "Invalid login or password", List.of());
     }
 
     @ExceptionHandler(BadRefreshTokenException.class)
@@ -34,7 +34,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> denied(AccessDeniedException e) {
-        return build(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "Sem permissão", List.of());
+        return build(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "Forbidden", List.of());
     }
 
     @ExceptionHandler(OwnershipException.class)
@@ -46,7 +46,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> validation(MethodArgumentNotValidException e) {
         var fields = e.getBindingResult().getFieldErrors().stream()
             .map(f -> f.getField() + ": " + f.getDefaultMessage()).toList();
-        return build(HttpStatus.UNPROCESSABLE_ENTITY, "VALIDATION", "Dados inválidos", fields);
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, "VALIDATION", "Invalid data", fields);
     }
 
     private ResponseEntity<ApiError> build(HttpStatus st, String code, String msg, List<String> fields) {

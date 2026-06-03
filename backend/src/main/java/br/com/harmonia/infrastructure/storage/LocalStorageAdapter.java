@@ -10,7 +10,7 @@ import java.nio.file.Path;
 import java.util.UUID;
 
 @Component
-public class LocalStorageAdapter implements ArquivoStoragePort {
+public class LocalStorageAdapter implements FileStoragePort {
     private final Path root;
 
     public LocalStorageAdapter(@Value("${app.storage.local-dir:./storage}") String dir) throws IOException {
@@ -19,11 +19,11 @@ public class LocalStorageAdapter implements ArquivoStoragePort {
     }
 
     @Override
-    public String salvar(String nomeArquivo, byte[] conteudo) {
+    public String save(String fileName, byte[] content) {
         try {
-            String safe = (nomeArquivo == null ? "arquivo" : nomeArquivo).replaceAll("[^A-Za-z0-9._-]", "_");
+            String safe = (fileName == null ? "file" : fileName).replaceAll("[^A-Za-z0-9._-]", "_");
             String key = UUID.randomUUID() + "_" + safe;
-            Files.write(root.resolve(key), conteudo);
+            Files.write(root.resolve(key), content);
             return key;
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -31,7 +31,7 @@ public class LocalStorageAdapter implements ArquivoStoragePort {
     }
 
     @Override
-    public byte[] ler(String storagePath) {
+    public byte[] read(String storagePath) {
         try {
             return Files.readAllBytes(root.resolve(storagePath));
         } catch (IOException e) {

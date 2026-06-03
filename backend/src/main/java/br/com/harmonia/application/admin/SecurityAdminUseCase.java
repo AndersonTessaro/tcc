@@ -2,10 +2,10 @@ package br.com.harmonia.application.admin;
 
 import br.com.harmonia.application.security.port.PermissionRepository;
 import br.com.harmonia.application.security.port.RoleRepository;
-import br.com.harmonia.application.security.port.UsuarioRepository;
+import br.com.harmonia.application.security.port.UserRepository;
 import br.com.harmonia.infrastructure.persistence.security.Permission;
 import br.com.harmonia.infrastructure.persistence.security.Role;
-import br.com.harmonia.infrastructure.persistence.security.Usuario;
+import br.com.harmonia.infrastructure.persistence.security.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,61 +18,61 @@ import java.util.UUID;
 
 @Service
 public class SecurityAdminUseCase {
-    private final UsuarioRepository usuarios;
+    private final UserRepository users;
     private final RoleRepository roles;
     private final PermissionRepository permissions;
     private final PasswordEncoder encoder;
 
-    public SecurityAdminUseCase(UsuarioRepository usuarios, RoleRepository roles,
+    public SecurityAdminUseCase(UserRepository users, RoleRepository roles,
                                 PermissionRepository permissions, PasswordEncoder encoder) {
-        this.usuarios = usuarios;
+        this.users = users;
         this.roles = roles;
         this.permissions = permissions;
         this.encoder = encoder;
     }
 
-    public List<Usuario> listarUsuarios() {
-        return usuarios.findAll();
+    public List<User> listUsers() {
+        return users.findAll();
     }
 
-    public List<Role> listarRoles() {
+    public List<Role> listRoles() {
         return roles.findAll();
     }
 
-    public List<Permission> listarPermissoes() {
+    public List<Permission> listPermissions() {
         return permissions.findAll();
     }
 
     @Transactional
-    public Usuario definirRoles(UUID userId, Set<Long> roleIds) {
-        Usuario u = usuarios.findById(userId).orElseThrow(() -> new NoSuchElementException("usuário"));
+    public User setRoles(UUID userId, Set<Long> roleIds) {
+        User u = users.findById(userId).orElseThrow(() -> new NoSuchElementException("user"));
         u.setRoles(new LinkedHashSet<>(roles.findAllById(roleIds)));
-        return usuarios.save(u);
+        return users.save(u);
     }
 
     @Transactional
-    public void definirStatus(UUID userId, boolean ativo) {
-        Usuario u = usuarios.findById(userId).orElseThrow(() -> new NoSuchElementException("usuário"));
-        u.setAtivo(ativo);
-        usuarios.save(u);
+    public void setStatus(UUID userId, boolean active) {
+        User u = users.findById(userId).orElseThrow(() -> new NoSuchElementException("user"));
+        u.setActive(active);
+        users.save(u);
     }
 
     @Transactional
-    public void resetarSenha(UUID userId, String novaSenha) {
-        Usuario u = usuarios.findById(userId).orElseThrow(() -> new NoSuchElementException("usuário"));
-        u.setPassword(encoder.encode(novaSenha));
-        usuarios.save(u);
+    public void resetPassword(UUID userId, String newPassword) {
+        User u = users.findById(userId).orElseThrow(() -> new NoSuchElementException("user"));
+        u.setPassword(encoder.encode(newPassword));
+        users.save(u);
     }
 
     @Transactional
-    public Role definirPermissoesDaRole(Long roleId, Set<Long> permIds) {
+    public Role setRolePermissions(Long roleId, Set<Long> permIds) {
         Role r = roles.findById(roleId).orElseThrow(() -> new NoSuchElementException("role"));
         r.setPermissions(new LinkedHashSet<>(permissions.findAllById(permIds)));
         return roles.save(r);
     }
 
     @Transactional
-    public Role criarRole(String name, String description) {
+    public Role createRole(String name, String description) {
         Role r = new Role();
         r.setName(name);
         r.setDescription(description);

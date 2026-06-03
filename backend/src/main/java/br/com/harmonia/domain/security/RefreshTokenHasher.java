@@ -23,7 +23,7 @@ public class RefreshTokenHasher {
             for (byte b : digest) sb.append(String.format("%02x", b));
             return sb.toString();
         } catch (Exception e) {
-            throw new IllegalStateException("SHA-256 indisponível", e);
+            throw new IllegalStateException("SHA-256 unavailable", e);
         }
     }
 }

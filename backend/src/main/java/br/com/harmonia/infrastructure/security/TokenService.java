@@ -3,7 +3,7 @@ package br.com.harmonia.infrastructure.security;
 import br.com.harmonia.application.security.port.RefreshTokenRepository;
 import br.com.harmonia.domain.security.RefreshTokenHasher;
 import br.com.harmonia.infrastructure.persistence.security.RefreshToken;
-import br.com.harmonia.infrastructure.persistence.security.Usuario;
+import br.com.harmonia.infrastructure.persistence.security.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -46,8 +46,8 @@ public class TokenService {
         return encoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
     }
 
-    /** Cria refresh token, persiste só o hash, devolve o valor cru. */
-    public String issueRefreshToken(Usuario user) {
+    /** Creates refresh token, persists only the hash, returns the raw value. */
+    public String issueRefreshToken(User user) {
         String raw = hasher.newOpaqueToken();
         RefreshToken rt = new RefreshToken();
         rt.setTokenHash(hasher.sha256Hex(raw));
@@ -59,8 +59,8 @@ public class TokenService {
 
     public RefreshToken validateRefreshToken(String raw) {
         RefreshToken rt = refreshTokens.findByTokenHash(hasher.sha256Hex(raw))
-            .orElseThrow(() -> new BadRefreshTokenException("Refresh token inválido"));
-        if (!rt.isActive()) throw new BadRefreshTokenException("Refresh token expirado ou revogado");
+            .orElseThrow(() -> new BadRefreshTokenException("Invalid refresh token"));
+        if (!rt.isActive()) throw new BadRefreshTokenException("Refresh token expired or revoked");
         return rt;
     }
 

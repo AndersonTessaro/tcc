@@ -23,7 +23,7 @@ class AuthFlowIT {
     @Test
     void login_then_me_then_refresh() throws Exception {
         String body = mvc.perform(post("/auth/login").contentType("application/json")
-                .content("{\"login\":\"admin\",\"senha\":\"Admin@123\"}"))
+                .content("{\"login\":\"admin\",\"password\":\"Admin@123\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.accessToken", not(emptyString())))
             .andExpect(jsonPath("$.authorities", hasItem("ROLE_ADMIN")))
@@ -54,7 +54,7 @@ class AuthFlowIT {
     @Test
     void login_badCredentials_is401() throws Exception {
         mvc.perform(post("/auth/login").contentType("application/json")
-                .content("{\"login\":\"admin\",\"senha\":\"errada\"}"))
+                .content("{\"login\":\"admin\",\"password\":\"errada\"}"))
             .andExpect(status().isUnauthorized());
     }
 }

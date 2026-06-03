@@ -1,7 +1,7 @@
 package br.com.harmonia.application.security;
 
 import br.com.harmonia.application.security.port.PasswordResetTokenRepository;
-import br.com.harmonia.application.security.port.UsuarioRepository;
+import br.com.harmonia.application.security.port.UserRepository;
 import br.com.harmonia.domain.security.RefreshTokenHasher;
 import br.com.harmonia.infrastructure.email.EmailSenderPort;
 import br.com.harmonia.infrastructure.persistence.security.PasswordResetToken;
@@ -13,15 +13,15 @@ import java.time.LocalDateTime;
 
 @Service
 public class PasswordResetUseCase {
-    private final UsuarioRepository usuarios;
+    private final UserRepository users;
     private final PasswordResetTokenRepository tokens;
     private final EmailSenderPort email;
     private final PasswordEncoder encoder;
     private final RefreshTokenHasher hasher = new RefreshTokenHasher();
 
-    public PasswordResetUseCase(UsuarioRepository usuarios, PasswordResetTokenRepository tokens,
+    public PasswordResetUseCase(UserRepository users, PasswordResetTokenRepository tokens,
                                 EmailSenderPort email, PasswordEncoder encoder) {
-        this.usuarios = usuarios;
+        this.users = users;
         this.tokens = tokens;
         this.email = email;
         this.encoder = encoder;
@@ -29,28 +29,29 @@ public class PasswordResetUseCase {
 
     @Transactional
     public void forgot(String emailAddr) {
-        usuarios.findByEmail(emailAddr).ifPresent(user -> {
+        users.findByEmail(emailAddr).ifPresent(user -> {
             String raw = hasher.newOpaqueToken();
             PasswordResetToken prt = new PasswordResetToken();
             prt.setTokenHash(hasher.sha256Hex(raw));
             prt.setUser(user);
             prt.setExpiresAt(LocalDateTime.now().plusMinutes(30));
             tokens.save(prt);
+            // Texto de e-mail exibido ao usuário — mantido em português.
             email.send(user.getEmail(), "Recuperação de senha",
                 "Use este token para redefinir sua senha: " + raw);
         });
-        // resposta sempre 204 — não revela se e-mail existe
+        // always 204 — does not reveal whether the email exists
     }
 
     @Transactional
-    public void reset(String rawToken, String novaSenha) {
+    public void reset(String rawToken, String newPassword) {
         PasswordResetToken prt = tokens.findByTokenHash(hasher.sha256Hex(rawToken))
-            .orElseThrow(() -> new InvalidResetTokenException("Token inválido"));
+            .orElseThrow(() -> new InvalidResetTokenException("Invalid token"));
         if (prt.isUsed() || prt.getExpiresAt().isBefore(LocalDateTime.now()))
-            throw new InvalidResetTokenException("Token expirado ou já usado");
+            throw new InvalidResetTokenException("Token expired or already used");
         var user = prt.getUser();
-        user.setPassword(encoder.encode(novaSenha));
-        usuarios.save(user);
+        user.setPassword(encoder.encode(newPassword));
+        users.save(user);
         prt.setUsed(true);
         tokens.save(prt);
     }

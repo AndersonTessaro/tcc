@@ -1,7 +1,7 @@
 package br.com.harmonia.infrastructure.persistence.material;
 
-import br.com.harmonia.infrastructure.persistence.perfil.Aluno;
-import br.com.harmonia.infrastructure.persistence.perfil.Professor;
+import br.com.harmonia.infrastructure.persistence.profile.Student;
+import br.com.harmonia.infrastructure.persistence.profile.Teacher;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -17,20 +17,20 @@ public class Material {
     private UUID id;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "professor_id")
-    private Professor professor;
+    @JoinColumn(name = "teacher_id")
+    private Teacher teacher;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "aluno_id")
-    private Aluno aluno;
+    @JoinColumn(name = "student_id")
+    private Student student;
 
     @Column(nullable = false)
-    private String titulo;
+    private String title;
 
-    private String descricao;
+    private String description;
 
-    @Column(name = "nome_arquivo", nullable = false)
-    private String nomeArquivo;
+    @Column(name = "file_name", nullable = false)
+    private String fileName;
 
     @Column(name = "storage_path", nullable = false)
     private String storagePath;
@@ -38,9 +38,9 @@ public class Material {
     @Column(name = "content_type")
     private String contentType;
 
-    @Column(name = "tamanho_bytes")
-    private Long tamanhoBytes;
+    @Column(name = "size_bytes")
+    private Long sizeBytes;
 
-    @Column(name = "criado_em", nullable = false)
-    private LocalDateTime criadoEm = LocalDateTime.now();
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
 }

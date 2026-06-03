@@ -3,5 +3,5 @@ package br.com.harmonia.presentation.auth.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-public record ResetPasswordRequest(@NotBlank String token, @NotBlank @Size(min = 8) String novaSenha) {
+public record ResetPasswordRequest(@NotBlank String token, @NotBlank @Size(min = 8) String newPassword) {
 }

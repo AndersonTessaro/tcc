@@ -21,7 +21,7 @@ class AuthorizationIT {
 
     private String loginAdmin() throws Exception {
         String body = mvc.perform(post("/auth/login").contentType("application/json")
-                .content("{\"login\":\"admin\",\"senha\":\"Admin@123\"}"))
+                .content("{\"login\":\"admin\",\"password\":\"Admin@123\"}"))
             .andReturn().getResponse().getContentAsString();
         return JsonPath.read(body, "$.accessToken");
     }
