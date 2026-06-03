@@ -211,6 +211,7 @@ Os planos foram escritos com premissas Spring Boot 3. Diferenças reais do Boot 
 
 ## Documentação (docs/)
 - `docs/modelo-de-dados.md` — ER (Mermaid) + dicionário das 20 entidades + RBAC/PBAC.
+- `docs/diagramas-uml.md` — UML (Mermaid): casos de uso, classes, 3 sequências, componentes.
 - `docs/superpowers/specs/2026-05-31-harmonia-mvp-design.md` — spec do MVP (API, segurança, gamificação).
 - `docs/superpowers/plans/2026-05-31-backend-foundation-security.md` — **Plano 1** (auth/RBAC/JWT).
 - `docs/superpowers/plans/2026-05-31-backend-domain-endpoints.md` — **Plano 2** (domínio + `/me` + `/professor`).
@@ -223,7 +224,7 @@ Os planos foram escritos com premissas Spring Boot 3. Diferenças reais do Boot 
 7. ✅ **Plano 2 executado** (domínio + `/me` + `/professor` + gamificação) ·
 8. ✅ **Plano 3 executado** (mobile Expo — branch `feat/mobile-expo`; tsc clean, jest verde; falta smoke test E2E c/ backend no ar) ·
 9. ✅ **Plano 4 executado** (escopo **só Admin Configurador** — mobile já cobre Aluno/Professor; Tasks 5-6 de paridade puladas por decisão). Backend `/admin/security/*` (Task 1, 3 IT) + web Vite/React. tsc/vitest/build verdes; falta smoke E2E. ·
-10. ⏭️ Figma Admin + diagramas UML (entrega TCC).
+10. 🔶 Entrega TCC: ✅ diagramas UML (`docs/diagramas-uml.md`) · ⏭️ Figma Admin · ⏭️ smoke E2E.
 
 > Build/test backend: `cd backend && docker compose up -d && ./mvnw verify` (14 IT). Admin: `admin`/`Admin@123`.
 > Mobile: `cd mobile && npm start` (Expo SDK 56, router em `src/app`). Test/typecheck: `npx jest && npx tsc --noEmit`.
