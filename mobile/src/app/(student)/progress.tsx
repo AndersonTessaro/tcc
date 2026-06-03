@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { ScrollView, Text } from "react-native";
-import { alunoService } from "@/features/aluno/alunoService";
+import { studentService } from "@/features/student/studentService";
 import { Card } from "@/ui/Card";
 import { XpBar } from "@/ui/XpBar";
 
-export default function Progresso() {
+export default function Progress() {
   const [p, setP] = useState<any>(null);
   useEffect(() => {
-    alunoService.progresso().then(setP).catch(() => {});
+    studentService.progress().then(setP).catch(() => {});
   }, []);
 
   if (!p) return <Text className="text-white p-6">Carregando...</Text>;
@@ -15,13 +15,13 @@ export default function Progresso() {
   return (
     <ScrollView className="flex-1 bg-bg p-6">
       <Card>
-        <XpBar xp={p.xpTotal} nivel={p.nivel} />
+        <XpBar xp={p.xpTotal} level={p.level} />
       </Card>
       <Card>
-        <Text className="text-white">Sequência: {p.sequenciaDias} dias</Text>
+        <Text className="text-white">Sequência: {p.streakDays} dias</Text>
       </Card>
       <Card>
-        <Text className="text-white">Tempo total: {p.tempoPraticaTotalMin} min</Text>
+        <Text className="text-white">Tempo total: {p.totalPracticeMin} min</Text>
       </Card>
     </ScrollView>
   );

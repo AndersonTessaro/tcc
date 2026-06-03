@@ -9,8 +9,8 @@ export type AuthResponse = {
 };
 
 export const authService = {
-  async login(login: string, senha: string) {
-    const res = await api.post<AuthResponse>("/auth/login", { login, senha });
+  async login(login: string, password: string) {
+    const res = await api.post<AuthResponse>("/auth/login", { login, password });
     await tokenStorage.set(res.accessToken, res.refreshToken);
     return res;
   },
@@ -26,6 +26,6 @@ export const authService = {
   },
 };
 
-export const isProfessor = (u: AuthResponse | null) =>
-  !!u?.authorities.includes("ROLE_PROFESSOR");
-export const isAluno = (u: AuthResponse | null) => !!u?.authorities.includes("ROLE_ALUNO");
+export const isTeacher = (u: AuthResponse | null) =>
+  !!u?.authorities.includes("ROLE_TEACHER");
+export const isStudent = (u: AuthResponse | null) => !!u?.authorities.includes("ROLE_STUDENT");

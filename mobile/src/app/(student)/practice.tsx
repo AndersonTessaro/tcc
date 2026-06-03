@@ -1,18 +1,18 @@
 import { useState } from "react";
 import { View, Text, TextInput, Pressable } from "react-native";
-import { alunoService } from "@/features/aluno/alunoService";
+import { studentService } from "@/features/student/studentService";
 
-export default function Pratica() {
+export default function Practice() {
   const [min, setMin] = useState("30");
-  const [obs, setObs] = useState("");
+  const [notes, setNotes] = useState("");
   const [msg, setMsg] = useState("");
 
-  const registrar = async () => {
+  const register = async () => {
     setMsg("");
     try {
-      const prog = await alunoService.registrarPratica(Number(min), obs || undefined);
-      setMsg(`+XP! Total: ${prog.xpTotal} XP · Nível ${prog.nivel}`);
-      setObs("");
+      const prog = await studentService.registerPractice(Number(min), notes || undefined);
+      setMsg(`+XP! Total: ${prog.xpTotal} XP · Nível ${prog.level}`);
+      setNotes("");
     } catch {
       setMsg("Erro ao registrar");
     }
@@ -33,10 +33,10 @@ export default function Pratica() {
         className="bg-white/10 text-white rounded-xl p-4 mb-4"
         placeholder="O que estudou?"
         placeholderTextColor="#9ca3af"
-        value={obs}
-        onChangeText={setObs}
+        value={notes}
+        onChangeText={setNotes}
       />
-      <Pressable className="bg-accent rounded-xl p-4 items-center" onPress={registrar}>
+      <Pressable className="bg-accent rounded-xl p-4 items-center" onPress={register}>
         <Text className="text-white font-semibold">Registrar</Text>
       </Pressable>
       {msg ? <Text className="text-accent mt-4">{msg}</Text> : null}
