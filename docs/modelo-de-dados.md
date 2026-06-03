@@ -11,217 +11,220 @@ entidades de Admin existem no schema mas seus fluxos/telas são fase 2.
 
 ## Diagrama ER
 
+> Nomes de tabela/coluna em **inglês** (ver `glossario-en.md`). Texto de tela permanece em português.
+
 ```mermaid
 erDiagram
-    USUARIO ||--o| ALUNO : "é"
-    USUARIO ||--o| PROFESSOR : "é"
-    USUARIO ||--o{ PASSWORD_RESET_TOKEN : "solicita"
-    USUARIO ||--o{ REFRESH_TOKEN : "emite"
-    USUARIO }o--o{ ROLE : "auth_user_roles"
+    USER ||--o| STUDENT : "é"
+    USER ||--o| TEACHER : "é"
+    USER ||--o{ PASSWORD_RESET_TOKEN : "solicita"
+    USER ||--o{ REFRESH_TOKEN : "emite"
+    USER }o--o{ ROLE : "auth_user_roles"
     ROLE }o--o{ PERMISSION : "auth_role_permissions"
 
-    ALUNO ||--|| PROGRESSO : "possui"
-    ALUNO ||--o{ MATRICULA : "tem"
-    PROFESSOR ||--o{ MATRICULA : "leciona"
-    INSTRUMENTO ||--o{ MATRICULA : "de"
-    TURMA |o--o{ MATRICULA : "organiza"
+    STUDENT ||--|| PROGRESS : "possui"
+    STUDENT ||--o{ ENROLLMENT : "tem"
+    TEACHER ||--o{ ENROLLMENT : "leciona"
+    INSTRUMENT ||--o{ ENROLLMENT : "de"
+    CLASS_GROUP |o--o{ ENROLLMENT : "organiza"
 
-    PROFESSOR ||--o{ TURMA : "responsável"
-    INSTRUMENTO |o--o{ TURMA : "foco"
-    PROFESSOR }o--o{ INSTRUMENTO : "ensina (professor_instrumento)"
+    TEACHER ||--o{ CLASS_GROUP : "responsável"
+    INSTRUMENT |o--o{ CLASS_GROUP : "foco"
+    TEACHER }o--o{ INSTRUMENT : "ensina (teacher_instrument)"
 
-    MATRICULA ||--o{ AULA : "gera"
-    MATRICULA ||--o{ HORARIO : "agenda recorrente"
+    ENROLLMENT ||--o{ LESSON : "gera"
+    ENROLLMENT ||--o{ SCHEDULE : "agenda recorrente"
 
-    AULA ||--o| FREQUENCIA : "registra"
-    AULA ||--o{ ANEXO_AULA : "contém"
-    AULA ||--o| REPOSICAO : "origina"
+    LESSON ||--o| ATTENDANCE : "registra"
+    LESSON ||--o{ LESSON_ATTACHMENT : "contém"
+    LESSON ||--o| MAKEUP_LESSON : "origina"
 
-    ALUNO ||--o{ PRATICA : "registra"
-    INSTRUMENTO |o--o{ PRATICA : "de"
-    ALUNO ||--o{ META : "persegue"
-    PROFESSOR |o--o{ META : "atribui"
+    STUDENT ||--o{ PRACTICE : "registra"
+    INSTRUMENT |o--o{ PRACTICE : "de"
+    STUDENT ||--o{ GOAL : "persegue"
+    TEACHER |o--o{ GOAL : "atribui"
 
-    PROFESSOR ||--o{ MATERIAL : "envia"
-    ALUNO ||--o{ MATERIAL : "recebe"
+    TEACHER ||--o{ MATERIAL : "envia"
+    STUDENT ||--o{ MATERIAL : "recebe"
 
-    ALUNO |o--o{ MOVIMENTACAO_FINANCEIRA : "referente"
+    STUDENT |o--o{ FINANCIAL_TRANSACTION : "referente"
 
-    USUARIO {
+    USER {
         uuid id PK
         string username UK
         string email UK
-        string senha_hash "BCrypt"
+        string password "BCrypt"
         string display_name
-        boolean ativo
+        boolean active
         boolean email_verified
-        timestamp criado_em
+        timestamp created_at
     }
     ROLE {
         bigint id PK
-        string name UK "ALUNO|PROFESSOR|ADMIN|..."
+        string name UK "STUDENT|TEACHER|ADMIN|..."
         string description
     }
     PERMISSION {
         bigint id PK
-        string name UK "dominio.acao"
+        string name UK "domain.action"
         string description
     }
     REFRESH_TOKEN {
         uuid id PK
-        uuid usuario_id FK
+        uuid user_id FK
         string token_hash UK "SHA-256, 64"
         timestamp expires_at
         timestamp revoked_at "nullable"
     }
-    ALUNO {
+    STUDENT {
         uuid id PK
-        uuid usuario_id FK,UK
-        date data_nascimento
-        string telefone
+        uuid user_id FK,UK
+        date birth_date
+        string phone
     }
-    PROFESSOR {
+    TEACHER {
         uuid id PK
-        uuid usuario_id FK,UK
+        uuid user_id FK,UK
         string bio
     }
-    PROGRESSO {
+    PROGRESS {
         uuid id PK
-        uuid aluno_id FK,UK
+        uuid student_id FK,UK
         int xp_total
-        int nivel
-        int sequencia_dias "streak"
-        date ultima_pratica
-        int tempo_pratica_total_min
-        timestamp atualizado_em
+        int level
+        int streak_days
+        date last_practice
+        int total_practice_min
+        timestamp updated_at
     }
-    INSTRUMENTO {
+    INSTRUMENT {
         uuid id PK
-        string nome UK
-        boolean ativo
+        string name UK
+        boolean active
     }
-    TURMA {
+    CLASS_GROUP {
         uuid id PK
-        string nome
-        uuid professor_id FK
-        uuid instrumento_id FK "nullable"
-        boolean ativo
+        string name
+        uuid teacher_id FK
+        uuid instrument_id FK "nullable"
+        boolean active
     }
-    MATRICULA {
+    ENROLLMENT {
         uuid id PK
-        uuid aluno_id FK
-        uuid professor_id FK
-        uuid instrumento_id FK
-        uuid turma_id FK "nullable"
-        date data_inicio
-        enum status "ATIVA|TRANCADA|ENCERRADA"
+        uuid student_id FK
+        uuid teacher_id FK
+        uuid instrument_id FK
+        uuid class_group_id FK "nullable"
+        date start_date
+        enum status "ACTIVE|SUSPENDED|CLOSED"
     }
-    HORARIO {
+    SCHEDULE {
         uuid id PK
-        uuid matricula_id FK
-        enum dia_semana
-        time hora_inicio
-        time hora_fim
-        boolean ativo
+        uuid enrollment_id FK
+        enum weekday
+        time start_time
+        time end_time
+        boolean active
     }
-    AULA {
+    LESSON {
         uuid id PK
-        uuid matricula_id FK
-        date data
-        time hora_inicio
-        time hora_fim
-        enum status "AGENDADA|REALIZADA|CANCELADA"
-        string conteudo
-        string tarefa_casa
-        string observacoes
-        timestamp criado_em
+        uuid enrollment_id FK
+        date date
+        time start_time
+        time end_time
+        enum status "SCHEDULED|DONE|CANCELED"
+        string content
+        string homework
+        string notes
+        timestamp created_at
     }
-    FREQUENCIA {
+    ATTENDANCE {
         uuid id PK
-        uuid aula_id FK,UK
-        enum status "PRESENTE|FALTA|FALTA_JUSTIFICADA"
-        string justificativa "nullable"
-        timestamp registrado_em
+        uuid lesson_id FK,UK
+        enum status "PRESENT|ABSENT|EXCUSED"
+        string justification "nullable"
+        timestamp registered_at
     }
-    REPOSICAO {
+    MAKEUP_LESSON {
         uuid id PK
-        uuid aula_original_id FK,UK
-        uuid aula_nova_id FK,UK
-        string motivo
-        timestamp criado_em
+        uuid original_lesson_id FK,UK
+        uuid new_lesson_id FK,UK
+        string reason
+        timestamp created_at
     }
-    ANEXO_AULA {
+    LESSON_ATTACHMENT {
         uuid id PK
-        uuid aula_id FK
-        string nome_arquivo
+        uuid lesson_id FK
+        string file_name
         string storage_path
         string content_type
-        long tamanho_bytes
-        timestamp criado_em
+        long size_bytes
+        timestamp created_at
     }
     MATERIAL {
         uuid id PK
-        uuid professor_id FK
-        uuid aluno_id FK
-        string titulo
-        string descricao
-        string nome_arquivo
+        uuid teacher_id FK
+        uuid student_id FK
+        string title
+        string description
+        string file_name
         string storage_path
         string content_type
-        long tamanho_bytes
-        timestamp criado_em
+        long size_bytes
+        timestamp created_at
     }
-    PRATICA {
+    PRACTICE {
         uuid id PK
-        uuid aluno_id FK
-        uuid instrumento_id FK "nullable"
-        date data
-        int duracao_min
-        string observacao
-        int xp_ganho
-        timestamp criado_em
+        uuid student_id FK
+        uuid instrument_id FK "nullable"
+        date date
+        int duration_min
+        string notes
+        int xp_earned
+        timestamp created_at
     }
-    META {
+    GOAL {
         uuid id PK
-        uuid aluno_id FK
-        uuid criado_por_professor_id FK "nullable"
-        string titulo
-        string descricao
-        enum tipo "SEQUENCIA|TEMPO_PRATICA|AULAS|FREQUENCIA|OUTRO"
-        int alvo
-        int progresso_atual
-        enum status "ATIVA|CONCLUIDA"
-        date prazo "nullable"
-        timestamp criado_em
-        timestamp concluida_em "nullable"
+        uuid student_id FK
+        uuid created_by_teacher_id FK "nullable"
+        string title
+        string description
+        enum type "STREAK|PRACTICE_TIME|LESSONS|ATTENDANCE|OTHER"
+        int target
+        int current_progress
+        enum status "ACTIVE|COMPLETED"
+        date deadline "nullable"
+        timestamp created_at
+        timestamp completed_at "nullable"
     }
-    MOVIMENTACAO_FINANCEIRA {
+    FINANCIAL_TRANSACTION {
         uuid id PK
-        enum tipo "RECEITA|DESPESA"
-        decimal valor
-        string descricao
-        string categoria
-        date data
-        uuid aluno_id FK "nullable"
-        timestamp criado_em
+        enum type "INCOME|EXPENSE"
+        decimal amount
+        string description
+        string category
+        date date
+        uuid student_id FK "nullable"
+        timestamp created_at
     }
     PASSWORD_RESET_TOKEN {
         uuid id PK
-        uuid usuario_id FK
-        string token UK
-        timestamp expira_em
-        boolean usado
+        uuid user_id FK
+        string token_hash UK
+        timestamp expires_at
+        boolean used
     }
-    CONFIGURACAO {
+    SETTING {
         uuid id PK
-        string chave UK
-        string valor
-        string descricao
+        string key UK
+        string value
+        string description
     }
 ```
 
-> `CONFIGURACAO` e `PERMISSAO` ficam fora do diagrama de relações (tabelas independentes /
-> fase 2). `RELATORIO` **não é tabela** — é resultado de queries de agregação (RF18/RF30).
+> `SETTING` e `PERMISSION` ficam fora do diagrama de relações (tabelas independentes /
+> fase 2). `REPORT` **não é tabela** — é resultado de queries de agregação (RF18/RF30).
+> `SCHEDULE`, `MAKEUP_LESSON`, `FINANCIAL_TRANSACTION`, `SETTING` são fase posterior.
 
 ---
 

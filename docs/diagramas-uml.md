@@ -74,17 +74,17 @@ flowchart LR
 ## 2. Diagrama de classes
 
 Modelo de domínio (entidades de negócio + núcleo de segurança RBAC/PBAC). Reflete o ER, com
-foco em atributos e métodos de negócio. `Administrador` = `Usuario` com role `ADMIN` (sem classe
-própria).
+foco em atributos e métodos de negócio. `Administrator` = `User` com role `ADMIN` (sem classe
+própria). Nomes em inglês (ver `glossario-en.md`).
 
 ```mermaid
 classDiagram
-    class Usuario {
+    class User {
         +UUID id
         +String username
         +String email
         +String password
-        +boolean ativo
+        +boolean active
         +getAuthorities() Collection
     }
     class Role {
@@ -104,79 +104,83 @@ classDiagram
         +LocalDateTime revokedAt
     }
 
-    class Aluno {
+    class Student {
         +UUID id
     }
-    class Professor {
+    class Teacher {
         +UUID id
     }
-    class Instrumento {
+    class Instrument {
         +UUID id
-        +String nome
+        +String name
     }
-    class Matricula {
+    class Enrollment {
         +UUID id
     }
-    class Aula {
+    class Lesson {
         +UUID id
-        +LocalDate data
-        +LocalTime horaInicio
-        +String conteudo
-        +String tarefaCasa
-        +StatusAula status
+        +LocalDate date
+        +LocalTime startTime
+        +String content
+        +String homework
+        +LessonStatus status
     }
-    class Frequencia {
+    class Attendance {
         +UUID id
-        +StatusPresenca status
-        +String justificativa
+        +AttendanceStatus status
+        +String justification
     }
     class Material {
         +UUID id
-        +String titulo
-        +String arquivoUrl
+        +String title
+        +String fileName
     }
-    class Pratica {
+    class Practice {
         +UUID id
-        +int duracaoMin
-        +int xpGanho
-        +LocalDate data
+        +int durationMin
+        +int xpEarned
+        +LocalDate date
     }
-    class Progresso {
+    class Progress {
         +UUID id
         +int xpTotal
-        +int nivel
-        +int sequenciaDias
-        +int tempoTotalMin
-        +registrarPratica(Pratica)
-        +calcularNivel() int
+        +int level
+        +int streakDays
+        +int totalPracticeMin
     }
-    class Meta {
+    class Goal {
         +UUID id
-        +String titulo
-        +String tipo
-        +int alvo
-        +StatusMeta status
+        +String title
+        +GoalType type
+        +int target
+        +GoalStatus status
+    }
+    class GamificationService {
+        +xpFromPractice(int) int
+        +xpFromAttendance() int
+        +level(int) int
+        +newStreak(int, LocalDate, LocalDate) int
     }
 
-    Usuario "*" -- "*" Role
+    User "*" -- "*" Role
     Role "*" -- "*" Permission
-    Usuario "1" -- "*" RefreshToken
-    Usuario "1" -- "1" Aluno
-    Usuario "1" -- "1" Professor
+    User "1" -- "*" RefreshToken
+    User "1" -- "1" Student
+    User "1" -- "1" Teacher
 
-    Aluno "1" -- "*" Matricula
-    Professor "1" -- "*" Matricula
-    Instrumento "1" -- "*" Matricula
-    Professor "*" -- "*" Instrumento : ensina
+    Student "1" -- "*" Enrollment
+    Teacher "1" -- "*" Enrollment
+    Instrument "1" -- "*" Enrollment
+    Teacher "*" -- "*" Instrument : teaches
 
-    Matricula "1" -- "*" Aula
-    Aula "1" -- "0..1" Frequencia
-    Aluno "1" -- "*" Material : recebe
-    Professor "1" -- "*" Material : envia
+    Enrollment "1" -- "*" Lesson
+    Lesson "1" -- "0..1" Attendance
+    Student "1" -- "*" Material : receives
+    Teacher "1" -- "*" Material : sends
 
-    Aluno "1" -- "*" Pratica
-    Aluno "1" -- "1" Progresso
-    Aluno "1" -- "*" Meta
+    Student "1" -- "*" Practice
+    Student "1" -- "1" Progress
+    Student "1" -- "*" Goal
 ```
 
 ---
@@ -227,22 +231,21 @@ RF07 + RN07: prática gera XP, atualiza progresso (nível, sequência/streak).
 sequenceDiagram
     actor A as Aluno
     participant C as App (mobile/web)
-    participant API as MeController
-    participant UC as GamificacaoUseCase
-    participant DOM as Domínio (cálculo XP)
+    participant API as StudentController
+    participant UC as PracticeUseCase
+    participant DOM as GamificationService
     participant DB as PostgreSQL
 
     A->>C: informa duração + observação
-    C->>API: POST /me/praticas
-    API->>UC: registrarPratica(alunoId, duracaoMin)
-    UC->>DB: salva Pratica (xpGanho)
-    UC->>DB: carrega Progresso do aluno
-    UC->>DOM: progresso.registrarPratica(pratica)
-    DOM->>DOM: xpTotal += xp; nível = calcularNivel(); streak
-    DOM-->>UC: progresso atualizado
-    UC->>DB: salva Progresso
-    UC-->>API: progresso (xp, nível, streak)
-    API-->>C: 200 progresso atualizado
+    C->>API: POST /me/practices
+    API->>UC: register(studentId, durationMin)
+    UC->>DB: salva Practice (xpEarned)
+    UC->>DB: carrega Progress do aluno
+    UC->>DOM: level(xpTotal) + newStreak(...)
+    DOM-->>UC: xpTotal, level, streakDays
+    UC->>DB: salva Progress
+    UC-->>API: progress (xp, level, streakDays)
+    API-->>C: 200 progress atualizado
     C-->>A: feedback XP/nível
 ```
 
@@ -256,23 +259,23 @@ RF14 + RN08/RN09: professor marca presença; ownership garante só alunos vincul
 sequenceDiagram
     actor P as Professor
     participant C as App
-    participant API as ProfessorController
+    participant API as TeacherController
     participant SEC as Spring Security (@PreAuthorize)
-    participant UC as AulaUseCase
+    participant UC as AttendanceUseCase
     participant DB as PostgreSQL
 
-    P->>C: marca PRESENTE/FALTA/JUSTIFICADA
-    C->>API: POST /professor/aulas/{id}/frequencia
-    API->>SEC: hasAuthority('frequencia.manage')?
+    P->>C: marca PRESENT/ABSENT/EXCUSED
+    C->>API: POST /teacher/lessons/{id}/attendance
+    API->>SEC: hasAuthority('attendance.manage')?
     SEC-->>API: ok
-    API->>UC: registrarFrequencia(profId, aulaId, status)
-    UC->>DB: carrega aula + matrícula
-    UC->>UC: ownership: matricula.professor == profId? (RN12)
+    API->>UC: register(teacherId, lessonId, status)
+    UC->>DB: carrega lesson + enrollment
+    UC->>UC: ownership: enrollment.teacher == teacherId? (RN12)
     alt não vinculado
         UC-->>API: 403 Forbidden
     else vinculado
-        UC->>DB: salva/atualiza Frequencia
-        UC-->>API: 200 frequência registrada
+        UC->>DB: salva/atualiza Attendance
+        UC-->>API: 200 attendance registrada
     end
     API-->>C: resposta
 ```
