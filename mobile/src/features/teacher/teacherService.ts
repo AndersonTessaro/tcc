@@ -18,4 +18,21 @@ export const teacherService = {
     api.post<any>(`/teacher/lessons/${lessonId}/attendance`, { status, justification }),
   schedule: (date: string) => api.get<any[]>(`/teacher/schedule?date=${date}`),
   reports: (studentId: string) => api.get<any>(`/teacher/reports?studentId=${studentId}`),
+  uploadMaterial: (
+    studentId: string,
+    file: { uri: string; name: string; mimeType?: string },
+    title: string,
+    description?: string,
+  ) => {
+    const form = new FormData();
+    // React Native FormData accepts a {uri,name,type} object for files.
+    form.append("file", {
+      uri: file.uri,
+      name: file.name,
+      type: file.mimeType ?? "application/octet-stream",
+    } as unknown as Blob);
+    form.append("title", title);
+    if (description) form.append("description", description);
+    return api.postForm<any>(`/teacher/students/${studentId}/materials`, form);
+  },
 };

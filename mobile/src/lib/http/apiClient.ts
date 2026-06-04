@@ -26,23 +26,16 @@ export function createApiClient(deps: Deps) {
     return true;
   }
 
-  async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const send = async () => {
+  // Sends a request, retrying once after refreshing the token on 401.
+  async function withAuth<T>(send: (access: string | null) => Promise<Response>): Promise<T> {
+    const run = async () => {
       const { access } = await deps.getTokens();
-      return doFetch(`${deps.baseUrl}${path}`, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          ...(access ? { Authorization: `Bearer ${access}` } : {}),
-        },
-        body: body ? JSON.stringify(body) : undefined,
-      });
+      return send(access);
     };
-
-    let res = await send();
+    let res = await run();
     if (res.status === 401) {
       if (await refresh()) {
-        res = await send();
+        res = await run();
       } else {
         await deps.clearTokens();
         deps.onAuthFailure();
@@ -53,9 +46,34 @@ export function createApiClient(deps: Deps) {
     return res.json() as Promise<T>;
   }
 
+  function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    return withAuth<T>((access) =>
+      doFetch(`${deps.baseUrl}${path}`, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          ...(access ? { Authorization: `Bearer ${access}` } : {}),
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      }),
+    );
+  }
+
+  // Multipart upload. Content-Type is left unset so fetch adds the boundary.
+  function requestForm<T>(path: string, form: FormData): Promise<T> {
+    return withAuth<T>((access) =>
+      doFetch(`${deps.baseUrl}${path}`, {
+        method: "POST",
+        headers: access ? { Authorization: `Bearer ${access}` } : {},
+        body: form,
+      }),
+    );
+  }
+
   return {
     get: <T>(p: string) => request<T>("GET", p),
     post: <T>(p: string, b?: unknown) => request<T>("POST", p, b),
     put: <T>(p: string, b?: unknown) => request<T>("PUT", p, b),
+    postForm: <T>(p: string, form: FormData) => requestForm<T>(p, form),
   };
 }
