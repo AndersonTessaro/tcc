@@ -17,8 +17,14 @@ export default function Login() {
     try {
       await login(l, s);
       navigate("/", { replace: true });
-    } catch {
-      toast.error("Login ou senha inválidos");
+    } catch (err) {
+      // HTTP_401 = credenciais erradas; qualquer outro erro (rede/CORS/servidor) é de conexão.
+      const msg = err instanceof Error ? err.message : "";
+      toast.error(
+        msg.includes("401") || msg === "UNAUTHENTICATED"
+          ? "Login ou senha inválidos"
+          : "Falha ao conectar ao servidor",
+      );
     } finally {
       setBusy(false);
     }
