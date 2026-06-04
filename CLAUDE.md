@@ -226,7 +226,8 @@ Os planos foram escritos com premissas Spring Boot 3. Diferenças reais do Boot 
 9. ✅ **Plano 4 executado** (escopo **só Admin Configurador** — mobile já cobre Aluno/Professor; Tasks 5-6 de paridade puladas por decisão). Backend `/admin/security/*` (Task 1, 3 IT) + web Vite/React. tsc/vitest/build verdes; falta smoke E2E. ·
 10. 🔶 Entrega TCC: ✅ diagramas UML (`docs/diagramas-uml.md`) · ⏭️ Figma Admin · ⏭️ smoke E2E.
 
-> Build/test backend: `cd backend && docker compose up -d && ./mvnw verify` (14 IT). Admin: `admin`/`Admin@123`.
+> Build/test backend: `cd backend && docker compose up -d && ./mvnw verify` (20 IT). Admin: `admin`/`Admin@123`.
+> Pós-MVP backend: Setting (RF29 `/admin/settings`), Schedule (RF17/25 `/teacher/schedules`), MakeupLesson (RF26 `/teacher/lessons/{id}/makeup`), FinancialTransaction (RF27 `/admin/finance`). Mobile: upload de material (RF16) via `postForm`.
 > Mobile: `cd mobile && npm start` (Expo SDK 56, router em `src/app`). Test/typecheck: `npx jest && npx tsc --noEmit`.
 > Android emul: `EXPO_PUBLIC_API_URL=http://10.0.2.2:8080`.
 > Web: `cd web && npm run dev` (Vite 8, admin-only). Test/build: `npx vitest run && npm run build`. `VITE_API_BASE_URL` no `.env`.
