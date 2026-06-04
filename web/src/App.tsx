@@ -8,6 +8,7 @@ import Users from "@/features/admin/pages/Users";
 import Roles from "@/features/admin/pages/Roles";
 import Permissions from "@/features/admin/pages/Permissions";
 import Registrations from "@/features/admin/pages/Registrations";
+import Finance from "@/features/admin/pages/Finance";
 import Settings from "@/features/admin/pages/Settings";
 import { Button } from "@/components/ui";
 
@@ -53,6 +54,7 @@ export default function App() {
             <Route path="roles" element={<Roles />} />
             <Route path="permissions" element={<Permissions />} />
             <Route path="registrations" element={<Registrations />} />
+            <Route path="finance" element={<Finance />} />
             <Route path="settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -7,6 +7,7 @@ const nav = [
   { to: "/admin/roles", label: "Roles" },
   { to: "/admin/permissions", label: "Permissões" },
   { to: "/admin/registrations", label: "Cadastros" },
+  { to: "/admin/finance", label: "Financeiro" },
   { to: "/admin/settings", label: "Configurações" },
 ];
 

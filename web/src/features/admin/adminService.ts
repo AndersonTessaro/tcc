@@ -31,6 +31,32 @@ export const adminService = {
   createTeacher: (b: NewUser) => api.post<{ id: string }>("/admin/teachers", b),
   createEnrollment: (b: { studentId: string; teacherId: string; instrumentId: string }) =>
     api.post<{ id: string }>("/admin/enrollments", b),
+  // settings (RF29)
+  settings: () => api.get<SettingDto[]>("/admin/settings"),
+  upsertSetting: (key: string, value: string, description?: string) =>
+    api.put<SettingDto>(`/admin/settings/${encodeURIComponent(key)}`, { value, description }),
+  // finance (RF27)
+  transactions: () => api.get<TransactionDto[]>("/admin/finance/transactions"),
+  balance: () => api.get<{ balance: number }>("/admin/finance/balance"),
+  createTransaction: (b: NewTransaction) =>
+    api.post<TransactionDto>("/admin/finance/transactions", b),
 };
 
 export type NewUser = { username: string; email: string; password: string; name: string };
+export type SettingDto = { id: string; key: string; value: string; description: string | null };
+export type TransactionType = "INCOME" | "EXPENSE";
+export type TransactionDto = {
+  id: string;
+  type: TransactionType;
+  amount: number;
+  description: string | null;
+  category: string | null;
+  date: string;
+};
+export type NewTransaction = {
+  type: TransactionType;
+  amount: number;
+  description?: string;
+  category?: string;
+  date?: string;
+};
