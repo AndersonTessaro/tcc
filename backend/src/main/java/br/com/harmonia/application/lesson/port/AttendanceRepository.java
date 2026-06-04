@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface AttendanceRepository extends JpaRepository<Attendance, UUID> {
     Optional<Attendance> findByLessonId(UUID lessonId);
     long countByLessonEnrollmentTeacherIdAndStatus(UUID teacherId, AttendanceStatus status);
+    long countByLessonEnrollmentStudentIdAndStatus(UUID studentId, AttendanceStatus status);
 }

@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -73,6 +74,14 @@ class TeacherFlowIT {
         mvc.perform(get("/teacher/schedule?date=" + today).header("Authorization", "Bearer " + t))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()", greaterThanOrEqualTo(1)));
+
+        // report aggregation for the linked student (RF18)
+        mvc.perform(get("/teacher/students/" + student).header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.lessonsCount", greaterThanOrEqualTo(1)))
+            .andExpect(jsonPath("$.attendance.present", greaterThanOrEqualTo(1)))
+            .andExpect(jsonPath("$.attendance.rate", greaterThanOrEqualTo(0)))
+            .andExpect(jsonPath("$.goals.active", notNullValue()));
 
         // ownership: student not linked -> 403
         mvc.perform(get("/teacher/students/" + UUID.randomUUID()).header("Authorization", "Bearer " + t))

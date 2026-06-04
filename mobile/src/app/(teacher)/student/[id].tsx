@@ -55,6 +55,20 @@ export default function StudentDetail() {
           {prog ? `Nível ${prog.level} · ${prog.xpTotal} XP · ${prog.streakDays} dias` : "Sem progresso ainda"}
         </Text>
       </Card>
+      <Card>
+        <Text className="text-white">Aulas: {d.lessonsCount ?? 0}</Text>
+      </Card>
+      <Card>
+        <Text className="text-white">
+          Frequência: {d.attendance?.rate ?? 0}% · P {d.attendance?.present ?? 0} / F{" "}
+          {d.attendance?.absent ?? 0} / J {d.attendance?.excused ?? 0}
+        </Text>
+      </Card>
+      <Card>
+        <Text className="text-white">
+          Metas: {d.goals?.active ?? 0} ativas · {d.goals?.completed ?? 0} concluídas
+        </Text>
+      </Card>
 
       <Text className="text-white font-semibold mt-4 mb-2">Enviar material</Text>
       <TextInput

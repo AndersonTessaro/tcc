@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface GoalRepository extends JpaRepository<Goal, UUID> {
     List<Goal> findByStudentIdAndStatus(UUID studentId, GoalStatus status);
     List<Goal> findByStudentId(UUID studentId);
+    long countByStudentIdAndStatus(UUID studentId, GoalStatus status);
 }
