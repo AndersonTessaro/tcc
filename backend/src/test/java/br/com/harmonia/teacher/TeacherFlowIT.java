@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
@@ -86,5 +87,44 @@ class TeacherFlowIT {
         // ownership: student not linked -> 403
         mvc.perform(get("/teacher/students/" + UUID.randomUUID()).header("Authorization", "Bearer " + t))
             .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void attachMaterial_studentNotLinkedToTeacher_returns403() throws Exception {
+        String admin = login("admin", "Admin@123");
+        String teacher = postId(admin, "/admin/teachers",
+            "{\"username\":\"teacherIdorQ\",\"email\":\"teacherIdorQ@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher IdorQ\"}");
+        String student = postId(admin, "/admin/students",
+            "{\"username\":\"studentIdorQ\",\"email\":\"studentIdorQ@h.local\",\"password\":\"Student@123\",\"name\":\"Student IdorQ\"}");
+        // no enrollment created: teacher and student are not linked
+
+        String t = login("teacherIdorQ", "Teach@1234");
+        var file = new MockMultipartFile("file", "a.pdf", "application/pdf", new byte[] {1});
+
+        mvc.perform(multipart("/teacher/students/" + student + "/materials")
+                .file(file).param("title", "Aula 1")
+                .header("Authorization", "Bearer " + t))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void attachMaterial_studentLinkedToTeacher_returns2xx() throws Exception {
+        String admin = login("admin", "Admin@123");
+        String inst = postId(admin, "/admin/instruments",
+            "{\"name\":\"Instrument-" + UUID.randomUUID() + "\"}");
+        String teacher = postId(admin, "/admin/teachers",
+            "{\"username\":\"teacherIdorR\",\"email\":\"teacherIdorR@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher IdorR\"}");
+        String student = postId(admin, "/admin/students",
+            "{\"username\":\"studentIdorR\",\"email\":\"studentIdorR@h.local\",\"password\":\"Student@123\",\"name\":\"Student IdorR\"}");
+        postId(admin, "/admin/enrollments",
+            "{\"studentId\":\"" + student + "\",\"teacherId\":\"" + teacher + "\",\"instrumentId\":\"" + inst + "\"}");
+
+        String t = login("teacherIdorR", "Teach@1234");
+        var file = new MockMultipartFile("file", "a.pdf", "application/pdf", new byte[] {1});
+
+        mvc.perform(multipart("/teacher/students/" + student + "/materials")
+                .file(file).param("title", "Aula 1")
+                .header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk());
     }
 }
