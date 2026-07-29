@@ -1,10 +1,8 @@
-type Tokens = { access: string | null; refresh: string | null };
-
 type Deps = {
   baseUrl: string;
-  getTokens: () => Tokens;
-  setTokens: (a: string, r: string) => void;
-  clearTokens: () => void;
+  getAccessToken: () => string | null;
+  setAccessToken: (a: string) => void;
+  clearAccessToken: () => void;
   onAuthFailure: () => void;
   fetchFn?: typeof fetch;
 };
@@ -13,24 +11,22 @@ export function createApiClient(deps: Deps) {
   const doFetch = deps.fetchFn ?? fetch;
 
   async function refresh(): Promise<boolean> {
-    const { refresh } = deps.getTokens();
-    if (!refresh) return false;
     const res = await doFetch(`${deps.baseUrl}/auth/refresh`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken: refresh }),
+      credentials: "include",
     });
     if (res.status >= 400) return false;
     const b = await res.json();
-    deps.setTokens(b.accessToken, b.refreshToken);
+    deps.setAccessToken(b.accessToken);
     return true;
   }
 
   async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
     const send = () => {
-      const { access } = deps.getTokens();
+      const access = deps.getAccessToken();
       return doFetch(`${deps.baseUrl}${path}`, {
         method,
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           ...(access ? { Authorization: `Bearer ${access}` } : {}),
@@ -43,7 +39,7 @@ export function createApiClient(deps: Deps) {
       if (await refresh()) {
         res = await send();
       } else {
-        deps.clearTokens();
+        deps.clearAccessToken();
         deps.onAuthFailure();
         throw new Error("UNAUTHENTICATED");
       }

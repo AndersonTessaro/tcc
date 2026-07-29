@@ -21,3 +21,8 @@ app:
     refresh-ttl-days: 7
   storage:
     local-dir: ./storage
+  cookie:
+    # Refresh-token cookie Secure flag. false for local http dev (no active
+    # profile infra exists yet - see BUG-C01 commit); MUST be true behind HTTPS
+    # in any real deployment.
+    secure: false

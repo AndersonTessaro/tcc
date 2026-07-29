@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Reidrata a sessão no F5: se há token, busca /auth/me.
   useEffect(() => {
-    const { access } = authStorage.get();
+    const access = authStorage.get();
     if (!access) {
       setLoading(false);
       return;

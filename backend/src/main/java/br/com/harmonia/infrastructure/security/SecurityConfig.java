@@ -70,6 +70,9 @@ public class SecurityConfig {
         cfg.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("*"));
+        // Required so the browser sends/stores the httpOnly refresh_token cookie (web is a
+        // different origin - different port - from the API).
+        cfg.setAllowCredentials(true);
         var src = new UrlBasedCorsConfigurationSource();
         src.registerCorsConfiguration("/**", cfg);
         return src;
