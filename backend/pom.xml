@@ -207,7 +207,7 @@
 						</goals>
 						<configuration>
 							<dataFile>${project.build.directory}/jacoco-merged.exec</dataFile>
-							<!-- Floor pinned to measured baseline (2026-07-26); raise as EVO-04/unit tests land. -->
+							<!-- Floor pinned to measured unit+IT baseline (82%, 2026-07-28, Docker up / P-1 resolved). -->
 							<rules>
 								<rule>
 									<element>BUNDLE</element>
@@ -215,7 +215,7 @@
 										<limit>
 											<counter>LINE</counter>
 											<value>COVEREDRATIO</value>
-											<minimum>0.05</minimum>
+											<minimum>0.75</minimum>
 										</limit>
 									</limits>
 								</rule>
