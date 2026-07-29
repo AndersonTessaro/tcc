@@ -4,7 +4,6 @@ import br.com.harmonia.application.lesson.port.AttendanceRepository;
 import br.com.harmonia.application.lesson.port.LessonRepository;
 import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.application.gamification.port.ProgressRepository;
-import br.com.harmonia.domain.common.OwnershipException;
 import br.com.harmonia.domain.gamification.GamificationService;
 import br.com.harmonia.infrastructure.persistence.lesson.Attendance;
 import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
@@ -35,8 +34,7 @@ public class AttendanceUseCase {
     @Transactional
     public Attendance register(UUID lessonId, AttendanceStatus status, String justification) {
         Lesson lesson = lessons.findById(lessonId).orElseThrow();
-        if (!lesson.getEnrollment().getTeacher().getId().equals(current.currentTeacher().getId()))
-            throw new OwnershipException("Lesson belongs to another teacher");
+        current.assertOwnedByCurrentTeacher(lesson.getEnrollment());
         Attendance a = attendances.findByLessonId(lessonId).orElseGet(Attendance::new);
         a.setLesson(lesson);
         a.setStatus(status);

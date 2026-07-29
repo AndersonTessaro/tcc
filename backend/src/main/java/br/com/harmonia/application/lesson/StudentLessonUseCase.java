@@ -3,7 +3,6 @@ package br.com.harmonia.application.lesson;
 import br.com.harmonia.application.lesson.port.LessonAttachmentRepository;
 import br.com.harmonia.application.lesson.port.LessonRepository;
 import br.com.harmonia.application.context.CurrentUserService;
-import br.com.harmonia.domain.common.OwnershipException;
 import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
 import br.com.harmonia.infrastructure.persistence.lesson.LessonAttachment;
 import org.springframework.stereotype.Service;
@@ -34,8 +33,7 @@ public class StudentLessonUseCase {
 
     public Lesson detail(UUID lessonId) {
         Lesson l = lessons.findById(lessonId).orElseThrow();
-        if (!l.getEnrollment().getStudent().getId().equals(current.currentStudent().getId()))
-            throw new OwnershipException("Lesson belongs to another student");
+        current.assertOwnedByCurrentStudent(l.getEnrollment().getStudent());
         return l;
     }
 

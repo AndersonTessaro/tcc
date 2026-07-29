@@ -3,7 +3,6 @@ package br.com.harmonia.application.lesson;
 import br.com.harmonia.application.lesson.port.LessonRepository;
 import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.application.profile.port.EnrollmentRepository;
-import br.com.harmonia.domain.common.OwnershipException;
 import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
 import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
 import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
@@ -27,19 +26,15 @@ public class TeacherLessonUseCase {
         this.current = current;
     }
 
-    private Enrollment teacherEnrollment(UUID enrollmentId, UUID teacherId) {
-        Enrollment e = enrollments.findById(enrollmentId).orElseThrow();
-        if (!e.getTeacher().getId().equals(teacherId))
-            throw new OwnershipException("Enrollment belongs to another teacher");
-        return e;
+    private Enrollment teacherEnrollment(UUID enrollmentId) {
+        return current.assertOwnedByCurrentTeacher(enrollments.findById(enrollmentId).orElseThrow());
     }
 
     @Transactional
     public Lesson register(UUID enrollmentId, LocalDate date, LocalTime start, LocalTime end,
                            String content, String homework) {
-        var teacher = current.currentTeacher();
         Lesson l = new Lesson();
-        l.setEnrollment(teacherEnrollment(enrollmentId, teacher.getId()));
+        l.setEnrollment(teacherEnrollment(enrollmentId));
         l.setDate(date);
         l.setStartTime(start);
         l.setEndTime(end);

@@ -3,6 +3,8 @@ package br.com.harmonia.application.context;
 import br.com.harmonia.application.profile.port.StudentRepository;
 import br.com.harmonia.application.profile.port.TeacherRepository;
 import br.com.harmonia.application.security.port.UserRepository;
+import br.com.harmonia.domain.common.OwnershipException;
+import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
 import br.com.harmonia.infrastructure.persistence.profile.Student;
 import br.com.harmonia.infrastructure.persistence.profile.Teacher;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,5 +38,17 @@ public class CurrentUserService {
     public Teacher currentTeacher() {
         return teachers.findByUserId(userId())
             .orElseThrow(() -> new IllegalStateException("User is not a teacher"));
+    }
+
+    public Enrollment assertOwnedByCurrentTeacher(Enrollment enrollment) {
+        if (!enrollment.getTeacher().getId().equals(currentTeacher().getId()))
+            throw new OwnershipException("Enrollment belongs to another teacher");
+        return enrollment;
+    }
+
+    public Student assertOwnedByCurrentStudent(Student student) {
+        if (!student.getId().equals(currentStudent().getId()))
+            throw new OwnershipException("Resource belongs to another student");
+        return student;
     }
 }

@@ -3,7 +3,6 @@ package br.com.harmonia.application.lesson;
 import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.application.lesson.port.LessonRepository;
 import br.com.harmonia.application.lesson.port.MakeupLessonRepository;
-import br.com.harmonia.domain.common.OwnershipException;
 import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
 import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
 import br.com.harmonia.infrastructure.persistence.lesson.MakeupLesson;
@@ -31,8 +30,7 @@ public class MakeupUseCase {
     public MakeupLesson create(UUID originalLessonId, LocalDate date, LocalTime startTime,
                                LocalTime endTime, String reason) {
         Lesson original = lessons.findById(originalLessonId).orElseThrow();
-        if (!original.getEnrollment().getTeacher().getId().equals(current.currentTeacher().getId()))
-            throw new OwnershipException("Lesson belongs to another teacher");
+        current.assertOwnedByCurrentTeacher(original.getEnrollment());
 
         Lesson makeupLesson = new Lesson();
         makeupLesson.setEnrollment(original.getEnrollment());

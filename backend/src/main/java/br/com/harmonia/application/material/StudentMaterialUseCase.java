@@ -2,7 +2,6 @@ package br.com.harmonia.application.material;
 
 import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.application.material.port.MaterialRepository;
-import br.com.harmonia.domain.common.OwnershipException;
 import br.com.harmonia.infrastructure.persistence.material.Material;
 import br.com.harmonia.infrastructure.storage.FileStoragePort;
 import org.springframework.stereotype.Service;
@@ -31,8 +30,7 @@ public class StudentMaterialUseCase {
 
     public byte[] download(UUID materialId) {
         Material m = materials.findById(materialId).orElseThrow();
-        if (!m.getStudent().getId().equals(current.currentStudent().getId()))
-            throw new OwnershipException("Material belongs to another student");
+        current.assertOwnedByCurrentStudent(m.getStudent());
         return storage.read(m.getStoragePath());
     }
 }

@@ -2,7 +2,6 @@ package br.com.harmonia.application.gamification;
 
 import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.application.gamification.port.GoalRepository;
-import br.com.harmonia.domain.common.OwnershipException;
 import br.com.harmonia.infrastructure.persistence.gamification.Goal;
 import br.com.harmonia.infrastructure.persistence.gamification.GoalStatus;
 import br.com.harmonia.infrastructure.persistence.gamification.GoalType;
@@ -43,8 +42,7 @@ public class GoalUseCase {
     @Transactional
     public Goal updateProgress(UUID goalId, int currentProgress) {
         Goal g = goals.findById(goalId).orElseThrow();
-        if (!g.getStudent().getId().equals(current.currentStudent().getId()))
-            throw new OwnershipException("Goal belongs to another student");
+        current.assertOwnedByCurrentStudent(g.getStudent());
         g.setCurrentProgress(currentProgress);
         if (currentProgress >= g.getTarget() && g.getStatus() == GoalStatus.ACTIVE) {
             g.setStatus(GoalStatus.COMPLETED);
