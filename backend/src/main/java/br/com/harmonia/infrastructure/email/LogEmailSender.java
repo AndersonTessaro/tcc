@@ -10,6 +10,12 @@ public class LogEmailSender implements EmailSenderPort {
 
     @Override
     public void send(String to, String subject, String body) {
-        log.info("EMAIL -> {} | {} | {}", to, subject, body);
+        log.debug("Email queued for {} | subject: {}", mask(to), subject);
+    }
+
+    private static String mask(String email) {
+        int at = email.indexOf('@');
+        if (at <= 1) return "***" + email.substring(Math.max(at, 0));
+        return email.charAt(0) + "***" + email.substring(at);
     }
 }
