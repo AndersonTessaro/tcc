@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class TokenService {
@@ -67,6 +68,14 @@ public class TokenService {
     public void revoke(RefreshToken rt) {
         rt.setRevokedAt(LocalDateTime.now());
         refreshTokens.save(rt);
+    }
+
+    /** Revokes every active refresh token for the user (password change, deactivation). */
+    public void revokeAllForUser(UUID userId) {
+        List<RefreshToken> active = refreshTokens.findByUserIdAndRevokedAtIsNull(userId);
+        LocalDateTime now = LocalDateTime.now();
+        active.forEach(rt -> rt.setRevokedAt(now));
+        refreshTokens.saveAll(active);
     }
 
     public static class BadRefreshTokenException extends RuntimeException {

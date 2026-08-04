@@ -2,6 +2,7 @@ package br.com.harmonia.admin;
 
 import br.com.harmonia.TestcontainersConfiguration;
 import com.jayway.jsonpath.JsonPath;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -85,11 +86,47 @@ class SecurityAdminIT {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.roles[0].name", notNullValue()));
 
+        // capture mon1's refresh token before deactivation (H-01: must be revoked)
+        Cookie mon1Refresh = mvc.perform(post("/auth/login").contentType("application/json")
+                .content("{\"login\":\"mon1\",\"password\":\"Mon@1234\"}"))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getCookie("refresh_token");
+
         // deactivate user
         mvc.perform(put("/admin/security/users/" + userId + "/status")
                 .header("Authorization", "Bearer " + t).contentType("application/json")
                 .content("{\"active\":false}"))
             .andExpect(status().isOk());
+
+        // H-01: refresh token issued before deactivation must now be revoked
+        mvc.perform(post("/auth/refresh").cookie(mon1Refresh))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void resetPassword_revokesExistingRefreshTokens() throws Exception {
+        String t = token("admin", "Admin@123");
+        mvc.perform(post("/admin/students").header("Authorization", "Bearer " + t)
+                .contentType("application/json")
+                .content("{\"username\":\"resetpwuser\",\"email\":\"resetpwuser@h.local\",\"password\":\"Pw@12345\",\"name\":\"Reset Pw User\"}"))
+            .andExpect(status().isOk());
+        String usersBody = getOk(t, "/admin/security/users");
+        List<String> ids = JsonPath.read(usersBody, "$[?(@.username=='resetpwuser')].id");
+        String userId = ids.get(0);
+
+        Cookie oldRefresh = mvc.perform(post("/auth/login").contentType("application/json")
+                .content("{\"login\":\"resetpwuser\",\"password\":\"Pw@12345\"}"))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getCookie("refresh_token");
+
+        mvc.perform(put("/admin/security/users/" + userId + "/password")
+                .header("Authorization", "Bearer " + t).contentType("application/json")
+                .content("{\"newPassword\":\"NewPw@6789\"}"))
+            .andExpect(status().isOk());
+
+        // H-01: refresh token issued before an admin password reset must now be revoked
+        mvc.perform(post("/auth/refresh").cookie(oldRefresh))
+            .andExpect(status().isUnauthorized());
     }
 
     @Test

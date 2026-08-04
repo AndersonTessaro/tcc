@@ -6,6 +6,7 @@ import br.com.harmonia.application.security.port.UserRepository;
 import br.com.harmonia.infrastructure.persistence.security.Permission;
 import br.com.harmonia.infrastructure.persistence.security.Role;
 import br.com.harmonia.infrastructure.persistence.security.User;
+import br.com.harmonia.infrastructure.security.TokenService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,13 +23,16 @@ public class SecurityAdminUseCase {
     private final RoleRepository roles;
     private final PermissionRepository permissions;
     private final PasswordEncoder encoder;
+    private final TokenService tokenService;
 
     public SecurityAdminUseCase(UserRepository users, RoleRepository roles,
-                                PermissionRepository permissions, PasswordEncoder encoder) {
+                                PermissionRepository permissions, PasswordEncoder encoder,
+                                TokenService tokenService) {
         this.users = users;
         this.roles = roles;
         this.permissions = permissions;
         this.encoder = encoder;
+        this.tokenService = tokenService;
     }
 
     public List<User> listUsers() {
@@ -55,6 +59,7 @@ public class SecurityAdminUseCase {
         User u = users.findById(userId).orElseThrow(() -> new NoSuchElementException("user"));
         u.setActive(active);
         users.save(u);
+        if (!active) tokenService.revokeAllForUser(userId);
     }
 
     @Transactional
@@ -62,6 +67,7 @@ public class SecurityAdminUseCase {
         User u = users.findById(userId).orElseThrow(() -> new NoSuchElementException("user"));
         u.setPassword(encoder.encode(newPassword));
         users.save(u);
+        tokenService.revokeAllForUser(userId);
     }
 
     @Transactional
