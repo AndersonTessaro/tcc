@@ -28,7 +28,9 @@ do aluno (XP, nível, sequência/streak, metas, progresso).
 **Estrutura** — Monorepo
 ```
 tcc_anderson/
-├── backend/    ← Spring Boot 4 / Java 25
+├── backend/    ← Maven multi-módulo (Java 25)
+│   ├── lesson-core/  ← módulo "framework": agendamento/presença/reposição, Java puro, ZERO Spring/JPA
+│   └── harmonia-app/ ← Spring Boot 4, consome lesson-core via dependency
 ├── mobile/     ← Expo / React Native (Aluno + Professor) — MVP
 ├── web/        ← React + Vite (Aluno + Professor + Admin) — pós-MVP
 └── docs/       ← specs, diagramas (UML, ER), planos
@@ -225,8 +227,9 @@ Os planos foram escritos com premissas Spring Boot 3. Diferenças reais do Boot 
 8. ✅ **Plano 3 executado** (mobile Expo — branch `feat/mobile-expo`; tsc clean, jest verde; falta smoke test E2E c/ backend no ar) ·
 9. ✅ **Plano 4 executado** (escopo **só Admin Configurador** — mobile já cobre Aluno/Professor; Tasks 5-6 de paridade puladas por decisão). Backend `/admin/security/*` (Task 1, 3 IT) + web Vite/React. tsc/vitest/build verdes; falta smoke E2E. ·
 10. 🔶 Entrega TCC: ✅ diagramas UML (`docs/diagramas-uml.md`) · ⏭️ Figma Admin · ⏭️ smoke E2E.
+11. ✅ **Backend virou multi-módulo Maven** — extraído `lesson-core` (regras de agendamento/presença/reposição, Java puro, sem Spring/JPA) como módulo "framework" separado de `harmonia-app`; gamificação desacoplada via domain event (`AttendanceRecordedEvent`).
 
-> Build/test backend: `cd backend && docker compose up -d && ./mvnw verify` (20 IT). Admin: `admin`/`Admin@123`.
+> Build/test backend: `cd backend && docker compose up -d && ./mvnw verify` (reactor builda `lesson-core` → `harmonia-app`, 21 IT). Rodar app: `./mvnw -pl harmonia-app -am spring-boot:run`. Admin: `admin`/`Admin@123`.
 > Pós-MVP backend: Setting (RF29 `/admin/settings`), Schedule (RF17/25 `/teacher/schedules`), MakeupLesson (RF26 `/teacher/lessons/{id}/makeup`), FinancialTransaction (RF27 `/admin/finance`). Mobile: upload de material (RF16) via `postForm`.
 > Mobile: `cd mobile && npm start` (Expo SDK 56, router em `src/app`). Test/typecheck: `npx jest && npx tsc --noEmit`.
 > Android emul: `EXPO_PUBLIC_API_URL=http://10.0.2.2:8080`.

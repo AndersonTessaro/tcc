@@ -33,5 +33,5 @@ build/
 .vscode/
 
 # Harmonia
-src/main/resources/certs/*.pem
-/storage/
+**/src/main/resources/certs/*.pem
+/harmonia-app/storage/
