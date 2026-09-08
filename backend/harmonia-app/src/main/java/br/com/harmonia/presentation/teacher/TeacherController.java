@@ -7,6 +7,7 @@ import br.com.harmonia.application.teacher.TeacherUseCase;
 import br.com.harmonia.infrastructure.persistence.lesson.Attendance;
 import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
 import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
+import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
 import br.com.harmonia.infrastructure.persistence.material.Material;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -36,9 +37,10 @@ public class TeacherController {
     }
 
     public record NewLesson(@NotNull UUID enrollmentId, @NotNull LocalDate date,
-                            @NotNull LocalTime startTime, LocalTime endTime,
+                            @NotNull LocalTime startTime, @NotNull LocalTime endTime,
                             String content, String homework) {}
     public record RegisterAttendance(@NotNull AttendanceStatus status, String justification) {}
+    public record ChangeLessonStatus(@NotNull LessonStatus status) {}
 
     @GetMapping("/dashboard")
     @PreAuthorize("hasAuthority('student.read')")
@@ -69,6 +71,12 @@ public class TeacherController {
     public Object history(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
                           @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
         return lesson.history(start, end);
+    }
+
+    @PatchMapping("/lessons/{id}/status")
+    @PreAuthorize("hasAuthority('lesson.manage')")
+    public Lesson changeLessonStatus(@PathVariable UUID id, @Valid @RequestBody ChangeLessonStatus r) {
+        return lesson.changeStatus(id, r.status());
     }
 
     @PostMapping("/lessons/{id}/attendance")

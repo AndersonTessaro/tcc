@@ -21,7 +21,7 @@ public class MakeupController {
     }
 
     public record NewMakeup(@NotNull LocalDate date, @NotNull LocalTime startTime,
-                            LocalTime endTime, String reason) {}
+                            @NotNull LocalTime endTime, String reason) {}
 
     @PostMapping("/{id}/makeup")
     @PreAuthorize("hasAuthority('lesson.manage')")

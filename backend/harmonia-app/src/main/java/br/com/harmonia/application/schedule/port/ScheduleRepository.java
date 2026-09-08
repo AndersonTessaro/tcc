@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface ScheduleRepository extends JpaRepository<Schedule, UUID> {
     List<Schedule> findByEnrollmentTeacherId(UUID teacherId);
+    List<Schedule> findByEnrollmentTeacherIdOrEnrollmentStudentId(UUID teacherId, UUID studentId);
 }

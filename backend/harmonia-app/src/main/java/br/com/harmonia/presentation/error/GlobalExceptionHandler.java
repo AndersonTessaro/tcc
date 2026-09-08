@@ -4,6 +4,8 @@ import br.com.harmonia.application.security.PasswordResetUseCase.InvalidResetTok
 import br.com.harmonia.domain.common.OwnershipException;
 import br.com.harmonia.infrastructure.security.TokenService.BadRefreshTokenException;
 import br.com.harmonia.lessoncore.InvalidMakeupLinkException;
+import br.com.harmonia.lessoncore.DomainValidationException;
+import br.com.harmonia.lessoncore.ScheduleConflictException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -46,6 +48,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidMakeupLinkException.class)
     public ResponseEntity<ApiError> invalidMakeupLink(InvalidMakeupLinkException e) {
         return build(HttpStatus.CONFLICT, "INVALID_MAKEUP_LINK", e.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(ScheduleConflictException.class)
+    public ResponseEntity<ApiError> scheduleConflict(ScheduleConflictException e) {
+        return build(HttpStatus.CONFLICT, "SCHEDULE_CONFLICT", e.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(DomainValidationException.class)
+    public ResponseEntity<ApiError> domainValidation(DomainValidationException e) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, "DOMAIN_VALIDATION", e.getMessage(), List.of());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

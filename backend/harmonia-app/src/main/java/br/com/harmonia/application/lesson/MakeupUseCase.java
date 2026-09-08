@@ -20,12 +20,15 @@ public class MakeupUseCase {
     private final LessonRepository lessons;
     private final MakeupLessonRepository makeups;
     private final CurrentUserService current;
+    private final LessonSchedulingGuard schedulingGuard;
     private final MakeupLinkValidator validator = new MakeupLinkValidator();
 
-    public MakeupUseCase(LessonRepository lessons, MakeupLessonRepository makeups, CurrentUserService current) {
+    public MakeupUseCase(LessonRepository lessons, MakeupLessonRepository makeups,
+                         CurrentUserService current, LessonSchedulingGuard schedulingGuard) {
         this.lessons = lessons;
         this.makeups = makeups;
         this.current = current;
+        this.schedulingGuard = schedulingGuard;
     }
 
     /** RN10: creates a new lesson linked to the original one (makeup). */
@@ -35,7 +38,9 @@ public class MakeupUseCase {
         Lesson original = lessons.findById(originalLessonId).orElseThrow();
         current.assertOwnedByCurrentTeacher(original.getEnrollment());
 
-        validator.validate(toSessionStatus(original.getStatus()), makeups.existsByOriginalLessonId(originalLessonId));
+        validator.validate(LessonStatuses.toSessionStatus(original.getStatus()),
+            makeups.existsByOriginalLessonId(originalLessonId));
+        schedulingGuard.assertSlotIsFree(original.getEnrollment(), date, startTime, endTime, SessionStatus.SCHEDULED);
 
         Lesson makeupLesson = new Lesson();
         makeupLesson.setEnrollment(original.getEnrollment());
@@ -51,13 +56,5 @@ public class MakeupUseCase {
         link.setNewLesson(makeupLesson);
         link.setReason(reason);
         return makeups.save(link);
-    }
-
-    private static SessionStatus toSessionStatus(LessonStatus status) {
-        return switch (status) {
-            case SCHEDULED -> SessionStatus.SCHEDULED;
-            case DONE -> SessionStatus.DONE;
-            case CANCELED -> SessionStatus.CANCELED;
-        };
     }
 }

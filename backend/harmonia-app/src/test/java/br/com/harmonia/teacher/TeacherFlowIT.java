@@ -62,7 +62,7 @@ class TeacherFlowIT {
         String lessonBody = mvc.perform(post("/teacher/lessons").header("Authorization", "Bearer " + t)
                 .contentType("application/json")
                 .content("{\"enrollmentId\":\"" + enrollment + "\",\"date\":\"" + today
-                    + "\",\"startTime\":\"10:00\",\"content\":\"Scale\"}"))
+                    + "\",\"startTime\":\"10:00\",\"endTime\":\"11:00\",\"content\":\"Scale\"}"))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         String lessonId = JsonPath.read(lessonBody, "$.id");
 

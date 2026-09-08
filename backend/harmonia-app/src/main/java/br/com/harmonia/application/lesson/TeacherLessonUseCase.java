@@ -6,6 +6,8 @@ import br.com.harmonia.application.profile.port.EnrollmentRepository;
 import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
 import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
 import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
+import br.com.harmonia.lessoncore.LessonLifecyclePolicy;
+import br.com.harmonia.lessoncore.SessionStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,11 +21,15 @@ public class TeacherLessonUseCase {
     private final LessonRepository lessons;
     private final EnrollmentRepository enrollments;
     private final CurrentUserService current;
+    private final LessonSchedulingGuard schedulingGuard;
+    private final LessonLifecyclePolicy lifecyclePolicy = new LessonLifecyclePolicy();
 
-    public TeacherLessonUseCase(LessonRepository lessons, EnrollmentRepository enrollments, CurrentUserService current) {
+    public TeacherLessonUseCase(LessonRepository lessons, EnrollmentRepository enrollments,
+                                CurrentUserService current, LessonSchedulingGuard schedulingGuard) {
         this.lessons = lessons;
         this.enrollments = enrollments;
         this.current = current;
+        this.schedulingGuard = schedulingGuard;
     }
 
     private Enrollment teacherEnrollment(UUID enrollmentId) {
@@ -33,8 +39,10 @@ public class TeacherLessonUseCase {
     @Transactional
     public Lesson register(UUID enrollmentId, LocalDate date, LocalTime start, LocalTime end,
                            String content, String homework) {
+        Enrollment enrollment = teacherEnrollment(enrollmentId);
+        schedulingGuard.assertSlotIsFree(enrollment, date, start, end, SessionStatus.DONE);
         Lesson l = new Lesson();
-        l.setEnrollment(teacherEnrollment(enrollmentId));
+        l.setEnrollment(enrollment);
         l.setDate(date);
         l.setStartTime(start);
         l.setEndTime(end);
@@ -42,6 +50,17 @@ public class TeacherLessonUseCase {
         l.setHomework(homework);
         l.setStatus(LessonStatus.DONE);
         return lessons.save(l);
+    }
+
+    /** Moves a lesson through the lifecycle defined in lesson-core (a scheduled makeup becoming DONE or CANCELED). */
+    @Transactional
+    public Lesson changeStatus(UUID lessonId, LessonStatus next) {
+        Lesson lesson = lessons.findById(lessonId).orElseThrow();
+        current.assertOwnedByCurrentTeacher(lesson.getEnrollment());
+        lifecyclePolicy.validateTransition(LessonStatuses.toSessionStatus(lesson.getStatus()),
+            LessonStatuses.toSessionStatus(next));
+        lesson.setStatus(next);
+        return lessons.save(lesson);
     }
 
     public List<Lesson> history(LocalDate start, LocalDate end) {
