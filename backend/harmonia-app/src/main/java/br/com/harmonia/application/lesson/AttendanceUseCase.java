@@ -6,11 +6,11 @@ import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.infrastructure.persistence.lesson.Attendance;
 import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
 import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
-import br.com.harmonia.lessoncore.AttendanceDecision;
+import br.com.harmonia.lessoncore.AttendanceEffect;
 import br.com.harmonia.lessoncore.AttendanceOutcome;
 import br.com.harmonia.lessoncore.AttendanceRecordedEvent;
 import br.com.harmonia.lessoncore.AttendanceRecordingRule;
-import br.com.harmonia.lessoncore.DomainEventPublisher;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,11 +23,11 @@ public class AttendanceUseCase {
     private final AttendanceRepository attendances;
     private final LessonRepository lessons;
     private final CurrentUserService current;
-    private final DomainEventPublisher events;
+    private final ApplicationEventPublisher events;
     private final AttendanceRecordingRule recordingRule = new AttendanceRecordingRule();
 
     public AttendanceUseCase(AttendanceRepository attendances, LessonRepository lessons,
-                             CurrentUserService current, DomainEventPublisher events) {
+                             CurrentUserService current, ApplicationEventPublisher events) {
         this.attendances = attendances;
         this.lessons = lessons;
         this.current = current;
@@ -49,9 +49,9 @@ public class AttendanceUseCase {
         a.setRegisteredAt(LocalDateTime.now());
         Attendance saved = attendances.save(a);
 
-        AttendanceDecision decision = recordingRule.evaluate(previousOutcome, toOutcome(status));
+        AttendanceEffect effect = recordingRule.evaluate(previousOutcome, toOutcome(status));
         UUID studentId = lesson.getEnrollment().getStudent().getId();
-        events.publish(new AttendanceRecordedEvent(lessonId, studentId, toOutcome(status), decision.xpEligible()));
+        events.publishEvent(new AttendanceRecordedEvent(lessonId, studentId, toOutcome(status), effect));
 
         return saved;
     }

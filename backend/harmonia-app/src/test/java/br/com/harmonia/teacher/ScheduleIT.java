@@ -52,7 +52,7 @@ class ScheduleIT {
 
         mvc.perform(post("/teacher/schedules").header("Authorization", "Bearer " + t)
                 .contentType("application/json")
-                .content("{\"enrollmentId\":\"" + enrollment + "\",\"weekday\":\"MONDAY\",\"startTime\":\"14:00\"}"))
+                .content("{\"enrollmentId\":\"" + enrollment + "\",\"weekday\":\"MONDAY\",\"startTime\":\"14:00\",\"endTime\":\"15:00\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.weekday", is("MONDAY")));
 

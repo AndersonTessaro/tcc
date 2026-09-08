@@ -52,11 +52,11 @@ class MakeupIT {
         String today = LocalDate.now().toString();
 
         String originalLesson = postId(t, "/teacher/lessons",
-            "{\"enrollmentId\":\"" + enrollment + "\",\"date\":\"" + today + "\",\"startTime\":\"09:00\",\"content\":\"Bow\"}");
+            "{\"enrollmentId\":\"" + enrollment + "\",\"date\":\"" + today + "\",\"startTime\":\"09:00\",\"endTime\":\"10:00\",\"content\":\"Bow\"}");
 
         mvc.perform(post("/teacher/lessons/" + originalLesson + "/makeup").header("Authorization", "Bearer " + t)
                 .contentType("application/json")
-                .content("{\"date\":\"" + today + "\",\"startTime\":\"11:00\",\"reason\":\"Aluno faltou\"}"))
+                .content("{\"date\":\"" + today + "\",\"startTime\":\"11:00\",\"endTime\":\"12:00\",\"reason\":\"Aluno faltou\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id", notNullValue()))
             .andExpect(jsonPath("$.originalLesson.id", notNullValue()))
@@ -78,9 +78,9 @@ class MakeupIT {
         String today = LocalDate.now().toString();
 
         String originalLesson = postId(t, "/teacher/lessons",
-            "{\"enrollmentId\":\"" + enrollment + "\",\"date\":\"" + today + "\",\"startTime\":\"09:00\",\"content\":\"Scales\"}");
+            "{\"enrollmentId\":\"" + enrollment + "\",\"date\":\"" + today + "\",\"startTime\":\"09:00\",\"endTime\":\"10:00\",\"content\":\"Scales\"}");
 
-        String makeupBody = "{\"date\":\"" + today + "\",\"startTime\":\"11:00\",\"reason\":\"Aluno faltou\"}";
+        String makeupBody = "{\"date\":\"" + today + "\",\"startTime\":\"11:00\",\"endTime\":\"12:00\",\"reason\":\"Aluno faltou\"}";
         mvc.perform(post("/teacher/lessons/" + originalLesson + "/makeup").header("Authorization", "Bearer " + t)
                 .contentType("application/json").content(makeupBody))
             .andExpect(status().isOk());

@@ -4,6 +4,7 @@ import br.com.harmonia.application.gamification.port.ProgressRepository;
 import br.com.harmonia.application.profile.port.StudentRepository;
 import br.com.harmonia.domain.gamification.GamificationService;
 import br.com.harmonia.infrastructure.persistence.gamification.Progress;
+import br.com.harmonia.lessoncore.AttendanceEffect;
 import br.com.harmonia.lessoncore.AttendanceRecordedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -22,7 +23,7 @@ public class GamificationAttendanceListener {
 
     @EventListener
     public void onAttendanceRecorded(AttendanceRecordedEvent event) {
-        if (!event.xpEligible()) {
+        if (event.effect() == AttendanceEffect.NONE) {
             return;
         }
         Progress progress = progresses.findByStudentId(event.studentId()).orElseGet(() -> {
@@ -30,7 +31,10 @@ public class GamificationAttendanceListener {
             created.setStudent(students.getReferenceById(event.studentId()));
             return created;
         });
-        progress.setXpTotal(progress.getXpTotal() + gamification.xpFromAttendance());
+        int delta = event.effect() == AttendanceEffect.AWARD_XP
+            ? gamification.xpFromAttendance()
+            : -gamification.xpFromAttendance();
+        progress.setXpTotal(Math.max(0, progress.getXpTotal() + delta));
         progress.setLevel(gamification.level(progress.getXpTotal()));
         progresses.save(progress);
     }

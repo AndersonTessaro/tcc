@@ -22,7 +22,7 @@ public class ScheduleController {
     }
 
     public record NewSchedule(@NotNull UUID enrollmentId, @NotNull Weekday weekday,
-                              @NotNull LocalTime startTime, LocalTime endTime) {}
+                              @NotNull LocalTime startTime, @NotNull LocalTime endTime) {}
 
     @GetMapping
     @PreAuthorize("hasAuthority('lesson.read')")
