@@ -1,0 +1,45 @@
+name: CI
+
+# Runs on every pull request and on every merge into main.
+# The stages are separate (reusable) workflows chained by `needs`, so a stage only
+# starts when the previous one is green: build -> unit -> integration -> system.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    uses: ./.github/workflows/build.yml
+
+  unit-tests:
+    name: Unit tests
+    needs: build
+    uses: ./.github/workflows/tests-unit.yml
+
+  integration-tests:
+    name: Integration tests
+    needs: unit-tests
+    uses: ./.github/workflows/tests-integration.yml
+
+  system-tests:
+    name: System tests
+    needs: integration-tests
+    uses: ./.github/workflows/tests-system.yml
+
+  # Single job to require in branch protection: green only when every stage is green.
+  ci-passed:
+    name: CI passed
+    needs: [build, unit-tests, integration-tests, system-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "build, unit, integration and system stages are green."

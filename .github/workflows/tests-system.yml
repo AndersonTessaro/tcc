@@ -1,0 +1,41 @@
+name: System tests
+
+# Stage 4: the assembled system. *ST tests boot the whole application on a real
+# port and drive it over real HTTP against a real PostgreSQL container - no
+# MockMvc, no stubbed collaborators. Gated behind the `system-tests` Maven profile
+# so they never run as part of the earlier stages.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: End-to-end API journeys
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Generate RSA keypair
+        run: ./scripts/generate-jwt-keys.sh
+
+      - name: Run system tests
+        run: ./mvnw -B -ntp -pl harmonia-app -am -Psystem-tests verify
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: system-test-reports-backend
+          path: backend/harmonia-app/target/failsafe-reports/
+          if-no-files-found: ignore

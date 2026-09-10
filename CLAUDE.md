@@ -219,6 +219,7 @@ Os planos foram escritos com premissas Spring Boot 3. Diferenças reais do Boot 
 - `docs/superpowers/plans/2026-05-31-backend-domain-endpoints.md` — **Plano 2** (domínio + `/me` + `/professor`).
 - `docs/superpowers/plans/2026-05-31-mobile-expo.md` — **Plano 3** (app Expo).
 - `docs/superpowers/plans/2026-05-31-web-client.md` — **Plano 4** (web: Aluno+Professor+Admin, pós-MVP).
+- `docs/ci.md` — pipelines de CI (build → unitário → integração → sistema) e convenção de nomes de teste.
 
 ## Próximos passos
 1. ✅ Requisitos · 2. ✅ MVP · 3. ✅ Modelo de dados · 4. ✅ Spec · 5. ✅ Planos (4) ·
@@ -230,8 +231,10 @@ Os planos foram escritos com premissas Spring Boot 3. Diferenças reais do Boot 
 11. ✅ **Backend virou multi-módulo Maven** — extraído `lesson-core` (regras de agendamento/presença/reposição, Java puro, sem Spring/JPA) como módulo "framework" separado de `harmonia-app`; gamificação desacoplada via domain event (`AttendanceRecordedEvent`).
 12. ✅ **`lesson-core` virou framework de agendamento de fato** — `TimeRange` (intervalo válido, fim exclusivo), `LessonSlot`/`WeeklyScheduleSlot` (entradas imutáveis), `SchedulingPolicy` (impede professor/aluno duplo-agendados; aula `CANCELED` libera o horário), `LessonLifecyclePolicy` (`SCHEDULED -> DONE | CANCELED`, terminais), `AttendanceRecordingRule` idempotente por transição (corrige XP nos dois sentidos). Adapter `LessonSchedulingGuard` (`application/lesson`) traduz entidade JPA → slot do core. Novo endpoint `PATCH /teacher/lessons/{id}/status` (`lesson.manage`). Erros: `ScheduleConflictException` → 409 `SCHEDULE_CONFLICT`, `DomainValidationException` → 422 `DOMAIN_VALIDATION`. `end_time` agora obrigatório (migration `V10`, com backfill de 1h clampado). Ver `backend/lesson-core/README.md`.
 
-> Build/test backend: `cd backend && docker compose up -d && ./mvnw verify` (reactor builda `lesson-core` → `harmonia-app`; 31 unit no core, 15 unit + 31 IT no app). Rodar app: `./mvnw -pl harmonia-app -am spring-boot:run`. Admin: `admin`/`Admin@123`.
+> Build/test backend: `cd backend && docker compose up -d && ./mvnw verify` (reactor builda `lesson-core` → `harmonia-app`; 31 unit no core, 14 unit + 32 IT no app, + 2 ST no perfil `system-tests`). Rodar app: `./mvnw -pl harmonia-app -am spring-boot:run`. Admin: `admin`/`Admin@123`.
 > Pós-MVP backend: Setting (RF29 `/admin/settings`), Schedule (RF17/25 `/teacher/schedules`), MakeupLesson (RF26 `/teacher/lessons/{id}/makeup`), FinancialTransaction (RF27 `/admin/finance`). Mobile: upload de material (RF16) via `postForm`.
 > Mobile: `cd mobile && npm start` (Expo SDK 56, router em `src/app`). Test/typecheck: `npx jest && npx tsc --noEmit`.
+> Categorias de teste: `*Test`=unitário (Surefire) · `*IT`=integração (Failsafe) · `*ST`=sistema (Failsafe, perfil `system-tests`). Mobile: jest projects `unit`/`integration` (`src/app/**` = integração). Web: `*.integration.test.tsx` = integração (config própria). Detalhes em `docs/ci.md`.
+> Chaves JWT são gitignored: rodar `backend/scripts/generate-jwt-keys.sh` em clone novo (CI faz isso sozinho).
 > Android emul: `EXPO_PUBLIC_API_URL=http://10.0.2.2:8080`.
-> Web: `cd web && npm run dev` (Vite 8, admin-only). Test/build: `npx vitest run && npm run build`. `VITE_API_BASE_URL` no `.env`.
+> Web: `cd web && npm run dev` (Vite 8, admin-only). Test/build: `npm test && npm run build`. `VITE_API_BASE_URL` no `.env`.
