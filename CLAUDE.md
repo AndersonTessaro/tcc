@@ -235,6 +235,7 @@ Os planos foram escritos com premissas Spring Boot 3. Diferenças reais do Boot 
 > Pós-MVP backend: Setting (RF29 `/admin/settings`), Schedule (RF17/25 `/teacher/schedules`), MakeupLesson (RF26 `/teacher/lessons/{id}/makeup`), FinancialTransaction (RF27 `/admin/finance`). Mobile: upload de material (RF16) via `postForm`.
 > Mobile: `cd mobile && npm start` (Expo SDK 56, router em `src/app`). Test/typecheck: `npx jest && npx tsc --noEmit`.
 > Categorias de teste: `*Test`=unitário (Surefire) · `*IT`=integração (Failsafe) · `*ST`=sistema (Failsafe, perfil `system-tests`). Mobile: jest projects `unit`/`integration` (`src/app/**` = integração). Web: `*.integration.test.tsx` = integração (config própria). Detalhes em `docs/ci.md`.
-> Chaves JWT são gitignored: rodar `backend/scripts/generate-jwt-keys.sh` em clone novo (CI faz isso sozinho).
+> Chaves JWT: o par RSA está **commitado** em `harmonia-app/src/main/resources/certs/` (decisão de TCC — repo público, chave descartável). `backend/scripts/generate-jwt-keys.sh` continua servindo p/ gerar outro par.
+> Docker backend: `backend/Dockerfile` (multi-stage, JRE 25 alpine, usuário sem privilégio). Stack completa: `cd backend && docker compose --profile app up --build` (o `up -d` puro segue só Postgres). Chaves RSA: a imagem carrega o par do classpath; dá p/ sobrepor montando em `/app/certs` ou setando `APP_RSA_PRIVATE_KEY`+`APP_RSA_PUBLIC_KEY` (as duas, ou falha), e `HARMONIA_DEV_KEYS=true` gera par descartável.
 > Android emul: `EXPO_PUBLIC_API_URL=http://10.0.2.2:8080`.
 > Web: `cd web && npm run dev` (Vite 8, admin-only). Test/build: `npm test && npm run build`. `VITE_API_BASE_URL` no `.env`.
