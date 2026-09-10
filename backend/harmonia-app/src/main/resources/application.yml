@@ -2,9 +2,9 @@ spring:
   application:
     name: harmonia
   datasource:
-    url: jdbc:postgresql://localhost:5432/harmonia
-    username: harmonia
-    password: harmonia
+    url: jdbc:postgresql://db.ilrqrwkpzzkthnqmnknb.supabase.co:5432/postgres
+    username: postgres
+    password: fagboladona
   jpa:
     hibernate:
       ddl-auto: validate
