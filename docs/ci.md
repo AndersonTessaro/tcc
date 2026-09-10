@@ -65,16 +65,17 @@ teste de carga de contexto virou `ApplicationContextIT` justamente para não pes
 
 ## Chaves RSA no CI
 
-`app.rsa.*` aponta para `.pem` que são gitignored. Toda etapa que sobe contexto
-Spring roda antes `backend/scripts/generate-jwt-keys.sh`, que gera um par
-descartável (PKCS#8 + X.509) se ainda não existir. O mesmo script serve para
-clone novo em máquina de dev.
+`app.rsa.*` aponta para `.pem` em `harmonia-app/src/main/resources/certs/`. Esse par
+está **commitado** — decisão consciente de TCC para o deploy no Render subir sem
+configuração; o repo é público, então trate a chave como descartável e rotacione
+antes de qualquer uso real. Toda etapa que sobe contexto Spring ainda chama
+`backend/scripts/generate-jwt-keys.sh`, que é idempotente: com o par no lugar, não
+faz nada; sem ele (par removido, clone parcial), gera um.
 
 ## Rodando local
 
 ```bash
 cd backend && docker compose up -d       # Postgres de dev (os testes usam Testcontainers)
-./scripts/generate-jwt-keys.sh
 ./mvnw test                              # unitário
 ./mvnw verify                            # integração + portão de cobertura
 ./mvnw -pl harmonia-app -am -Psystem-tests verify   # sistema
