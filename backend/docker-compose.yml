@@ -7,5 +7,30 @@ services:
       POSTGRES_PASSWORD: harmonia
     ports: ["5432:5432"]
     volumes: ["harmonia_pg:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U harmonia -d harmonia"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Opt-in: `docker compose up -d` still starts Postgres alone for local dev.
+  # Whole stack: `docker compose --profile app up --build`.
+  app:
+    profiles: ["app"]
+    build:
+      context: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/harmonia
+      SPRING_DATASOURCE_USERNAME: harmonia
+      SPRING_DATASOURCE_PASSWORD: harmonia
+      # Throwaway signing keys - local only. Mount real ones in any real deployment.
+      HARMONIA_DEV_KEYS: "true"
+    ports: ["8080:8080"]
+    volumes: ["harmonia_storage:/app/storage"]
+
 volumes:
   harmonia_pg:
+  harmonia_storage:

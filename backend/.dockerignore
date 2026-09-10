@@ -5,10 +5,6 @@ target/
 *.iml
 .git/
 
-# JWT signing keys must never be baked into an image - they are mounted at run time
-# (or minted by the entrypoint for local runs). See scripts/docker-entrypoint.sh.
-**/src/main/resources/certs/*.pem
-
 # Runtime data, not build input
 storage/
 harmonia-app/storage/
