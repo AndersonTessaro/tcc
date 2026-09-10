@@ -1,0 +1,71 @@
+name: Integration tests
+
+# Stage 3: components wired to their real neighbours.
+#   backend - Failsafe (*IT): Spring context + PostgreSQL via Testcontainers,
+#             plus the JaCoCo coverage gate over unit+IT (see harmonia-app/pom.xml)
+#   mobile  - jest project "integration" (screens under src/app)
+#   web     - vitest.integration.config.ts (router + providers + services, network faked)
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend integration tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Generate RSA keypair
+        run: ./scripts/generate-jwt-keys.sh
+
+      # `verify` runs Surefire again before Failsafe: the JaCoCo gate scores the
+      # merged unit+IT coverage, so both have to execute in the same reactor run.
+      - name: Run Failsafe integration tests and coverage gate
+        run: ./mvnw -B -ntp verify
+
+      - name: Upload test reports and coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-reports-backend
+          path: |
+            backend/*/target/failsafe-reports/
+            backend/*/target/site/jacoco/
+          if-no-files-found: ignore
+
+  frontend:
+    name: ${{ matrix.workspace }} integration tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        workspace: [mobile, web]
+    defaults:
+      run:
+        working-directory: ${{ matrix.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ${{ matrix.workspace }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run integration tests
+        run: npm run test:integration

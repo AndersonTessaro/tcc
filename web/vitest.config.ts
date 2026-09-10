@@ -1,6 +1,9 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig, configDefaults } from "vitest/config";
 import path from "node:path";
 
+// Unit tests: everything under src/**/*.test.{ts,tsx} except the integration
+// suites (*.integration.test.tsx), which run in their own CI stage via
+// vitest.integration.config.ts.
 export default defineConfig({
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
@@ -9,6 +12,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: "./src/test/setup.ts",
+    exclude: [...configDefaults.exclude, "**/*.integration.test.{ts,tsx}"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
