@@ -31,7 +31,6 @@ public class MakeupUseCase {
         this.schedulingGuard = schedulingGuard;
     }
 
-    /** RN10: creates a new lesson linked to the original one (makeup). */
     @Transactional
     public MakeupLesson create(UUID originalLessonId, LocalDate date, LocalTime startTime,
                                LocalTime endTime, String reason) {
