@@ -1,24 +1,41 @@
 # lesson-core
 
-`lesson-core` is a plain-Java domain library for systems that manage individual lessons. It deliberately has no dependency on Spring, JPA, HTTP, or a database.
+Biblioteca de regras de domínio para aplicações de aulas individuais. O módulo é Java puro: não depende de Spring, JPA, HTTP ou banco de dados.
 
-## Public model
+O projeto consumidor converte suas entidades para os tipos do módulo, executa as políticas e só então persiste a alteração. Essa separação permite testar as regras sem subir a aplicação.
 
-- `TimeRange` validates that a lesson has a real, non-empty interval and implements exclusive-end overlap detection.
-- `LessonSlot` and `WeeklyScheduleSlot` are immutable scheduling inputs, independent of persistence entities.
-- `SchedulingPolicy` prevents double bookings for either the teacher or the student. Canceled one-off lessons do not block a slot; inactive recurring schedules are filtered by the adapter before calling the policy.
-- `LessonLifecyclePolicy` centralizes allowed status transitions: `SCHEDULED -> DONE | CANCELED`. `DONE` and `CANCELED` are terminal.
-- `AttendanceRecordingRule` maps an attendance transition to an `AttendanceEffect` (`AWARD_XP`, `REVOKE_XP` or `NONE`); consumers apply the effect once as part of their transaction. Re-recording the same outcome yields `NONE`, so the rule is idempotent and corrections are reversible.
-- `MakeupLinkValidator` guarantees that only one completed original lesson can create a makeup.
+## O que o módulo oferece
 
-## Adapter contract
+- `TimeRange`: intervalo válido de um dia, com detecção de sobreposição. O fim é exclusivo.
+- `LessonSlot`: representação de uma aula em uma data específica.
+- `WeeklyScheduleSlot`: representação de um horário semanal recorrente.
+- `SchedulingPolicy`: conflitos entre professor/aluno, tanto para aulas concretas quanto para horários recorrentes.
+- `LessonLifecyclePolicy`: transições permitidas entre `SCHEDULED`, `DONE` e `CANCELED`.
+- `AttendanceRecordingRule`: efeito de XP produzido por uma mudança de frequência.
+- `MakeupLinkValidator`: regras para vincular uma reposição à aula original.
 
-An application maps its persistence objects to the immutable core records, fetches all potentially conflicting teacher and student slots, and calls the policy before persistence. The core never receives a repository or publishes framework events.
+As classes não conhecem entidades de persistência nem publicam eventos. A aplicação decide como traduzir exceções, armazenar os dados e distribuir eventos.
+
+## Uso básico
 
 ```java
-var candidate = new LessonSlot(id, teacherId, studentId, date,
-    new TimeRange(start, end), SessionStatus.SCHEDULED);
-schedulingPolicy.validateLessonSlot(candidate, existingSlots);
+var candidate = new LessonSlot(
+    lessonId, teacherId, studentId, date,
+    new TimeRange(startTime, endTime),
+    SessionStatus.SCHEDULED
+);
+
+policy.validateLessonSlot(candidate, existingLessons);
+policy.validateLessonAgainstWeeklySchedules(candidate, recurringSchedules);
 ```
 
-All core exceptions derive from `DomainValidationException`; `ScheduleConflictException` identifies a conflict that can be exposed as HTTP 409 by a web adapter.
+`ScheduleConflictException` representa conflito de agenda. As demais violações são `DomainValidationException` ou exceções específicas da regra.
+
+## Build
+
+```bash
+cd backend
+./mvnw -pl lesson-core test
+```
+
+O artefato não carrega dependências de produção. JUnit e AssertJ aparecem somente no classpath de testes.

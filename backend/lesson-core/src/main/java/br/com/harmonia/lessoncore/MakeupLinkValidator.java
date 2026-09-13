@@ -1,6 +1,5 @@
 package br.com.harmonia.lessoncore;
 
-/** RN10: only a completed lesson can originate one makeup lesson. */
 public final class MakeupLinkValidator {
 
     public void validate(SessionStatus originalStatus, boolean alreadyHasMakeup) {

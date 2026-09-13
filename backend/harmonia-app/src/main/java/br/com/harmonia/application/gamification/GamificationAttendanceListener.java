@@ -12,7 +12,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Reacts to attendance recorded in lesson-core by awarding XP (RN07). Gamification stays decoupled from lesson-core. */
 @Component
 public class GamificationAttendanceListener {
     private final ProgressRepository progresses;

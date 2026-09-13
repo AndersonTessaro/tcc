@@ -3,7 +3,6 @@ package br.com.harmonia.application.lesson;
 import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
 import br.com.harmonia.lessoncore.SessionStatus;
 
-/** Single translation point between the persisted {@link LessonStatus} and lesson-core's {@link SessionStatus}. */
 final class LessonStatuses {
 
     private LessonStatuses() {

@@ -3,7 +3,6 @@ package br.com.harmonia.lessoncore;
 import java.time.LocalTime;
 import java.util.Objects;
 
-/** A non-empty time interval within one day. End times are exclusive. */
 public record TimeRange(LocalTime start, LocalTime end) {
     public TimeRange {
         Objects.requireNonNull(start, "start is required");

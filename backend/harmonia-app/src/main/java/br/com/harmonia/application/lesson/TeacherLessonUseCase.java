@@ -52,7 +52,6 @@ public class TeacherLessonUseCase {
         return lessons.save(l);
     }
 
-    /** Moves a lesson through the lifecycle defined in lesson-core (a scheduled makeup becoming DONE or CANCELED). */
     @Transactional
     public Lesson changeStatus(UUID lessonId, LessonStatus next) {
         Lesson lesson = lessons.findById(lessonId).orElseThrow();

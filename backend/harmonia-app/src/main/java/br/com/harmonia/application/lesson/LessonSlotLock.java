@@ -6,10 +6,6 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-/**
- * Serializes slot validation and insertion for the same teacher/student pair.
- * PostgreSQL advisory locks are transaction-scoped and therefore release on commit/rollback.
- */
 @Component
 public class LessonSlotLock {
     private final JdbcTemplate jdbc;
