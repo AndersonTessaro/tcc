@@ -19,6 +19,7 @@ public class LessonSlotLock {
     }
 
     private void acquireOne(UUID id) {
-        jdbc.queryForObject("select pg_advisory_xact_lock(hashtextextended(?, 0))", Long.class, id.toString());
+        jdbc.query("select pg_advisory_xact_lock(hashtextextended(?, 0))",
+            resultSet -> { }, id.toString());
     }
 }
