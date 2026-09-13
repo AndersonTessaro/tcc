@@ -2,6 +2,7 @@ package br.com.harmonia.lessoncore;
 
 import java.util.Collection;
 import java.util.Objects;
+import java.time.DayOfWeek;
 
 /** Validates time ranges and prevents a teacher or student from being double-booked. */
 public final class SchedulingPolicy {
@@ -31,6 +32,22 @@ public final class SchedulingPolicy {
                 && (existing.teacherId().equals(candidate.teacherId())
                     || existing.studentId().equals(candidate.studentId()))) {
                 throw new ScheduleConflictException("Teacher or student already has a recurring schedule in this time range");
+            }
+        }
+    }
+
+    /** Prevents a concrete lesson from being created inside an active recurring reservation. */
+    public void validateLessonAgainstWeeklySchedules(LessonSlot candidate,
+                                                      Collection<WeeklyScheduleSlot> recurringSlots) {
+        Objects.requireNonNull(candidate, "candidate is required");
+        Objects.requireNonNull(recurringSlots, "recurringSlots is required");
+        DayOfWeek weekday = candidate.date().getDayOfWeek();
+        for (WeeklyScheduleSlot recurring : recurringSlots) {
+            if (recurring.weekday() == weekday
+                && recurring.timeRange().overlaps(candidate.timeRange())
+                && (recurring.teacherId().equals(candidate.teacherId())
+                    || recurring.studentId().equals(candidate.studentId()))) {
+                throw new ScheduleConflictException("Lesson conflicts with a recurring schedule");
             }
         }
     }
