@@ -19,10 +19,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-/**
- * Adapter between persisted lessons and lesson-core's {@link SchedulingPolicy}: loads every slot that could
- * clash with a candidate (RN04 — lessons are individual) and delegates the decision to the domain policy.
- */
 @Component
 public class LessonSchedulingGuard {
     private final LessonRepository lessons;
@@ -36,7 +32,6 @@ public class LessonSchedulingGuard {
         this.slotLock = slotLock;
     }
 
-    /** Throws {@code ScheduleConflictException} when the teacher or the student is already booked. */
     public void assertSlotIsFree(Enrollment enrollment, LocalDate date, LocalTime startTime,
                                  LocalTime endTime, SessionStatus status) {
         UUID teacherId = enrollment.getTeacher().getId();

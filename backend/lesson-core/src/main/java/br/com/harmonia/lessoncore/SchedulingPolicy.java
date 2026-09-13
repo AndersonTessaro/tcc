@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.Objects;
 import java.time.DayOfWeek;
 
-/** Validates time ranges and prevents a teacher or student from being double-booked. */
 public final class SchedulingPolicy {
 
     public void validateLessonSlot(LessonSlot candidate, Collection<LessonSlot> existingSlots) {
@@ -36,7 +35,6 @@ public final class SchedulingPolicy {
         }
     }
 
-    /** Prevents a concrete lesson from being created inside an active recurring reservation. */
     public void validateLessonAgainstWeeklySchedules(LessonSlot candidate,
                                                       Collection<WeeklyScheduleSlot> recurringSlots) {
         Objects.requireNonNull(candidate, "candidate is required");
