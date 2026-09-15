@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.util.Objects;
 import java.util.UUID;
 
-/** Framework-neutral representation of one scheduled lesson. */
 public record LessonSlot(UUID lessonId, UUID teacherId, UUID studentId, LocalDate date,
                          TimeRange timeRange, SessionStatus status) {
     public LessonSlot {
