@@ -1,0 +1,508 @@
+{
+  "info": {
+    "_postman_id": "7de9aa24-c7b7-4ca8-a240-1e550c0e0001",
+    "name": "Harmonia - Demonstração lesson-core",
+    "description": "Coleção autocontida para demonstrar o framework lesson-core. Execute na ordem pelo Collection Runner. A primeira requisição gera um sufixo único, escolhe a próxima segunda-feira e limpa as variáveis da execução. Pré-requisito: API em http://localhost:8080 e correção do advisory lock (commit 601af72) integrada.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "suffix", "value": "", "type": "string" },
+    { "key": "testDate", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "teacherToken", "value": "", "type": "string" },
+    { "key": "studentToken", "value": "", "type": "string" },
+    { "key": "instrumentId", "value": "", "type": "string" },
+    { "key": "teacherId", "value": "", "type": "string" },
+    { "key": "studentId", "value": "", "type": "string" },
+    { "key": "enrollmentId", "value": "", "type": "string" },
+    { "key": "lessonId", "value": "", "type": "string" },
+    { "key": "scheduleId", "value": "", "type": "string" },
+    { "key": "makeupLessonId", "value": "", "type": "string" },
+    { "key": "lifecycleOriginalId", "value": "", "type": "string" },
+    { "key": "lifecycleMakeupId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 - Preparação",
+      "item": [
+        {
+          "name": "01 - Login administrador e iniciar execução",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = Date.now().toString();",
+                  "const date = new Date();",
+                  "let days = (8 - date.getDay()) % 7;",
+                  "if (days === 0) days = 7;",
+                  "date.setDate(date.getDate() + days);",
+                  "const pad = value => String(value).padStart(2, '0');",
+                  "const testDate = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;",
+                  "pm.collectionVariables.set('suffix', suffix);",
+                  "pm.collectionVariables.set('testDate', testDate);",
+                  "['adminToken','teacherToken','studentToken','instrumentId','teacherId','studentId','enrollmentId','lessonId','scheduleId','makeupLessonId','lifecycleOriginalId','lifecycleMakeupId'].forEach(key => pm.collectionVariables.unset(key));",
+                  "console.log(`Execução ${suffix}; data de teste ${testDate}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('login do administrador: HTTP 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.accessToken).to.be.a('string').and.not.empty;",
+                  "pm.expect(json.username).to.eql('admin');",
+                  "pm.collectionVariables.set('adminToken', json.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"login\": \"admin\",\n  \"password\": \"Admin@123\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/auth/login",
+            "description": "Inicia uma execução limpa e salva adminToken."
+          }
+        },
+        {
+          "name": "02 - Confirmar administrador autenticado",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('administrador autenticado', () => pm.response.to.have.status(200));",
+            "pm.expect(pm.response.json().username).to.eql('admin');"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": "{{baseUrl}}/auth/me"
+          }
+        },
+        {
+          "name": "03 - Criar instrumento",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('instrumento criado', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('instrumentId', pm.response.json().id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Violão Framework {{suffix}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/admin/instruments"
+          }
+        },
+        {
+          "name": "04 - Criar professor",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('professor criado', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('teacherId', pm.response.json().id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"prof_framework_{{suffix}}\",\n  \"email\": \"prof_{{suffix}}@harmonia.local\",\n  \"password\": \"Teach@1234\",\n  \"name\": \"Professor Framework\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/admin/teachers"
+          }
+        },
+        {
+          "name": "05 - Criar aluno",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('aluno criado', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('studentId', pm.response.json().id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"aluno_framework_{{suffix}}\",\n  \"email\": \"aluno_{{suffix}}@harmonia.local\",\n  \"password\": \"Student@123\",\n  \"name\": \"Aluno Framework\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/admin/students"
+          }
+        },
+        {
+          "name": "06 - Criar matrícula",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('matrícula criada', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('enrollmentId', pm.response.json().id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"studentId\": \"{{studentId}}\",\n  \"teacherId\": \"{{teacherId}}\",\n  \"instrumentId\": \"{{instrumentId}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/admin/enrollments"
+          }
+        },
+        {
+          "name": "07 - Login professor",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('login do professor', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('teacherToken', pm.response.json().accessToken);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"login\": \"prof_framework_{{suffix}}\",\n  \"password\": \"Teach@1234\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "08 - Login aluno",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('login do aluno', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('studentToken', pm.response.json().accessToken);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"login\": \"aluno_framework_{{suffix}}\",\n  \"password\": \"Student@123\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Regras de agenda",
+      "item": [
+        {
+          "name": "01 - Criar aula válida 09:00-10:00",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('aula válida criada', () => pm.response.to.have.status(200));",
+            "pm.expect(pm.response.json().status).to.eql('DONE');",
+            "pm.collectionVariables.set('lessonId', pm.response.json().id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"enrollmentId\": \"{{enrollmentId}}\",\n  \"date\": \"{{testDate}}\",\n  \"startTime\": \"09:00\",\n  \"endTime\": \"10:00\",\n  \"content\": \"Demonstração do framework\",\n  \"homework\": \"Praticar escalas\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/lessons"
+          }
+        },
+        {
+          "name": "02 - Rejeitar sobreposição 09:30-10:30",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('sobreposição rejeitada com 409', () => pm.response.to.have.status(409));",
+            "pm.expect(pm.response.json().code).to.eql('SCHEDULE_CONFLICT');"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"enrollmentId\": \"{{enrollmentId}}\",\n  \"date\": \"{{testDate}}\",\n  \"startTime\": \"09:30\",\n  \"endTime\": \"10:30\",\n  \"content\": \"Deve falhar\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/lessons"
+          }
+        },
+        {
+          "name": "03 - Aceitar horário consecutivo 10:00-11:00",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('fim exclusivo permite horário consecutivo', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"enrollmentId\": \"{{enrollmentId}}\",\n  \"date\": \"{{testDate}}\",\n  \"startTime\": \"10:00\",\n  \"endTime\": \"11:00\",\n  \"content\": \"Horário consecutivo permitido\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/lessons"
+          }
+        },
+        {
+          "name": "04 - Rejeitar intervalo inválido 12:00-11:00",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('intervalo inválido rejeitado com 422', () => pm.response.to.have.status(422));",
+            "pm.expect(pm.response.json().code).to.eql('DOMAIN_VALIDATION');"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"enrollmentId\": \"{{enrollmentId}}\",\n  \"date\": \"{{testDate}}\",\n  \"startTime\": \"12:00\",\n  \"endTime\": \"11:00\",\n  \"content\": \"Deve falhar\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/lessons"
+          }
+        },
+        {
+          "name": "05 - Criar horário recorrente segunda 14:00-15:00",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('horário recorrente criado', () => pm.response.to.have.status(200));",
+            "pm.expect(pm.response.json().weekday).to.eql('MONDAY');",
+            "pm.collectionVariables.set('scheduleId', pm.response.json().id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"enrollmentId\": \"{{enrollmentId}}\",\n  \"weekday\": \"MONDAY\",\n  \"startTime\": \"14:00\",\n  \"endTime\": \"15:00\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/schedules"
+          }
+        },
+        {
+          "name": "06 - Rejeitar aula contra recorrência",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('conflito com recorrência rejeitado', () => pm.response.to.have.status(409));",
+            "pm.expect(pm.response.json().code).to.eql('SCHEDULE_CONFLICT');"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"enrollmentId\": \"{{enrollmentId}}\",\n  \"date\": \"{{testDate}}\",\n  \"startTime\": \"14:30\",\n  \"endTime\": \"15:30\",\n  \"content\": \"Conflito com recorrência\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/lessons"
+          }
+        },
+        {
+          "name": "07 - Desativar horário recorrente",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('horário recorrente desativado', () => pm.response.to.have.status(200));",
+            "pm.expect(pm.response.json().active).to.eql(false);"
+          ] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"active\": false\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/schedules/{{scheduleId}}/active"
+          }
+        },
+        {
+          "name": "08 - Aceitar aula após desativar recorrência",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('horário liberado após desativação', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"enrollmentId\": \"{{enrollmentId}}\",\n  \"date\": \"{{testDate}}\",\n  \"startTime\": \"14:30\",\n  \"endTime\": \"15:30\",\n  \"content\": \"Agora permitido\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/lessons"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Reposição e cancelamento",
+      "item": [
+        {
+          "name": "01 - Criar reposição 16:00-17:00",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('reposição criada', () => pm.response.to.have.status(200));",
+            "pm.expect(pm.response.json().newLesson.status).to.eql('SCHEDULED');",
+            "pm.collectionVariables.set('makeupLessonId', pm.response.json().newLesson.id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"date\": \"{{testDate}}\",\n  \"startTime\": \"16:00\",\n  \"endTime\": \"17:00\",\n  \"reason\": \"Reposição demonstrativa\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/lessons/{{lessonId}}/makeup"
+          }
+        },
+        {
+          "name": "02 - Rejeitar segunda reposição",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('segunda reposição rejeitada', () => pm.response.to.have.status(409));",
+            "pm.expect(pm.response.json().code).to.eql('INVALID_MAKEUP_LINK');"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"date\": \"{{testDate}}\",\n  \"startTime\": \"17:00\",\n  \"endTime\": \"18:00\",\n  \"reason\": \"Deve falhar\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/lessons/{{lessonId}}/makeup"
+          }
+        },
+        {
+          "name": "03 - Cancelar reposição",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('reposição cancelada', () => pm.response.to.have.status(200));",
+            "pm.expect(pm.response.json().status).to.eql('CANCELED');"
+          ] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"CANCELED\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/lessons/{{makeupLessonId}}/status"
+          }
+        },
+        {
+          "name": "04 - Comprovar que cancelamento liberou horário",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('aula cancelada não bloqueia horário', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"enrollmentId\": \"{{enrollmentId}}\",\n  \"date\": \"{{testDate}}\",\n  \"startTime\": \"16:00\",\n  \"endTime\": \"17:00\",\n  \"content\": \"Horário liberado pelo cancelamento\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/lessons"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Ciclo de vida",
+      "item": [
+        {
+          "name": "01 - Criar aula original 18:00-19:00",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('aula original criada', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('lifecycleOriginalId', pm.response.json().id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"enrollmentId\": \"{{enrollmentId}}\",\n  \"date\": \"{{testDate}}\",\n  \"startTime\": \"18:00\",\n  \"endTime\": \"19:00\",\n  \"content\": \"Aula para testar ciclo de vida\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/lessons"
+          }
+        },
+        {
+          "name": "02 - Criar reposição agendada 20:00-21:00",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('reposição agendada criada', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('lifecycleMakeupId', pm.response.json().newLesson.id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"date\": \"{{testDate}}\",\n  \"startTime\": \"20:00\",\n  \"endTime\": \"21:00\",\n  \"reason\": \"Teste de ciclo de vida\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/lessons/{{lifecycleOriginalId}}/makeup"
+          }
+        },
+        {
+          "name": "03 - Finalizar reposição",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('transição SCHEDULED para DONE aceita', () => pm.response.to.have.status(200));",
+            "pm.expect(pm.response.json().status).to.eql('DONE');"
+          ] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"DONE\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/lessons/{{lifecycleMakeupId}}/status"
+          }
+        },
+        {
+          "name": "04 - Rejeitar reabertura de aula finalizada",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('estado final não pode ser reaberto', () => pm.response.to.have.status(422));",
+            "pm.expect(pm.response.json().code).to.eql('DOMAIN_VALIDATION');"
+          ] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"SCHEDULED\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/lessons/{{lifecycleMakeupId}}/status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Frequência e XP",
+      "item": [
+        {
+          "name": "01 - Conferir progresso inicial",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('progresso inicial consultado', () => pm.response.to.have.status(200));",
+            "pm.expect(pm.response.json().xpTotal).to.eql(0);"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }] },
+            "url": "{{baseUrl}}/me/progress"
+          }
+        },
+        {
+          "name": "02 - Registrar presença",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('presença registrada', () => pm.response.to.have.status(200));",
+            "pm.expect(pm.response.json().status).to.eql('PRESENT');"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"PRESENT\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/lessons/{{lessonId}}/attendance"
+          }
+        },
+        {
+          "name": "03 - Conferir concessão de 20 XP",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('presença concedeu 20 XP', () => pm.response.to.have.status(200));",
+            "pm.expect(pm.response.json().xpTotal).to.eql(20);"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }] },
+            "url": "{{baseUrl}}/me/progress"
+          }
+        },
+        {
+          "name": "04 - Repetir a mesma presença",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('presença repetida aceita', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"PRESENT\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/lessons/{{lessonId}}/attendance"
+          }
+        },
+        {
+          "name": "05 - Confirmar que XP não duplicou",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('repetição não duplicou XP', () => pm.response.to.have.status(200));",
+            "pm.expect(pm.response.json().xpTotal).to.eql(20);"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }] },
+            "url": "{{baseUrl}}/me/progress"
+          }
+        },
+        {
+          "name": "06 - Corrigir presença para falta",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('frequência corrigida para falta', () => pm.response.to.have.status(200));",
+            "pm.expect(pm.response.json().status).to.eql('ABSENT');"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"ABSENT\",\n  \"justification\": \"Correção para demonstrar reversibilidade\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{baseUrl}}/teacher/lessons/{{lessonId}}/attendance"
+          }
+        },
+        {
+          "name": "07 - Confirmar revogação do XP",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('correção revogou os 20 XP', () => pm.response.to.have.status(200));",
+            "pm.expect(pm.response.json().xpTotal).to.eql(0);"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }] },
+            "url": "{{baseUrl}}/me/progress"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -216,6 +216,20 @@ A correção já existe no commit `601af72` (`fix(lesson-core): execute advisory
 
 ## 7. Preparação do Postman
 
+### Opção recomendada: importar a coleção pronta
+
+O arquivo `postman/Harmonia-lesson-core.postman_collection.json` já contém todas as requisições, autenticação, corpos JSON e testes automáticos. No Postman:
+
+1. clique em **Import**;
+2. selecione o arquivo da coleção;
+3. abra a coleção **Harmonia - Demonstração lesson-core**;
+4. confirme que a variável `baseUrl` aponta para `http://localhost:8080`;
+5. use **Run collection** para executar as requisições na ordem.
+
+A primeira requisição gera um sufixo único, calcula a próxima segunda-feira e limpa tokens e IDs anteriores. As respostas seguintes alimentam automaticamente as variáveis da coleção. Não é necessário criar um ambiente no Postman nem copiar IDs manualmente.
+
+As instruções abaixo permanecem como referência para montagem ou execução manual dos `curl`.
+
 Crie um ambiente chamado `Harmonia local` com as variáveis abaixo:
 
 | Variável | Valor inicial |
