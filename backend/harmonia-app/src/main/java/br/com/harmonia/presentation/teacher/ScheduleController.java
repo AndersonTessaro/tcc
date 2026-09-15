@@ -23,6 +23,7 @@ public class ScheduleController {
 
     public record NewSchedule(@NotNull UUID enrollmentId, @NotNull Weekday weekday,
                               @NotNull LocalTime startTime, @NotNull LocalTime endTime) {}
+    public record ChangeScheduleStatus(@NotNull Boolean active) {}
 
     @GetMapping
     @PreAuthorize("hasAuthority('lesson.read')")
@@ -34,5 +35,11 @@ public class ScheduleController {
     @PreAuthorize("hasAuthority('lesson.manage')")
     public Schedule create(@Valid @RequestBody NewSchedule r) {
         return uc.create(r.enrollmentId(), r.weekday(), r.startTime(), r.endTime());
+    }
+
+    @PatchMapping("/{id}/active")
+    @PreAuthorize("hasAuthority('lesson.manage')")
+    public Schedule setActive(@PathVariable UUID id, @Valid @RequestBody ChangeScheduleStatus r) {
+        return uc.setActive(id, r.active());
     }
 }

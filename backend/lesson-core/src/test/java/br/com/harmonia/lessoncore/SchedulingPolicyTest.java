@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.UUID;
 
@@ -86,6 +87,18 @@ class SchedulingPolicyTest {
             DayOfWeek.TUESDAY, new TimeRange(LocalTime.of(10, 0), LocalTime.of(11, 0)));
 
         assertThatCode(() -> policy.validateWeeklySlot(candidate, List.of(existing))).doesNotThrowAnyException();
+    }
+
+    @Test
+    void rejectsConcreteLessonInsideRecurringSchedule() {
+        LocalDate monday = LocalDate.now().with(TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
+        LessonSlot candidate = new LessonSlot(UUID.randomUUID(), teacher, UUID.randomUUID(), monday,
+            new TimeRange(LocalTime.of(10, 30), LocalTime.of(11, 30)), SessionStatus.SCHEDULED);
+        WeeklyScheduleSlot recurring = weekly(teacher, UUID.randomUUID(), LocalTime.of(10, 0), LocalTime.of(11, 0));
+
+        assertThatThrownBy(() -> policy.validateLessonAgainstWeeklySchedules(candidate, List.of(recurring)))
+            .isInstanceOf(ScheduleConflictException.class)
+            .hasMessageContaining("recurring");
     }
 
     private LessonSlot lesson(UUID teacherId, UUID studentId, LocalTime start, LocalTime end) {

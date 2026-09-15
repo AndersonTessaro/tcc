@@ -4,7 +4,6 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Objects;
 
-/** Defines the valid lifecycle of a lesson. Terminal lessons cannot be reopened implicitly. */
 public final class LessonLifecyclePolicy {
     private static final Map<SessionStatus, EnumSet<SessionStatus>> ALLOWED = Map.of(
         SessionStatus.SCHEDULED, EnumSet.of(SessionStatus.DONE, SessionStatus.CANCELED),

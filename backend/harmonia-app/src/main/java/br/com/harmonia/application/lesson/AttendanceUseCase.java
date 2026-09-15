@@ -51,7 +51,10 @@ public class AttendanceUseCase {
 
         AttendanceEffect effect = recordingRule.evaluate(previousOutcome, toOutcome(status));
         UUID studentId = lesson.getEnrollment().getStudent().getId();
-        events.publishEvent(new AttendanceRecordedEvent(lessonId, studentId, toOutcome(status), effect));
+        if (effect != AttendanceEffect.NONE) {
+            events.publishEvent(new AttendanceRecordedEvent(UUID.randomUUID(), lessonId, studentId,
+                toOutcome(status), effect));
+        }
 
         return saved;
     }

@@ -1,6 +1,7 @@
 package br.com.harmonia.application.schedule;
 
 import br.com.harmonia.application.context.CurrentUserService;
+import br.com.harmonia.application.lesson.LessonSlotLock;
 import br.com.harmonia.application.profile.port.EnrollmentRepository;
 import br.com.harmonia.application.schedule.port.ScheduleRepository;
 import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
@@ -21,12 +22,15 @@ public class ScheduleUseCase {
     private final ScheduleRepository schedules;
     private final EnrollmentRepository enrollments;
     private final CurrentUserService current;
+    private final LessonSlotLock slotLock;
     private final SchedulingPolicy schedulingPolicy = new SchedulingPolicy();
 
-    public ScheduleUseCase(ScheduleRepository schedules, EnrollmentRepository enrollments, CurrentUserService current) {
+    public ScheduleUseCase(ScheduleRepository schedules, EnrollmentRepository enrollments,
+                           CurrentUserService current, LessonSlotLock slotLock) {
         this.schedules = schedules;
         this.enrollments = enrollments;
         this.current = current;
+        this.slotLock = slotLock;
     }
 
     public List<Schedule> mySchedules() {
@@ -36,6 +40,7 @@ public class ScheduleUseCase {
     @Transactional
     public Schedule create(UUID enrollmentId, Weekday weekday, LocalTime startTime, LocalTime endTime) {
         Enrollment e = current.assertOwnedByCurrentTeacher(enrollments.findById(enrollmentId).orElseThrow());
+        slotLock.acquire(e.getTeacher().getId(), e.getStudent().getId());
         WeeklyScheduleSlot candidate = toSlot(UUID.randomUUID(), e, weekday, startTime, endTime);
         List<WeeklyScheduleSlot> existing = schedules
             .findByEnrollmentTeacherIdOrEnrollmentStudentId(e.getTeacher().getId(), e.getStudent().getId())
@@ -47,6 +52,14 @@ public class ScheduleUseCase {
         s.setStartTime(startTime);
         s.setEndTime(endTime);
         return schedules.save(s);
+    }
+
+    @Transactional
+    public Schedule setActive(UUID scheduleId, boolean active) {
+        Schedule schedule = schedules.findById(scheduleId).orElseThrow();
+        current.assertOwnedByCurrentTeacher(schedule.getEnrollment());
+        schedule.setActive(active);
+        return schedules.save(schedule);
     }
 
     private WeeklyScheduleSlot toSlot(Schedule schedule) {
