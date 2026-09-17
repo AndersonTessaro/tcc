@@ -1,21 +1,44 @@
+import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
 const ACCESS = "harmonia_access";
-const REFRESH = "harmonia_refresh";
 
-export const tokenStorage = {
-  async get() {
-    return {
-      access: await SecureStore.getItemAsync(ACCESS),
-      refresh: await SecureStore.getItemAsync(REFRESH),
-    };
+// expo-secure-store has no web implementation - its methods throw on web, which
+// would break every request before it leaves the app. localStorage covers web.
+const webStorage = {
+  get: async () => {
+    try {
+      return globalThis.localStorage?.getItem(ACCESS) ?? null;
+    } catch {
+      return null;
+    }
   },
-  async set(access: string, refresh: string) {
-    await SecureStore.setItemAsync(ACCESS, access);
-    await SecureStore.setItemAsync(REFRESH, refresh);
+  set: async (access: string) => {
+    try {
+      globalThis.localStorage?.setItem(ACCESS, access);
+    } catch {
+      // storage blocked (private mode) - session stays in memory only
+    }
   },
-  async clear() {
-    await SecureStore.deleteItemAsync(ACCESS);
-    await SecureStore.deleteItemAsync(REFRESH);
+  clear: async () => {
+    try {
+      globalThis.localStorage?.removeItem(ACCESS);
+    } catch {
+      // nothing to clear
+    }
   },
 };
+
+const nativeStorage = {
+  get: () => SecureStore.getItemAsync(ACCESS),
+  set: async (access: string) => {
+    await SecureStore.setItemAsync(ACCESS, access);
+  },
+  clear: async () => {
+    await SecureStore.deleteItemAsync(ACCESS);
+  },
+};
+
+// The refresh token is not stored here: the backend returns it as an httpOnly
+// cookie scoped to /auth, so the platform cookie jar owns it.
+export const tokenStorage = Platform.OS === "web" ? webStorage : nativeStorage;

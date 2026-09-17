@@ -13,8 +13,14 @@ export default function Login() {
     setErr("");
     try {
       await login(l, s);
-    } catch {
-      setErr("Login ou senha inválidos");
+    } catch (e) {
+      // Only a 401 means bad credentials; anything else is a client or network
+      // fault and must not be reported as a wrong password.
+      const badCredentials = e instanceof Error && e.message === "HTTP_401";
+      setErr(
+        badCredentials ? "Login ou senha inválidos" : "Não foi possível conectar ao servidor",
+      );
+      if (!badCredentials) console.warn("login failed", e);
     }
   };
 
