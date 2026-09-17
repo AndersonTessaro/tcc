@@ -19,7 +19,7 @@ export default function Roles() {
         setRoles(r);
         setPerms(p);
       })
-      .catch(() => toast.error("Erro ao carregar roles"))
+      .catch(() => toast.error("Erro ao carregar perfis de acesso"))
       .finally(() => setLoading(false));
   };
   useEffect(load, []);
@@ -28,12 +28,12 @@ export default function Roles() {
     if (!newName.trim() || !newDesc.trim()) return;
     try {
       await adminService.createRole(newName.trim(), newDesc.trim());
-      toast.success("Role criada");
+      toast.success("Perfil de acesso criado");
       setNewName("");
       setNewDesc("");
       load();
     } catch {
-      toast.error("Erro ao criar role");
+      toast.error("Erro ao criar perfil de acesso");
     }
   };
 
@@ -54,10 +54,10 @@ export default function Roles() {
 
   return (
     <div>
-      <PageTitle>Roles</PageTitle>
+      <PageTitle>Perfis de acesso</PageTitle>
 
       <Card className="mb-6">
-        <p className="mb-3 font-medium">Nova role</p>
+        <p className="mb-3 font-medium">Novo perfil de acesso</p>
         <div className="flex flex-wrap items-center gap-2">
           <Input className="max-w-[180px]" placeholder="NOME" value={newName} onChange={(e) => setNewName(e.target.value)} />
           <Input className="max-w-xs" placeholder="Descrição" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} />

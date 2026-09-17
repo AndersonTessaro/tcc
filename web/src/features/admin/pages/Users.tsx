@@ -49,10 +49,10 @@ export default function Users() {
     else current.add(roleId);
     try {
       await adminService.setRoles(u.id, [...current]);
-      toast.success("Roles atualizadas");
+      toast.success("Perfis de acesso atualizados");
       load();
     } catch {
-      toast.error("Erro ao atualizar roles");
+      toast.error("Erro ao atualizar perfis de acesso");
     }
   };
 
@@ -68,7 +68,7 @@ export default function Users() {
               <th className="p-3">Usuário</th>
               <th className="p-3">E-mail</th>
               <th className="p-3">Status</th>
-              <th className="p-3">Roles</th>
+              <th className="p-3">Perfis de acesso</th>
               <th className="p-3">Ações</th>
             </tr>
           </thead>
@@ -103,7 +103,7 @@ export default function Users() {
                 <td className="p-3">
                   <div className="flex flex-wrap gap-2">
                     <Button variant="ghost" onClick={() => setEditing(editing === u.id ? null : u.id)}>
-                      {editing === u.id ? "Fechar" : "Roles"}
+                      {editing === u.id ? "Fechar" : "Perfis"}
                     </Button>
                     <Button variant="ghost" onClick={() => toggleStatus(u)}>
                       {u.active ? "Desativar" : "Ativar"}
