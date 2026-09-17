@@ -2,14 +2,13 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { adminService } from "../adminService";
 import type { Permission, RoleDto } from "../adminService";
-import { Button, Card, Input, PageTitle } from "@/components/ui";
+import { accessProfileLabel } from "../accessProfile";
+import { Button, Card, PageTitle } from "@/components/ui";
 
 export default function Roles() {
   const [roles, setRoles] = useState<RoleDto[]>([]);
   const [perms, setPerms] = useState<Permission[]>([]);
   const [open, setOpen] = useState<number | null>(null);
-  const [newName, setNewName] = useState("");
-  const [newDesc, setNewDesc] = useState("");
   const [loading, setLoading] = useState(true);
 
   const load = () => {
@@ -23,19 +22,6 @@ export default function Roles() {
       .finally(() => setLoading(false));
   };
   useEffect(load, []);
-
-  const create = async () => {
-    if (!newName.trim() || !newDesc.trim()) return;
-    try {
-      await adminService.createRole(newName.trim(), newDesc.trim());
-      toast.success("Perfil de acesso criado");
-      setNewName("");
-      setNewDesc("");
-      load();
-    } catch {
-      toast.error("Erro ao criar perfil de acesso");
-    }
-  };
 
   const togglePerm = async (role: RoleDto, permId: number) => {
     const current = new Set(role.permissions.map((p) => p.id));
@@ -56,21 +42,12 @@ export default function Roles() {
     <div>
       <PageTitle>Perfis de acesso</PageTitle>
 
-      <Card className="mb-6">
-        <p className="mb-3 font-medium">Novo perfil de acesso</p>
-        <div className="flex flex-wrap items-center gap-2">
-          <Input className="max-w-[180px]" placeholder="NOME" value={newName} onChange={(e) => setNewName(e.target.value)} />
-          <Input className="max-w-xs" placeholder="Descrição" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} />
-          <Button onClick={create}>Criar</Button>
-        </div>
-      </Card>
-
       <div className="space-y-3">
         {roles.map((r) => (
           <Card key={r.id}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-semibold">{r.name}</p>
+                <p className="font-semibold">{accessProfileLabel(r.name)}</p>
                 <p className="text-sm text-gray-500">{r.description}</p>
               </div>
               <Button variant="ghost" onClick={() => setOpen(open === r.id ? null : r.id)}>
