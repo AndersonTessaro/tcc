@@ -3,23 +3,26 @@ import { tokenStorage } from "../../lib/http/tokenStorage";
 
 export type AuthResponse = {
   accessToken: string;
-  refreshToken: string;
   username: string;
   authorities: string[];
 };
 
 export const authService = {
   async login(login: string, password: string) {
-    const res = await api.post<AuthResponse>("/auth/login", { login, password });
-    await tokenStorage.set(res.accessToken, res.refreshToken);
+    const res = await api.post<AuthResponse>(
+      "/auth/login",
+      { login, password },
+      { auth: false },
+    );
+    await tokenStorage.set(res.accessToken);
     return res;
   },
   me: () =>
     api.get<{ username: string; authorities: string[]; displayName: string }>("/auth/me"),
-  forgot: (email: string) => api.post("/auth/forgot-password", { email }),
-  async logout(refreshToken: string) {
+  forgot: (email: string) => api.post("/auth/forgot-password", { email }, { auth: false }),
+  async logout() {
     try {
-      await api.post("/auth/logout", { refreshToken });
+      await api.post("/auth/logout");
     } finally {
       await tokenStorage.clear();
     }
