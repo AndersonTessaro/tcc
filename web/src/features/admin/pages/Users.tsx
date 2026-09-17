@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { adminService } from "../adminService";
 import type { RoleDto, UserDto } from "../adminService";
+import { accessProfileLabel } from "../accessProfile";
 import { Button, Card, PageTitle } from "@/components/ui";
 
 export default function Users() {
@@ -92,12 +93,14 @@ export default function Users() {
                             checked={u.roles.some((x) => x.id === r.id)}
                             onChange={() => toggleRole(u, r.id)}
                           />
-                          {r.name}
+                          {accessProfileLabel(r.name)}
                         </label>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-gray-600">{u.roles.map((r) => r.name).join(", ") || "—"}</span>
+                    <span className="text-gray-600">
+                      {u.roles.map((r) => accessProfileLabel(r.name)).join(", ") || "—"}
+                    </span>
                   )}
                 </td>
                 <td className="p-3">
