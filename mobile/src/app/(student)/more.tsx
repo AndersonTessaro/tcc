@@ -1,14 +1,12 @@
 import { View, Text, Pressable } from "react-native";
 import { useAuth } from "@/features/auth/useAuth";
-import { tokenStorage } from "@/lib/http/tokenStorage";
 import { authService } from "@/features/auth/authService";
 
 export default function More() {
   const { user, logout } = useAuth();
 
   const signOut = async () => {
-    const { refresh } = await tokenStorage.get();
-    if (refresh) await authService.logout(refresh).catch(() => {});
+    await authService.logout().catch(() => {});
     logout();
   };
 
