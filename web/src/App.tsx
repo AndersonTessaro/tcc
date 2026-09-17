@@ -23,8 +23,8 @@ function Home() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
       <p className="text-gray-600">
-        Este configurador web é exclusivo para administradores. Use o app mobile para o acesso de
-        aluno/professor.
+        Este painel é exclusivo para administradores. Use o aplicativo para acessar as áreas de
+        aluno e professor.
       </p>
       <Button variant="danger" onClick={logout}>
         Sair
