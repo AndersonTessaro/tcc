@@ -4,7 +4,7 @@ import { Button } from "@/components/ui";
 
 const nav = [
   { to: "/admin/users", label: "Usuários" },
-  { to: "/admin/roles", label: "Roles" },
+  { to: "/admin/roles", label: "Perfis de acesso" },
   { to: "/admin/permissions", label: "Permissões" },
   { to: "/admin/registrations", label: "Cadastros" },
   { to: "/admin/finance", label: "Financeiro" },
@@ -19,7 +19,7 @@ export default function AppLayout() {
       <aside className="flex w-60 flex-col border-r border-gray-200 bg-white p-4">
         <div className="mb-8 px-2">
           <p className="text-lg font-bold text-gray-900">Harmonia</p>
-          <p className="text-xs text-gray-400">Admin</p>
+          <p className="text-xs text-gray-400">Administração</p>
         </div>
         <nav className="flex-1 space-y-1">
           {nav.map((n) => (
