@@ -1,6 +1,7 @@
 package br.com.harmonia.application.admin;
 
 import br.com.harmonia.application.profile.port.*;
+import br.com.harmonia.domain.common.ResourceNotFoundException;
 import br.com.harmonia.application.security.port.RoleRepository;
 import br.com.harmonia.application.security.port.UserRepository;
 import br.com.harmonia.infrastructure.persistence.profile.*;
@@ -69,9 +70,9 @@ public class AdminRegistrationUseCase {
     @Transactional
     public UUID createEnrollment(UUID studentId, UUID teacherId, UUID instrumentId) {
         Enrollment e = new Enrollment();
-        e.setStudent(students.findById(studentId).orElseThrow());
-        e.setTeacher(teachers.findById(teacherId).orElseThrow());
-        e.setInstrument(instruments.findById(instrumentId).orElseThrow());
+        e.setStudent(students.findById(studentId).orElseThrow(() -> new ResourceNotFoundException("Student")));
+        e.setTeacher(teachers.findById(teacherId).orElseThrow(() -> new ResourceNotFoundException("Teacher")));
+        e.setInstrument(instruments.findById(instrumentId).orElseThrow(() -> new ResourceNotFoundException("Instrument")));
         return enrollments.save(e).getId();
     }
 }

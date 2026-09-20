@@ -2,6 +2,8 @@ package br.com.harmonia.presentation.error;
 
 import br.com.harmonia.application.security.PasswordResetUseCase.InvalidResetTokenException;
 import br.com.harmonia.domain.common.OwnershipException;
+import br.com.harmonia.domain.common.ResourceNotFoundException;
+import org.springframework.dao.DataIntegrityViolationException;
 import br.com.harmonia.infrastructure.security.TokenService.BadRefreshTokenException;
 import br.com.harmonia.lessoncore.InvalidMakeupLinkException;
 import br.com.harmonia.lessoncore.DomainValidationException;
@@ -19,6 +21,21 @@ import java.util.List;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiError> notFound(ResourceNotFoundException e) {
+        return build(HttpStatus.NOT_FOUND, "NOT_FOUND", e.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> duplicate(DataIntegrityViolationException e) {
+        for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+            if (cause instanceof java.sql.SQLException sql && "23505".equals(sql.getSQLState())) {
+                return build(HttpStatus.CONFLICT, "DUPLICATE_RESOURCE", "A record with these unique fields already exists", List.of());
+            }
+        }
+        throw e;
+    }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiError> badCredentials(BadCredentialsException e) {

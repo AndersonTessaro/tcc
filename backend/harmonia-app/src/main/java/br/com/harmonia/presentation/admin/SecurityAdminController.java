@@ -29,7 +29,8 @@ public class SecurityAdminController {
     public record SetStatus(boolean active) {}
     public record ResetPassword(@NotBlank @Size(min = 8) String newPassword) {}
     public record SetPermissions(@NotNull Set<Long> permissionIds) {}
-    public record NewRole(@NotBlank String name, @NotBlank String description) {}
+    public record NewRole(@NotBlank @Size(max = 50) String name,
+                          @NotBlank @Size(max = 255) String description) {}
 
     @GetMapping("/users")
     public List<User> users() {
