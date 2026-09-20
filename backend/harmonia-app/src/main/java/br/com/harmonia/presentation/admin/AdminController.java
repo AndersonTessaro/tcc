@@ -2,6 +2,7 @@ package br.com.harmonia.presentation.admin;
 
 import br.com.harmonia.application.admin.AdminRegistrationUseCase;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.util.UUID;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/admin")
@@ -21,9 +23,16 @@ public class AdminController {
         this.uc = uc;
     }
 
-    public record NewUser(@NotBlank String username, @Email String email,
-                          @NotBlank @Size(min = 8) String password, @NotBlank String name) {}
-    public record NewInstrument(@NotBlank String name) {}
+    public record NewUser(@NotBlank @Size(max = 100) String username,
+                          @NotBlank @Email @Size(max = 255) String email,
+                          @NotBlank @Size(min = 8) String password,
+                          @NotBlank @Size(max = 150) String name) {
+        @AssertTrue(message = "password must contain at most 72 UTF-8 bytes")
+        public boolean isPasswordWithinByteLimit() {
+            return password == null || password.getBytes(StandardCharsets.UTF_8).length <= 72;
+        }
+    }
+    public record NewInstrument(@NotBlank @Size(max = 80) String name) {}
     public record NewEnrollment(@NotNull UUID studentId, @NotNull UUID teacherId, @NotNull UUID instrumentId) {}
 
     @PostMapping("/students")
