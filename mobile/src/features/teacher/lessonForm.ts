@@ -21,12 +21,18 @@ export type LessonFormInput = {
   endTime: string;
 };
 
+export function validateTimeRange(startTime: string, endTime: string): string | null {
+  if (!TIME_PATTERN.test(startTime) || !TIME_PATTERN.test(endTime)) return "Horário inválido (HH:MM)";
+  if (endTime <= startTime) return "O fim deve ser depois do início";
+  return null;
+}
+
+export function validateDate(date: string): string | null {
+  return DATE_PATTERN.test(date) ? null : "Data inválida (AAAA-MM-DD)";
+}
+
 export function validateLessonForm(input: LessonFormInput): string | null {
   if (!input.enrollmentId) return "Selecione o aluno";
-  if (!DATE_PATTERN.test(input.date)) return "Data inválida (AAAA-MM-DD)";
-  if (!TIME_PATTERN.test(input.startTime) || !TIME_PATTERN.test(input.endTime))
-    return "Horário inválido (HH:MM)";
-  if (input.endTime <= input.startTime) return "O fim deve ser depois do início";
-  return null;
+  return validateDate(input.date) ?? validateTimeRange(input.startTime, input.endTime);
 }
 

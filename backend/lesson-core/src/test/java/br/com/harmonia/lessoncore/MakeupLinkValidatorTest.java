@@ -23,10 +23,9 @@ class MakeupLinkValidatorTest {
     }
 
     @Test
-    void canceledLesson_throws() {
-        assertThatThrownBy(() -> validator.validate(SessionStatus.CANCELED, false))
-            .isInstanceOf(InvalidMakeupLinkException.class)
-            .hasMessageContaining("completed");
+    void canceledLessonWithoutExistingMakeup_passesValidation() {
+        assertThatCode(() -> validator.validate(SessionStatus.CANCELED, false))
+            .doesNotThrowAnyException();
     }
 
     @Test

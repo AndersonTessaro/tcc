@@ -4,8 +4,10 @@ import { teacherService, type TeacherLesson } from "@/features/teacher/teacherSe
 import { localIsoDate } from "@/features/teacher/lessonForm";
 import { ApiError } from "@/lib/http/apiError";
 
+const mockPush = jest.fn();
+jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock("@/features/teacher/teacherService", () => ({
-  teacherService: { schedule: jest.fn(), attendance: jest.fn() },
+  teacherService: { schedule: jest.fn(), attendance: jest.fn(), changeLessonStatus: jest.fn() },
 }));
 
 const service = teacherService as jest.Mocked<typeof teacherService>;
@@ -32,6 +34,7 @@ describe("Schedule screen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     service.attendance.mockResolvedValue({});
+    service.changeLessonStatus.mockResolvedValue(lesson({}));
   });
 
   it("shows lessons with student, time and the recorded attendance", async () => {
@@ -57,6 +60,22 @@ describe("Schedule screen", () => {
 
     await waitFor(() => expect(service.attendance).toHaveBeenCalledWith("l1", "ABSENT"));
     await waitFor(() => expect(service.schedule).toHaveBeenCalledTimes(2));
+  });
+
+  it("cancels a scheduled lesson", async () => {
+    service.schedule.mockResolvedValue([lesson({ status: "SCHEDULED" })]);
+    await render(<Schedule />);
+    await fireEvent.press(await screen.findByText("Cancelar aula"));
+
+    await waitFor(() => expect(service.changeLessonStatus).toHaveBeenCalledWith("l1", "CANCELED"));
+  });
+
+  it("opens the makeup screen for a canceled lesson", async () => {
+    service.schedule.mockResolvedValue([lesson({ status: "CANCELED" })]);
+    await render(<Schedule />);
+    await fireEvent.press(await screen.findByText("Repor"));
+
+    expect(mockPush).toHaveBeenCalledWith("/(teacher)/makeup/l1");
   });
 
   it("explains a rejected attendance", async () => {

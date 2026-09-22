@@ -8,6 +8,14 @@ final class LessonStatuses {
     private LessonStatuses() {
     }
 
+    static LessonStatus toLessonStatus(SessionStatus status) {
+        return switch (status) {
+            case SCHEDULED -> LessonStatus.SCHEDULED;
+            case DONE -> LessonStatus.DONE;
+            case CANCELED -> LessonStatus.CANCELED;
+        };
+    }
+
     static SessionStatus toSessionStatus(LessonStatus status) {
         return switch (status) {
             case SCHEDULED -> SessionStatus.SCHEDULED;

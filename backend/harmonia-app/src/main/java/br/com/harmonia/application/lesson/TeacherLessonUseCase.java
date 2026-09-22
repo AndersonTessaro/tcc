@@ -51,7 +51,8 @@ public class TeacherLessonUseCase {
     public Lesson register(UUID enrollmentId, LocalDate date, LocalTime start, LocalTime end,
                            String content, String homework) {
         Enrollment enrollment = EnrollmentRules.requireActive(teacherEnrollment(enrollmentId));
-        schedulingGuard.assertSlotIsFree(enrollment, date, start, end, SessionStatus.DONE);
+        SessionStatus initialStatus = lifecyclePolicy.initialStatus(date, LocalDate.now());
+        schedulingGuard.assertSlotIsFree(enrollment, date, start, end, initialStatus);
         Lesson l = new Lesson();
         l.setEnrollment(enrollment);
         l.setDate(date);
@@ -59,7 +60,7 @@ public class TeacherLessonUseCase {
         l.setEndTime(end);
         l.setContent(content);
         l.setHomework(homework);
-        l.setStatus(LessonStatus.DONE);
+        l.setStatus(LessonStatuses.toLessonStatus(initialStatus));
         return lessons.save(l);
     }
 

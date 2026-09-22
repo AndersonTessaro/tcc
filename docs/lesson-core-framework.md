@@ -47,6 +47,8 @@ SCHEDULED ──► DONE
 
 `DONE` e `CANCELED` são estados finais. Repetir o mesmo estado é permitido para tornar operações idempotentes; reabrir uma aula não é permitido pela política.
 
+`initialStatus(data, hoje)` define o estado de uma aula registrada: data futura nasce `SCHEDULED`; hoje ou passado nasce `DONE`.
+
 ## Frequência e XP
 
 `AttendanceRecordingRule` recebe o estado anterior e o novo estado:
@@ -61,7 +63,7 @@ O core não sabe quanto vale o XP. O consumidor aplica o valor da sua própria p
 
 ## Reposição
 
-Uma reposição só pode ser criada para uma aula concluída e uma aula original pode ter no máximo uma reposição. A nova ocorrência passa novamente pela validação de conflito de professor, aluno e horário recorrente.
+Uma reposição só pode ser criada para uma aula concluída (`DONE`) ou cancelada (`CANCELED`) e uma aula original pode ter no máximo uma reposição. A nova ocorrência passa novamente pela validação de conflito de professor, aluno e horário recorrente.
 
 ## Integração com uma aplicação
 
