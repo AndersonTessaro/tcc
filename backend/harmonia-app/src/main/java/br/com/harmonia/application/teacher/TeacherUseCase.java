@@ -51,8 +51,8 @@ public class TeacherUseCase {
 
     /** Pedagogical report for a linked student (RF12/RF18). */
     public Map<String, Object> studentDetail(UUID studentId) {
-        var teacherId = current.currentTeacher().getId();
-        if (enrollments.findByTeacherIdAndStudentId(teacherId, studentId).isEmpty())
+        if (!current.isAdmin()
+                && enrollments.findByTeacherIdAndStudentId(current.currentTeacher().getId(), studentId).isEmpty())
             throw new OwnershipException("Student not linked");
 
         long present = attendances.countByLessonEnrollmentStudentIdAndStatus(studentId, AttendanceStatus.PRESENT);

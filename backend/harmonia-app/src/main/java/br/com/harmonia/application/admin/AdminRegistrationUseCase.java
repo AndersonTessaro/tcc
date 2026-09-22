@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -58,10 +59,33 @@ public class AdminRegistrationUseCase {
     }
 
     @Transactional
-    public UUID createTeacher(String username, String email, String password, String name) {
+    public UUID createTeacher(String username, String email, String password, String name,
+                              Collection<UUID> instrumentIds) {
         Teacher t = new Teacher();
+        t.setInstruments(activeInstrumentsById(instrumentIds));
         t.setUser(newUser(username, email, password, name, "TEACHER"));
         return teachers.save(t).getId();
+    }
+
+    @Transactional
+    public Teacher setTeacherInstruments(UUID teacherId, Collection<UUID> instrumentIds) {
+        Teacher teacher = teachers.findWithInstrumentsById(teacherId)
+            .orElseThrow(() -> new ResourceNotFoundException("Teacher"));
+        teacher.setInstruments(activeInstrumentsById(instrumentIds));
+        return teachers.save(teacher);
+    }
+
+    private Set<Instrument> activeInstrumentsById(Collection<UUID> instrumentIds) {
+        if (instrumentIds == null || instrumentIds.isEmpty()) {
+            return new LinkedHashSet<>();
+        }
+        Set<UUID> ids = new LinkedHashSet<>(instrumentIds);
+        List<Instrument> found = instruments.findAllById(ids);
+        if (found.size() != ids.size()) {
+            throw new ResourceNotFoundException("Instrument");
+        }
+        found.forEach(i -> requireActive(i.getActive(), "Instrument"));
+        return new LinkedHashSet<>(found);
     }
 
     @Transactional
@@ -80,6 +104,9 @@ public class AdminRegistrationUseCase {
         requireActive(student.getActive(), "Student");
         requireActive(teacher.getActive(), "Teacher");
         requireActive(instrument.getActive(), "Instrument");
+        if (teacher.getInstruments().stream().noneMatch(i -> i.getId().equals(instrumentId))) {
+            throw new DomainValidationException("Teacher does not teach this instrument");
+        }
         if (enrollments.existsByStudentIdAndTeacherIdAndInstrumentIdAndStatus(studentId, teacherId, instrumentId,
                 EnrollmentStatus.ACTIVE)) {
             throw new DuplicateResourceException(
@@ -104,7 +131,7 @@ public class AdminRegistrationUseCase {
     }
 
     public List<Teacher> activeTeachers() {
-        return teachers.findAll().stream().filter(Teacher::getActive)
+        return teachers.findByActiveTrue().stream()
             .sorted(Comparator.comparing(t -> t.getUser().nameForDisplay())).toList();
     }
 

@@ -42,7 +42,7 @@ class ScheduleIT {
         String admin = login("admin", "Admin@123");
         String inst = postId(admin, "/admin/instruments", "{\"name\":\"Violin\"}");
         String teacher = postId(admin, "/admin/teachers",
-            "{\"username\":\"teacherSch\",\"email\":\"sch@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher Sch\"}");
+            "{\"username\":\"teacherSch\",\"email\":\"sch@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher Sch\",\"instrumentIds\":[\"" + inst + "\"]}");
         String student = postId(admin, "/admin/students",
             "{\"username\":\"studentSch\",\"email\":\"stsch@h.local\",\"password\":\"Student@123\",\"name\":\"Student Sch\"}");
         String enrollment = postId(admin, "/admin/enrollments",

@@ -17,6 +17,15 @@ describe("apiErrorMessage", () => {
     expect(apiErrorMessage(error, "fallback")).toBe("Aula cancelada não recebe frequência");
   });
 
+  it("explains missing teacher instrument and missing profile", () => {
+    expect(apiErrorMessage(new ApiError(422, "DOMAIN_VALIDATION", "Teacher does not teach this instrument"), "fb")).toBe(
+      "O professor não ensina este instrumento",
+    );
+    expect(apiErrorMessage(new ApiError(403, "PROFILE_REQUIRED", "x"), "fb")).toBe(
+      "Esta ação exige um perfil de professor ou aluno",
+    );
+  });
+
   it("uses a generic message for unknown domain rules", () => {
     expect(apiErrorMessage(new ApiError(422, "DOMAIN_VALIDATION", "Something else"), "fb")).toBe(
       "Operação não permitida",

@@ -2,24 +2,35 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { adminService } from "../adminService";
-import type { InstrumentOption, NewUser, PersonOption } from "../adminService";
+import type { InstrumentOption, NewUser, PersonOption, TeacherOption } from "../adminService";
+import { InstrumentChecklist } from "../components/InstrumentChecklist";
+import { TeacherInstrumentsCard } from "../components/TeacherInstrumentsCard";
 import { Button, Card, Input, PageTitle } from "@/components/ui";
 
-type Options = { students: PersonOption[]; teachers: PersonOption[]; instruments: InstrumentOption[] };
+type Options = { students: PersonOption[]; teachers: TeacherOption[]; instruments: InstrumentOption[] };
 
 const EMPTY_OPTIONS: Options = { students: [], teachers: [], instruments: [] };
 const EMPTY_ENROLLMENT = { studentId: "", teacherId: "", instrumentId: "" };
+const EMPTY_USER: NewUser = { username: "", email: "", password: "", name: "" };
 
-function UserForm({ label, onSubmit }: { label: string; onSubmit: (b: NewUser) => Promise<unknown> }) {
-  const [f, setF] = useState<NewUser>({ username: "", email: "", password: "", name: "" });
+type UserFormProps = {
+  label: string;
+  onSubmit: (b: NewUser, instrumentIds: string[]) => Promise<unknown>;
+  instruments?: InstrumentOption[];
+};
+
+function UserForm({ label, onSubmit, instruments }: UserFormProps) {
+  const [f, setF] = useState<NewUser>(EMPTY_USER);
+  const [instrumentIds, setInstrumentIds] = useState<string[]>([]);
   const set = (k: keyof NewUser) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setF({ ...f, [k]: e.target.value });
 
   const save = async () => {
     try {
-      await onSubmit(f);
+      await onSubmit(f, instrumentIds);
       toast.success(`${label} criado`);
-      setF({ username: "", email: "", password: "", name: "" });
+      setF(EMPTY_USER);
+      setInstrumentIds([]);
     } catch (error) {
       toast.error(apiErrorMessage(error, `Erro ao criar ${label.toLowerCase()}`));
     }
@@ -33,6 +44,9 @@ function UserForm({ label, onSubmit }: { label: string; onSubmit: (b: NewUser) =
         <Input placeholder="E-mail" value={f.email} onChange={set("email")} />
         <Input placeholder="Senha (mín. 8)" type="password" value={f.password} onChange={set("password")} />
         <Input placeholder="Nome" value={f.name} onChange={set("name")} />
+        {instruments ? (
+          <InstrumentChecklist instruments={instruments} selected={instrumentIds} onChange={setInstrumentIds} />
+        ) : null}
         <Button onClick={save} className="w-full">
           Criar {label.toLowerCase()}
         </Button>
@@ -46,11 +60,13 @@ function OptionSelect({
   value,
   options,
   onChange,
+  placeholder = "Selecione…",
 }: {
   label: string;
   value: string;
   options: { id: string; label: string }[];
   onChange: (id: string) => void;
+  placeholder?: string;
 }) {
   return (
     <label className="block text-sm text-gray-700">
@@ -61,7 +77,7 @@ function OptionSelect({
         value={value}
         onChange={(e) => onChange(e.target.value)}
       >
-        <option value="">Selecione…</option>
+        <option value="">{placeholder}</option>
         {options.map((o) => (
           <option key={o.id} value={o.id}>
             {o.label}
@@ -96,8 +112,13 @@ export default function Registrations() {
     void loadOptions();
   }, [loadOptions]);
 
-  const afterCreate = (create: (b: NewUser) => Promise<unknown>) => async (b: NewUser) => {
-    await create(b);
+  const createStudent = async (b: NewUser) => {
+    await adminService.createStudent(b);
+    await loadOptions();
+  };
+
+  const createTeacher = async (b: NewUser, instrumentIds: string[]) => {
+    await adminService.createTeacher({ ...b, instrumentIds });
     await loadOptions();
   };
 
@@ -111,6 +132,15 @@ export default function Registrations() {
     } catch (error) {
       toast.error(apiErrorMessage(error, "Erro ao criar instrumento"));
     }
+  };
+
+  const selectedTeacher = options.teachers.find((t) => t.id === enr.teacherId);
+  const taughtInstruments = selectedTeacher?.instruments ?? [];
+
+  const pickTeacher = (teacherId: string) => {
+    const teaches = options.teachers.find((t) => t.id === teacherId)?.instruments ?? [];
+    const keepInstrument = teaches.some((i) => i.id === enr.instrumentId);
+    setEnr({ ...enr, teacherId, instrumentId: keepInstrument ? enr.instrumentId : "" });
   };
 
   const createEnrollment = async () => {
@@ -131,8 +161,8 @@ export default function Registrations() {
     <div>
       <PageTitle>Cadastros</PageTitle>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <UserForm label="Aluno" onSubmit={afterCreate(adminService.createStudent)} />
-        <UserForm label="Professor" onSubmit={afterCreate(adminService.createTeacher)} />
+        <UserForm label="Aluno" onSubmit={createStudent} />
+        <UserForm label="Professor" onSubmit={createTeacher} instruments={options.instruments} />
 
         <Card>
           <p className="mb-3 font-medium">Novo instrumento</p>
@@ -141,6 +171,8 @@ export default function Registrations() {
             <Button onClick={createInstrument}>Criar</Button>
           </div>
         </Card>
+
+        <TeacherInstrumentsCard teachers={options.teachers} instruments={options.instruments} onSaved={loadOptions} />
 
         <Card>
           <p className="mb-3 font-medium">Nova matrícula</p>
@@ -155,13 +187,20 @@ export default function Registrations() {
               label="Professor"
               value={enr.teacherId}
               options={options.teachers.map((t) => ({ id: t.id, label: personLabel(t) }))}
-              onChange={(teacherId) => setEnr({ ...enr, teacherId })}
+              onChange={pickTeacher}
             />
             <OptionSelect
               label="Instrumento"
               value={enr.instrumentId}
-              options={options.instruments.map((i) => ({ id: i.id, label: i.name }))}
+              options={taughtInstruments.map((i) => ({ id: i.id, label: i.name }))}
               onChange={(instrumentId) => setEnr({ ...enr, instrumentId })}
+              placeholder={
+                !selectedTeacher
+                  ? "Selecione o professor primeiro"
+                  : taughtInstruments.length === 0
+                    ? "Professor sem instrumentos"
+                    : "Selecione…"
+              }
             />
             <Button onClick={createEnrollment} className="w-full">
               Criar matrícula

@@ -8,6 +8,7 @@ const BY_CODE: Record<string, string> = {
   OWNERSHIP_DENIED: "Sem permissão para acessar este registro",
   ACCESS_DENIED: "Sem permissão para esta ação",
   INVALID_MAKEUP_LINK: "Esta aula não pode receber reposição",
+  PROFILE_REQUIRED: "Esta ação exige um perfil de professor ou aluno",
 };
 
 // Backend domain messages are in English; only the ones a user can trigger are translated.
@@ -15,6 +16,7 @@ const BY_DETAIL: [RegExp, string][] = [
   [/canceled lesson/i, "Aula cancelada não recebe frequência"],
   [/before the lesson date/i, "A frequência só pode ser marcada a partir do dia da aula"],
   [/Enrollment is not active/i, "Matrícula inativa"],
+  [/does not teach this instrument/i, "O professor não ensina este instrumento"],
   [/(Student|Teacher|Instrument) is not active/i, "Aluno, professor ou instrumento inativo"],
   [/Invalid lesson status transition/i, "Mudança de status não permitida"],
   [/End time must be after start time/i, "O fim deve ser depois do início"],

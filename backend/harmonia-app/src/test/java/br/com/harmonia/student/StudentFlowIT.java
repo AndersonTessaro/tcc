@@ -40,7 +40,7 @@ class StudentFlowIT {
         String admin = login("admin", "Admin@123");
         String inst = postId(admin, "/admin/instruments", "{\"name\":\"Piano\"}");
         String teacher = postId(admin, "/admin/teachers",
-            "{\"username\":\"teacherA\",\"email\":\"teacherA@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher A\"}");
+            "{\"username\":\"teacherA\",\"email\":\"teacherA@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher A\",\"instrumentIds\":[\"" + inst + "\"]}");
         String student = postId(admin, "/admin/students",
             "{\"username\":\"studentA\",\"email\":\"studentA@h.local\",\"password\":\"Student@123\",\"name\":\"Student A\"}");
         postId(admin, "/admin/enrollments",

@@ -3,6 +3,7 @@ package br.com.harmonia.presentation.error;
 import br.com.harmonia.application.security.PasswordResetUseCase.InvalidResetTokenException;
 import br.com.harmonia.domain.common.DuplicateResourceException;
 import br.com.harmonia.domain.common.OwnershipException;
+import br.com.harmonia.domain.common.ProfileRequiredException;
 import br.com.harmonia.domain.common.ResourceNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import br.com.harmonia.infrastructure.security.TokenService.BadRefreshTokenException;
@@ -66,6 +67,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(OwnershipException.class)
     public ResponseEntity<ApiError> ownership(OwnershipException e) {
         return build(HttpStatus.FORBIDDEN, "OWNERSHIP_DENIED", e.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(ProfileRequiredException.class)
+    public ResponseEntity<ApiError> profileRequired(ProfileRequiredException e) {
+        return build(HttpStatus.FORBIDDEN, "PROFILE_REQUIRED", e.getMessage(), List.of());
     }
 
     @ExceptionHandler(InvalidMakeupLinkException.class)

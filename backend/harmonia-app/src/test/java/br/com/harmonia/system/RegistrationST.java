@@ -18,6 +18,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import tools.jackson.databind.ObjectMapper;
@@ -148,9 +149,12 @@ class RegistrationST {
     @Test
     void enrollmentPersistsLinksAndRejectsMissingReferences() throws Exception {
         var body = new LinkedHashMap<String, Object>();
+        String instrumentId = create("/admin/instruments", Map.of("name", "I-" + UUID.randomUUID()));
+        var teacher = user();
+        teacher.put("instrumentIds", List.of(instrumentId));
         body.put("studentId", create("/admin/students", user()));
-        body.put("teacherId", create("/admin/teachers", user()));
-        body.put("instrumentId", create("/admin/instruments", Map.of("name", "I-" + UUID.randomUUID())));
+        body.put("teacherId", create("/admin/teachers", teacher));
+        body.put("instrumentId", instrumentId);
         String id = create("/admin/enrollments", body);
         var row = jdbc.queryForMap("select student_id, teacher_id, instrument_id from enrollment where id=?", UUID.fromString(id));
         assertThat(row.get("student_id").toString()).isEqualTo(body.get("studentId"));

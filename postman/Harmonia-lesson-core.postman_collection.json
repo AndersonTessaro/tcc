@@ -29,7 +29,7 @@
                   "pm.collectionVariables.set('suffix', suffix);",
                   "pm.collectionVariables.set('today', iso(today));",
                   "pm.collectionVariables.set('testDate', iso(monday));",
-                  "[\"adminToken\", \"teacherToken\", \"studentToken\", \"instrumentId\", \"teacherId\", \"studentId\", \"student2Id\", \"enrollmentId\", \"enrollment2Id\", \"lessonId\", \"futureLessonId\", \"scheduleId\", \"makeupLessonId\", \"lifecycleOriginalId\", \"lifecycleMakeupId\"].forEach(key => pm.collectionVariables.unset(key));",
+                  "[\"adminToken\", \"teacherToken\", \"studentToken\", \"instrumentId\", \"instrument2Id\", \"teacherId\", \"studentId\", \"student2Id\", \"enrollmentId\", \"enrollment2Id\", \"lessonId\", \"futureLessonId\", \"scheduleId\", \"makeupLessonId\", \"lifecycleOriginalId\", \"lifecycleMakeupId\"].forEach(key => pm.collectionVariables.unset(key));",
                   "console.log(`Execução ${suffix}; hoje ${iso(today)}; próxima segunda ${iso(monday)}`);"
                 ]
               }
@@ -202,7 +202,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"prof{{suffix}}\",\n  \"email\": \"prof{{suffix}}@harmonia.local\",\n  \"password\": \"Senha@123\",\n  \"name\": \"Professor Demo\"\n}",
+              "raw": "{\n  \"username\": \"prof{{suffix}}\",\n  \"email\": \"prof{{suffix}}@harmonia.local\",\n  \"password\": \"Senha@123\",\n  \"name\": \"Professor Demo\",\n  \"instrumentIds\": [\n    \"{{instrumentId}}\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -377,7 +377,8 @@
                 "exec": [
                   "pm.test('lista de professores: HTTP 200', () => pm.response.to.have.status(200));",
                   "const teacher = pm.response.json().find(t => t.id === pm.collectionVariables.get('teacherId'));",
-                  "pm.test('professor criado aparece', () => pm.expect(teacher.username).to.eql('prof' + pm.collectionVariables.get('suffix')));"
+                  "pm.test('professor criado aparece', () => pm.expect(teacher.username).to.eql('prof' + pm.collectionVariables.get('suffix')));",
+                  "pm.test('professor lista os instrumentos que ensina', () => pm.expect(teacher.instruments.map(i => i.id)).to.eql([pm.collectionVariables.get('instrumentId')]));"
                 ]
               }
             }
@@ -447,7 +448,169 @@
           }
         },
         {
-          "name": "10 - Criar matrícula",
+          "name": "10 - Criar instrumento que o professor não ensina",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('segundo instrumento criado: HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('instrument2Id', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Violino {{suffix}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/instruments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "instruments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "11 - Rejeitar matrícula em instrumento que o professor não ensina",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('professor não ensina o instrumento: HTTP 422', () => pm.response.to.have.status(422));",
+                  "pm.expect(pm.response.json().code).to.eql('DOMAIN_VALIDATION');",
+                  "pm.expect(pm.response.json().message).to.include('does not teach');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"{{studentId}}\",\n  \"teacherId\": \"{{teacherId}}\",\n  \"instrumentId\": \"{{instrument2Id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/enrollments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "enrollments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "12 - Vincular o segundo instrumento ao professor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('instrumentos do professor atualizados: HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('professor passa a ensinar os dois', () => pm.expect(pm.response.json().instruments).to.have.lengthOf(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instrumentIds\": [\n    \"{{instrumentId}}\",\n    \"{{instrument2Id}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/teachers/{{teacherId}}/instruments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "teachers",
+                "{{teacherId}}",
+                "instruments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13 - Criar matrícula",
           "event": [
             {
               "listen": "test",
@@ -500,7 +663,7 @@
           }
         },
         {
-          "name": "11 - Rejeitar matrícula duplicada",
+          "name": "14 - Rejeitar matrícula duplicada",
           "event": [
             {
               "listen": "test",
@@ -553,7 +716,7 @@
           }
         },
         {
-          "name": "12 - Rejeitar matrícula com aluno inexistente",
+          "name": "15 - Rejeitar matrícula com aluno inexistente",
           "event": [
             {
               "listen": "test",
@@ -606,7 +769,7 @@
           }
         },
         {
-          "name": "13 - Criar matrícula do segundo aluno",
+          "name": "16 - Criar matrícula do segundo aluno",
           "event": [
             {
               "listen": "test",
@@ -659,7 +822,7 @@
           }
         },
         {
-          "name": "14 - Login professor",
+          "name": "17 - Login professor",
           "event": [
             {
               "listen": "test",
@@ -702,7 +865,7 @@
           }
         },
         {
-          "name": "15 - Login aluno",
+          "name": "18 - Login aluno",
           "event": [
             {
               "listen": "test",
@@ -745,7 +908,7 @@
           }
         },
         {
-          "name": "16 - GET matrículas do professor (seletor da Nova Aula)",
+          "name": "19 - GET matrículas do professor (seletor da Nova Aula)",
           "event": [
             {
               "listen": "test",
@@ -2885,6 +3048,85 @@
               ]
             }
           }
+        },
+        {
+          "name": "06 - Admin age sobre qualquer matrícula (RN13)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin vê o relatório sem ser o professor: HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.expect(pm.response.json().studentId).to.eql(pm.collectionVariables.get('studentId'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/teacher/students/{{studentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teacher",
+                "students",
+                "{{studentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "07 - Admin sem perfil de professor não tem agenda própria",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('rota \"minha\" exige perfil: HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.expect(pm.response.json().code).to.eql('PROFILE_REQUIRED');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/teacher/students",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teacher",
+                "students"
+              ]
+            }
+          }
         }
       ]
     }
@@ -2920,6 +3162,10 @@
     },
     {
       "key": "instrumentId",
+      "value": ""
+    },
+    {
+      "key": "instrument2Id",
       "value": ""
     },
     {
