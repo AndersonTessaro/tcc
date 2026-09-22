@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { adminService } from "../adminService";
 import type { Permission, RoleDto } from "../adminService";
 import { accessProfileLabel } from "../accessProfile";
@@ -31,8 +32,8 @@ export default function Roles() {
       await adminService.setPermissions(role.id, [...current]);
       toast.success("Permissões atualizadas");
       load();
-    } catch {
-      toast.error("Erro ao atualizar permissões");
+    } catch (error) {
+      toast.error(apiErrorMessage(error, "Erro ao atualizar permissões"));
     }
   };
 

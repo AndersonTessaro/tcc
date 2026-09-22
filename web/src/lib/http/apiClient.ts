@@ -1,3 +1,5 @@
+import { toApiError } from "./apiError";
+
 type Deps = {
   baseUrl: string;
   getAccessToken: () => string | null;
@@ -44,7 +46,7 @@ export function createApiClient(deps: Deps) {
         throw new Error("UNAUTHENTICATED");
       }
     }
-    if (res.status >= 400) throw new Error(`HTTP_${res.status}`);
+    if (res.status >= 400) throw await toApiError(res);
     if (res.status === 204) return undefined as T;
     return res.json() as Promise<T>;
   }

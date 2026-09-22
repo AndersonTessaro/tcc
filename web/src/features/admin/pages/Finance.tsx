@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { adminService } from "../adminService";
 import type { TransactionDto, TransactionType } from "../adminService";
 import { Button, Card, Input, PageTitle } from "@/components/ui";
@@ -36,8 +37,8 @@ export default function Finance() {
       setAmount("");
       setDescription("");
       load();
-    } catch {
-      toast.error("Erro ao lançar");
+    } catch (error) {
+      toast.error(apiErrorMessage(error, "Erro ao lançar"));
     }
   };
 

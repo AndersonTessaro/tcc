@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { adminService } from "../adminService";
 import type { SettingDto } from "../adminService";
 import { Button, Card, Input, PageTitle } from "@/components/ui";
@@ -30,8 +31,8 @@ export default function Settings() {
       await adminService.upsertSetting(key, drafts[key] ?? "", description ?? undefined);
       toast.success("Configuração salva");
       load();
-    } catch {
-      toast.error("Erro ao salvar");
+    } catch (error) {
+      toast.error(apiErrorMessage(error, "Erro ao salvar"));
     }
   };
 
@@ -44,8 +45,8 @@ export default function Settings() {
       setNewValue("");
       setNewDesc("");
       load();
-    } catch {
-      toast.error("Erro ao criar");
+    } catch (error) {
+      toast.error(apiErrorMessage(error, "Erro ao criar"));
     }
   };
 

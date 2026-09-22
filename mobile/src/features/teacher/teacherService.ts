@@ -9,6 +9,25 @@ export type TeacherEnrollment = {
 
 export type StudentSummary = { id: string; name: string; username: string };
 
+export type LessonStatus = "SCHEDULED" | "DONE" | "CANCELED";
+export type AttendanceStatus = "PRESENT" | "ABSENT" | "EXCUSED";
+
+export type TeacherLesson = {
+  id: string;
+  enrollmentId: string;
+  studentId: string;
+  studentName: string;
+  teacherName: string;
+  instrument: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: LessonStatus;
+  content: string | null;
+  homework: string | null;
+  attendance: AttendanceStatus | null;
+};
+
 export const teacherService = {
   dashboard: () => api.get<any>("/teacher/dashboard"),
   students: () => api.get<StudentSummary[]>("/teacher/students"),
@@ -24,9 +43,9 @@ export const teacherService = {
   }) => api.post<any>("/teacher/lessons", b),
   history: (start: string, end: string) =>
     api.get<any[]>(`/teacher/lessons?start=${start}&end=${end}`),
-  attendance: (lessonId: string, status: string, justification?: string) =>
+  attendance: (lessonId: string, status: AttendanceStatus, justification?: string) =>
     api.post<any>(`/teacher/lessons/${lessonId}/attendance`, { status, justification }),
-  schedule: (date: string) => api.get<any[]>(`/teacher/schedule?date=${date}`),
+  schedule: (date: string) => api.get<TeacherLesson[]>(`/teacher/schedule?date=${date}`),
   reports: (studentId: string) => api.get<any>(`/teacher/reports?studentId=${studentId}`),
   uploadMaterial: (
     studentId: string,

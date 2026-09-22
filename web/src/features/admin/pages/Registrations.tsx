@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { adminService } from "../adminService";
 import type { InstrumentOption, NewUser, PersonOption } from "../adminService";
 import { Button, Card, Input, PageTitle } from "@/components/ui";
@@ -19,8 +20,8 @@ function UserForm({ label, onSubmit }: { label: string; onSubmit: (b: NewUser) =
       await onSubmit(f);
       toast.success(`${label} criado`);
       setF({ username: "", email: "", password: "", name: "" });
-    } catch {
-      toast.error(`Erro ao criar ${label.toLowerCase()}`);
+    } catch (error) {
+      toast.error(apiErrorMessage(error, `Erro ao criar ${label.toLowerCase()}`));
     }
   };
 
@@ -86,8 +87,8 @@ export default function Registrations() {
         adminService.instruments(),
       ]);
       setOptions({ students, teachers, instruments });
-    } catch {
-      toast.error("Erro ao carregar alunos, professores e instrumentos");
+    } catch (error) {
+      toast.error(apiErrorMessage(error, "Erro ao carregar alunos, professores e instrumentos"));
     }
   }, []);
 
@@ -107,8 +108,8 @@ export default function Registrations() {
       toast.success("Instrumento criado");
       setInstrument("");
       await loadOptions();
-    } catch {
-      toast.error("Erro ao criar instrumento");
+    } catch (error) {
+      toast.error(apiErrorMessage(error, "Erro ao criar instrumento"));
     }
   };
 
@@ -121,8 +122,8 @@ export default function Registrations() {
       await adminService.createEnrollment(enr);
       toast.success("Matrícula criada");
       setEnr(EMPTY_ENROLLMENT);
-    } catch {
-      toast.error("Erro ao criar matrícula");
+    } catch (error) {
+      toast.error(apiErrorMessage(error, "Erro ao criar matrícula"));
     }
   };
 

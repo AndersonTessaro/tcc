@@ -1,3 +1,5 @@
+import { toApiError } from "./apiError";
+
 type RequestOptions = { auth?: boolean };
 
 type Deps = {
@@ -40,7 +42,7 @@ export function createApiClient(deps: Deps) {
         throw new Error("UNAUTHENTICATED");
       }
     }
-    if (res.status >= 400) throw new Error(`HTTP_${res.status}`);
+    if (res.status >= 400) throw await toApiError(res);
     if (res.status === 204) return undefined as T;
     return res.json() as Promise<T>;
   }
@@ -84,6 +86,7 @@ export function createApiClient(deps: Deps) {
     get: <T>(p: string) => request<T>("GET", p),
     post: <T>(p: string, b?: unknown, opts?: RequestOptions) => request<T>("POST", p, b, opts),
     put: <T>(p: string, b?: unknown) => request<T>("PUT", p, b),
+    patch: <T>(p: string, b?: unknown) => request<T>("PATCH", p, b),
     postForm: <T>(p: string, form: FormData) => requestForm<T>(p, form),
   };
 }
