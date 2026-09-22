@@ -1,5 +1,6 @@
 package br.com.harmonia.application.lesson;
 
+import br.com.harmonia.domain.common.ResourceNotFoundException;
 import br.com.harmonia.application.lesson.port.AttendanceRepository;
 import br.com.harmonia.application.lesson.port.LessonRepository;
 import br.com.harmonia.application.context.CurrentUserService;
@@ -14,6 +15,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,8 +38,10 @@ public class AttendanceUseCase {
 
     @Transactional
     public Attendance register(UUID lessonId, AttendanceStatus status, String justification) {
-        Lesson lesson = lessons.findById(lessonId).orElseThrow();
+        Lesson lesson = lessons.findById(lessonId).orElseThrow(() -> new ResourceNotFoundException("Lesson"));
         current.assertOwnedByCurrentTeacher(lesson.getEnrollment());
+        recordingRule.validateRecordable(LessonStatuses.toSessionStatus(lesson.getStatus()), lesson.getDate(),
+            LocalDate.now());
 
         Optional<Attendance> existing = attendances.findByLessonId(lessonId);
         AttendanceOutcome previousOutcome = existing.map(a -> toOutcome(a.getStatus())).orElse(null);

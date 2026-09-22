@@ -51,6 +51,22 @@ public final class SchedulingPolicy {
         }
     }
 
+    public void validateWeeklySlotAgainstLessons(WeeklyScheduleSlot candidate,
+                                                 Collection<LessonSlot> upcomingLessons) {
+        Objects.requireNonNull(candidate, "candidate is required");
+        Objects.requireNonNull(upcomingLessons, "upcomingLessons is required");
+        for (LessonSlot lesson : upcomingLessons) {
+            if (lesson.status() != SessionStatus.CANCELED
+                && lesson.date().getDayOfWeek() == candidate.weekday()
+                && !isSamePair(candidate, lesson)
+                && lesson.timeRange().overlaps(candidate.timeRange())
+                && (lesson.teacherId().equals(candidate.teacherId())
+                    || lesson.studentId().equals(candidate.studentId()))) {
+                throw new ScheduleConflictException("Recurring schedule conflicts with an upcoming lesson");
+            }
+        }
+    }
+
     // A lesson for the same teacher and student fulfills that recurring slot instead of competing with it.
     private static boolean isSamePair(WeeklyScheduleSlot recurring, LessonSlot lesson) {
         return recurring.teacherId().equals(lesson.teacherId())

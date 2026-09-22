@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -54,6 +55,43 @@ class LessonSchedulingIT {
         return postId(admin, "/admin/enrollments",
             "{\"studentId\":\"" + student + "\",\"teacherId\":\"" + teacher + "\",\"instrumentId\":\""
                 + instrument + "\"}");
+    }
+
+    /** Two students enrolled with the same teacher; returns both enrollment ids. */
+    private String[] enrollmentsSharingTeacher(String suffix) throws Exception {
+        String admin = login("admin", "Admin@123");
+        String instrument = postId(admin, "/admin/instruments", "{\"name\":\"Instrument " + suffix + "\"}");
+        String teacher = postId(admin, "/admin/teachers",
+            "{\"username\":\"teacher" + suffix + "\",\"email\":\"" + suffix + "@h.local\",\"password\":\""
+                + TEACHER_PASSWORD + "\",\"name\":\"Teacher " + suffix + "\"}");
+        String[] enrollments = new String[2];
+        for (int i = 0; i < 2; i++) {
+            String student = postId(admin, "/admin/students",
+                "{\"username\":\"student" + suffix + i + "\",\"email\":\"st" + suffix + i + "@h.local\","
+                    + "\"password\":\"Student@123\",\"name\":\"Student " + suffix + i + "\"}");
+            enrollments[i] = postId(admin, "/admin/enrollments",
+                "{\"studentId\":\"" + student + "\",\"teacherId\":\"" + teacher + "\",\"instrumentId\":\""
+                    + instrument + "\"}");
+        }
+        return enrollments;
+    }
+
+    private String scheduleBody(String enrollment, String weekday, String start, String end) {
+        return "{\"enrollmentId\":\"" + enrollment + "\",\"weekday\":\"" + weekday + "\",\"startTime\":\""
+            + start + "\",\"endTime\":\"" + end + "\"}";
+    }
+
+    private void setScheduleActive(String token, String scheduleId, boolean active, int expectedStatus)
+            throws Exception {
+        mvc.perform(patch("/teacher/schedules/" + scheduleId + "/active").header("Authorization", "Bearer " + token)
+                .contentType("application/json").content("{\"active\":" + active + "}"))
+            .andExpect(status().is(expectedStatus));
+    }
+
+    private void attendance(String token, String lessonId, int expectedStatus) throws Exception {
+        mvc.perform(post("/teacher/lessons/" + lessonId + "/attendance").header("Authorization", "Bearer " + token)
+                .contentType("application/json").content("{\"status\":\"PRESENT\"}"))
+            .andExpect(status().is(expectedStatus));
     }
 
     private String lessonBody(String enrollment, String date, String start, String end) {
@@ -141,6 +179,74 @@ class LessonSchedulingIT {
         mvc.perform(post("/teacher/lessons").header("Authorization", "Bearer " + t)
                 .contentType("application/json").content(lessonBody(enrollment, today.toString(), "10:00", "11:00")))
             .andExpect(status().isOk());
+    }
+
+    @Test
+    void attendance_isRejectedForCanceledLesson() throws Exception {
+        String enrollment = enrollmentFor("AtC");
+        String t = login("teacherAtC", TEACHER_PASSWORD);
+        String today = LocalDate.now().toString();
+
+        String original = postId(t, "/teacher/lessons", lessonBody(enrollment, today, "09:00", "10:00"));
+        String makeupLesson = makeupOf(t, original, today, "11:00", "12:00");
+        mvc.perform(patch("/teacher/lessons/" + makeupLesson + "/status").header("Authorization", "Bearer " + t)
+                .contentType("application/json").content("{\"status\":\"CANCELED\"}"))
+            .andExpect(status().isOk());
+
+        attendance(t, makeupLesson, 422);
+        attendance(t, original, 200);
+    }
+
+    @Test
+    void attendance_isRejectedBeforeTheLessonDate() throws Exception {
+        String enrollment = enrollmentFor("AtF");
+        String t = login("teacherAtF", TEACHER_PASSWORD);
+        LocalDate today = LocalDate.now();
+
+        String original = postId(t, "/teacher/lessons", lessonBody(enrollment, today.toString(), "09:00", "10:00"));
+        String makeupLesson = makeupOf(t, original, today.plusDays(1).toString(), "09:00", "10:00");
+
+        attendance(t, makeupLesson, 422);
+    }
+
+    @Test
+    void attendance_forUnknownLesson_is404() throws Exception {
+        String t = login("admin", "Admin@123");
+
+        mvc.perform(post("/teacher/lessons/" + UUID.randomUUID() + "/attendance")
+                .header("Authorization", "Bearer " + t)
+                .contentType("application/json").content("{\"status\":\"PRESENT\"}"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.code", is("NOT_FOUND")));
+    }
+
+    @Test
+    void reactivatingSchedule_isRejectedWhenSlotWasTakenMeanwhile() throws Exception {
+        String enrollment = enrollmentFor("Rea");
+        String t = login("teacherRea", TEACHER_PASSWORD);
+
+        String first = postId(t, "/teacher/schedules", scheduleBody(enrollment, "MONDAY", "10:00", "11:00"));
+        setScheduleActive(t, first, false, 200);
+        postId(t, "/teacher/schedules", scheduleBody(enrollment, "MONDAY", "10:30", "11:30"));
+
+        setScheduleActive(t, first, true, 409);
+    }
+
+    @Test
+    void recurringSchedule_isRejectedOverAnotherStudentsUpcomingLesson() throws Exception {
+        String[] enrollments = enrollmentsSharingTeacher("Upc");
+        String t = login("teacherUpc", TEACHER_PASSWORD);
+        LocalDate today = LocalDate.now();
+        LocalDate nextWeek = today.plusDays(7);
+
+        String original = postId(t, "/teacher/lessons", lessonBody(enrollments[0], today.toString(), "08:00", "09:00"));
+        makeupOf(t, original, nextWeek.toString(), "10:00", "11:00");
+
+        mvc.perform(post("/teacher/schedules").header("Authorization", "Bearer " + t)
+                .contentType("application/json")
+                .content(scheduleBody(enrollments[1], nextWeek.getDayOfWeek().name(), "10:30", "11:30")))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code", is("SCHEDULE_CONFLICT")));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package br.com.harmonia.application.finance;
 
+import br.com.harmonia.domain.common.ResourceNotFoundException;
 import br.com.harmonia.application.finance.port.FinancialTransactionRepository;
 import br.com.harmonia.application.profile.port.StudentRepository;
 import br.com.harmonia.infrastructure.persistence.finance.FinancialTransaction;
@@ -41,7 +42,7 @@ public class FinanceUseCase {
         t.setDescription(description);
         t.setCategory(category);
         t.setDate(date == null ? LocalDate.now() : date);
-        if (studentId != null) t.setStudent(students.findById(studentId).orElseThrow());
+        if (studentId != null) t.setStudent(students.findById(studentId).orElseThrow(() -> new ResourceNotFoundException("Student")));
         return transactions.save(t);
     }
 }

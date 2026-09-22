@@ -1,6 +1,7 @@
 package br.com.harmonia.presentation.error;
 
 import br.com.harmonia.application.security.PasswordResetUseCase.InvalidResetTokenException;
+import br.com.harmonia.domain.common.DuplicateResourceException;
 import br.com.harmonia.domain.common.OwnershipException;
 import br.com.harmonia.domain.common.ResourceNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -25,6 +26,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiError> notFound(ResourceNotFoundException e) {
         return build(HttpStatus.NOT_FOUND, "NOT_FOUND", e.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ApiError> duplicateResource(DuplicateResourceException e) {
+        return build(HttpStatus.CONFLICT, "DUPLICATE_RESOURCE", e.getMessage(), List.of());
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

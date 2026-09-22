@@ -12,5 +12,7 @@ public interface LessonRepository extends JpaRepository<Lesson, UUID> {
     List<Lesson> findByEnrollmentTeacherIdAndDateBetween(UUID teacherId, LocalDate start, LocalDate end);
     List<Lesson> findByEnrollmentTeacherIdAndDate(UUID teacherId, LocalDate date);
     List<Lesson> findByEnrollmentStudentIdAndDate(UUID studentId, LocalDate date);
+    List<Lesson> findByEnrollmentTeacherIdAndDateGreaterThanEqual(UUID teacherId, LocalDate from);
+    List<Lesson> findByEnrollmentStudentIdAndDateGreaterThanEqual(UUID studentId, LocalDate from);
     long countByEnrollmentStudentId(UUID studentId);
 }

@@ -43,6 +43,29 @@ public class LessonSchedulingGuard {
         policy.validateLessonAgainstWeeklySchedules(candidate, recurringSlotsOn(teacherId, studentId, date));
     }
 
+    public void assertWeeklySlotIsFree(Schedule schedule) {
+        UUID teacherId = schedule.getEnrollment().getTeacher().getId();
+        UUID studentId = schedule.getEnrollment().getStudent().getId();
+        slotLock.acquire(teacherId, studentId);
+        WeeklyScheduleSlot candidate = toWeeklySlot(schedule);
+        List<WeeklyScheduleSlot> recurring = schedules
+            .findByEnrollmentTeacherIdOrEnrollmentStudentId(teacherId, studentId).stream()
+            .filter(Schedule::getActive)
+            .map(LessonSchedulingGuard::toWeeklySlot)
+            .toList();
+        policy.validateWeeklySlot(candidate, recurring);
+        policy.validateWeeklySlotAgainstLessons(candidate, upcomingSlots(teacherId, studentId, LocalDate.now()));
+    }
+
+    private List<LessonSlot> upcomingSlots(UUID teacherId, UUID studentId, LocalDate from) {
+        return Stream.concat(
+                lessons.findByEnrollmentTeacherIdAndDateGreaterThanEqual(teacherId, from).stream(),
+                lessons.findByEnrollmentStudentIdAndDateGreaterThanEqual(studentId, from).stream())
+            .distinct()
+            .map(LessonSchedulingGuard::toSlot)
+            .toList();
+    }
+
     private List<WeeklyScheduleSlot> recurringSlotsOn(UUID teacherId, UUID studentId, LocalDate date) {
         return schedules.findByEnrollmentTeacherIdOrEnrollmentStudentId(teacherId, studentId).stream()
             .filter(Schedule::getActive)
@@ -68,7 +91,8 @@ public class LessonSchedulingGuard {
     }
 
     private static WeeklyScheduleSlot toWeeklySlot(Schedule schedule) {
-        return new WeeklyScheduleSlot(schedule.getId(), schedule.getEnrollment().getTeacher().getId(),
+        UUID scheduleId = schedule.getId() != null ? schedule.getId() : UUID.randomUUID();
+        return new WeeklyScheduleSlot(scheduleId, schedule.getEnrollment().getTeacher().getId(),
             schedule.getEnrollment().getStudent().getId(),
             java.time.DayOfWeek.valueOf(schedule.getWeekday().name()),
             new TimeRange(schedule.getStartTime(), schedule.getEndTime()));

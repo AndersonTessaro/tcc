@@ -1,5 +1,6 @@
 package br.com.harmonia.application.gamification;
 
+import br.com.harmonia.domain.common.ResourceNotFoundException;
 import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.application.gamification.port.GoalRepository;
 import br.com.harmonia.infrastructure.persistence.gamification.Goal;
@@ -41,7 +42,7 @@ public class GoalUseCase {
 
     @Transactional
     public Goal updateProgress(UUID goalId, int currentProgress) {
-        Goal g = goals.findById(goalId).orElseThrow();
+        Goal g = goals.findById(goalId).orElseThrow(() -> new ResourceNotFoundException("Goal"));
         current.assertOwnedByCurrentStudent(g.getStudent());
         g.setCurrentProgress(currentProgress);
         if (currentProgress >= g.getTarget() && g.getStatus() == GoalStatus.ACTIVE) {
