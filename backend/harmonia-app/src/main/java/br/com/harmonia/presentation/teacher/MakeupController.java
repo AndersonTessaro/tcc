@@ -1,7 +1,7 @@
 package br.com.harmonia.presentation.teacher;
 
 import br.com.harmonia.application.lesson.MakeupUseCase;
-import br.com.harmonia.infrastructure.persistence.lesson.MakeupLesson;
+import br.com.harmonia.presentation.response.MakeupResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,7 +25,7 @@ public class MakeupController {
 
     @PostMapping("/{id}/makeup")
     @PreAuthorize("hasAuthority('lesson.manage')")
-    public MakeupLesson create(@PathVariable UUID id, @Valid @RequestBody NewMakeup r) {
-        return uc.create(id, r.date(), r.startTime(), r.endTime(), r.reason());
+    public MakeupResponse create(@PathVariable UUID id, @Valid @RequestBody NewMakeup r) {
+        return MakeupResponse.of(uc.create(id, r.date(), r.startTime(), r.endTime(), r.reason()));
     }
 }

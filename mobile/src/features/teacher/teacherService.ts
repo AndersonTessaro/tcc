@@ -7,9 +7,11 @@ export type TeacherEnrollment = {
   instrument: string;
 };
 
+export type StudentSummary = { id: string; name: string; username: string };
+
 export const teacherService = {
   dashboard: () => api.get<any>("/teacher/dashboard"),
-  students: () => api.get<any[]>("/teacher/students"),
+  students: () => api.get<StudentSummary[]>("/teacher/students"),
   student: (id: string) => api.get<any>(`/teacher/students/${id}`),
   enrollments: () => api.get<TeacherEnrollment[]>("/teacher/enrollments"),
   newLesson: (b: {

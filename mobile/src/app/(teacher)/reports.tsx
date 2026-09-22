@@ -23,7 +23,7 @@ export default function Reports() {
           <Pressable onPress={() => router.push(`/(teacher)/student/${item.id}`)}>
             <Card>
               <Text className="text-white">
-                {item.user?.displayName ?? item.user?.username ?? item.id}
+                {item.name}
               </Text>
             </Card>
           </Pressable>

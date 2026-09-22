@@ -5,11 +5,12 @@ import br.com.harmonia.application.lesson.TeacherLessonUseCase;
 import br.com.harmonia.application.material.TeacherMaterialUseCase;
 import br.com.harmonia.application.teacher.TeacherUseCase;
 import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
-import br.com.harmonia.infrastructure.persistence.lesson.Attendance;
+import br.com.harmonia.presentation.response.AttendanceResponse;
+import br.com.harmonia.presentation.response.LessonResponse;
+import br.com.harmonia.presentation.response.MaterialResponse;
+import br.com.harmonia.presentation.response.PersonSummary;
 import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
-import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
 import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
-import br.com.harmonia.infrastructure.persistence.material.Material;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -20,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -52,14 +54,15 @@ public class TeacherController {
 
     @GetMapping("/dashboard")
     @PreAuthorize("hasAuthority('student.read')")
-    public Object dashboard() {
-        return teacher.dashboard();
+    public Map<String, Object> dashboard() {
+        List<PersonSummary> students = teacher.linkedStudents().stream().map(PersonSummary::of).toList();
+        return Map.of("totalStudents", students.size(), "students", students);
     }
 
     @GetMapping("/students")
     @PreAuthorize("hasAuthority('student.read')")
-    public Object students() {
-        return teacher.linkedStudents();
+    public List<PersonSummary> students() {
+        return teacher.linkedStudents().stream().map(PersonSummary::of).toList();
     }
 
     @GetMapping("/enrollments")
@@ -76,41 +79,42 @@ public class TeacherController {
 
     @PostMapping("/lessons")
     @PreAuthorize("hasAuthority('lesson.manage')")
-    public Lesson newLesson(@Valid @RequestBody NewLesson r) {
-        return lesson.register(r.enrollmentId(), r.date(), r.startTime(), r.endTime(), r.content(), r.homework());
+    public LessonResponse newLesson(@Valid @RequestBody NewLesson r) {
+        return LessonResponse.of(lesson.register(r.enrollmentId(), r.date(), r.startTime(), r.endTime(),
+            r.content(), r.homework()));
     }
 
     @GetMapping("/lessons")
     @PreAuthorize("hasAuthority('lesson.read')")
-    public Object history(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-                          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
-        return lesson.history(start, end);
+    public List<LessonResponse> history(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+                                        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
+        return lesson.history(start, end).stream().map(LessonResponse::of).toList();
     }
 
     @PatchMapping("/lessons/{id}/status")
     @PreAuthorize("hasAuthority('lesson.manage')")
-    public Lesson changeLessonStatus(@PathVariable UUID id, @Valid @RequestBody ChangeLessonStatus r) {
-        return lesson.changeStatus(id, r.status());
+    public LessonResponse changeLessonStatus(@PathVariable UUID id, @Valid @RequestBody ChangeLessonStatus r) {
+        return LessonResponse.of(lesson.changeStatus(id, r.status()));
     }
 
     @PostMapping("/lessons/{id}/attendance")
     @PreAuthorize("hasAuthority('attendance.manage')")
-    public Attendance registerAttendance(@PathVariable UUID id, @Valid @RequestBody RegisterAttendance r) {
-        return attendance.register(id, r.status(), r.justification());
+    public AttendanceResponse registerAttendance(@PathVariable UUID id, @Valid @RequestBody RegisterAttendance r) {
+        return AttendanceResponse.of(attendance.register(id, r.status(), r.justification()));
     }
 
     @PostMapping(value = "/students/{id}/materials", consumes = "multipart/form-data")
     @PreAuthorize("hasAuthority('material.manage')")
-    public Material attachMaterial(@PathVariable UUID id, @RequestParam String title,
+    public MaterialResponse attachMaterial(@PathVariable UUID id, @RequestParam String title,
                                    @RequestParam(required = false) String description,
                                    @RequestParam MultipartFile file) {
-        return material.attach(id, title, description, file);
+        return MaterialResponse.of(material.attach(id, title, description, file));
     }
 
     @GetMapping("/schedule")
     @PreAuthorize("hasAuthority('lesson.read')")
-    public Object schedule(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return lesson.scheduleForDay(date);
+    public List<LessonResponse> schedule(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return lesson.scheduleForDay(date).stream().map(LessonResponse::of).toList();
     }
 
     @GetMapping("/reports")

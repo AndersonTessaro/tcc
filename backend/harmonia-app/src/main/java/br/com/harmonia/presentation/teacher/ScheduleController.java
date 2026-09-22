@@ -1,8 +1,8 @@
 package br.com.harmonia.presentation.teacher;
 
 import br.com.harmonia.application.schedule.ScheduleUseCase;
-import br.com.harmonia.infrastructure.persistence.schedule.Schedule;
 import br.com.harmonia.infrastructure.persistence.schedule.Weekday;
+import br.com.harmonia.presentation.response.ScheduleResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,19 +27,19 @@ public class ScheduleController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('lesson.read')")
-    public List<Schedule> list() {
-        return uc.mySchedules();
+    public List<ScheduleResponse> list() {
+        return uc.mySchedules().stream().map(ScheduleResponse::of).toList();
     }
 
     @PostMapping
     @PreAuthorize("hasAuthority('lesson.manage')")
-    public Schedule create(@Valid @RequestBody NewSchedule r) {
-        return uc.create(r.enrollmentId(), r.weekday(), r.startTime(), r.endTime());
+    public ScheduleResponse create(@Valid @RequestBody NewSchedule r) {
+        return ScheduleResponse.of(uc.create(r.enrollmentId(), r.weekday(), r.startTime(), r.endTime()));
     }
 
     @PatchMapping("/{id}/active")
     @PreAuthorize("hasAuthority('lesson.manage')")
-    public Schedule setActive(@PathVariable UUID id, @Valid @RequestBody ChangeScheduleStatus r) {
-        return uc.setActive(id, r.active());
+    public ScheduleResponse setActive(@PathVariable UUID id, @Valid @RequestBody ChangeScheduleStatus r) {
+        return ScheduleResponse.of(uc.setActive(id, r.active()));
     }
 }
