@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { ScrollView, Text, TextInput, Pressable } from "react-native";
 import { teacherService, type TeacherEnrollment } from "@/features/teacher/teacherService";
+import { apiErrorMessage } from "@/lib/http/errorMessage";
 import {
-  lessonErrorMessage,
   localIsoDate,
   oneHourAfter,
   validateLessonForm,
@@ -51,7 +51,7 @@ export default function NewLesson() {
       setContent("");
       setHomework("");
     } catch (error) {
-      setMsg(lessonErrorMessage(error));
+      setMsg(apiErrorMessage(error, "Erro ao registrar aula"));
     }
   };
 

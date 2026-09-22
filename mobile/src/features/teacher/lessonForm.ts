@@ -30,10 +30,3 @@ export function validateLessonForm(input: LessonFormInput): string | null {
   return null;
 }
 
-export function lessonErrorMessage(error: unknown): string {
-  const message = error instanceof Error ? error.message : "";
-  if (message === "HTTP_409") return "Conflito de horário com outra aula ou horário fixo";
-  if (message === "HTTP_422") return "Dados inválidos";
-  if (message === "HTTP_403") return "Matrícula não pertence a você";
-  return "Erro ao registrar aula";
-}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { adminService } from "../adminService";
 import type { RoleDto, UserDto } from "../adminService";
 import { accessProfileLabel } from "../accessProfile";
@@ -28,8 +29,8 @@ export default function Users() {
       await adminService.setStatus(u.id, !u.active);
       toast.success(`${u.username} ${!u.active ? "ativado" : "desativado"}`);
       load();
-    } catch {
-      toast.error("Erro ao alterar status");
+    } catch (error) {
+      toast.error(apiErrorMessage(error, "Erro ao alterar status"));
     }
   };
 
@@ -39,8 +40,8 @@ export default function Users() {
     try {
       await adminService.resetPassword(u.id, next);
       toast.success("Senha redefinida");
-    } catch {
-      toast.error("Erro ao redefinir senha (mín. 8 caracteres)");
+    } catch (error) {
+      toast.error(apiErrorMessage(error, "Erro ao redefinir senha (mín. 8 caracteres)"));
     }
   };
 
@@ -52,8 +53,8 @@ export default function Users() {
       await adminService.setRoles(u.id, [...current]);
       toast.success("Perfis de acesso atualizados");
       load();
-    } catch {
-      toast.error("Erro ao atualizar perfis de acesso");
+    } catch (error) {
+      toast.error(apiErrorMessage(error, "Erro ao atualizar perfis de acesso"));
     }
   };
 

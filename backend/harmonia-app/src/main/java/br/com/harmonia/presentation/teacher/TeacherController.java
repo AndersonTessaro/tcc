@@ -114,7 +114,9 @@ public class TeacherController {
     @GetMapping("/schedule")
     @PreAuthorize("hasAuthority('lesson.read')")
     public List<LessonResponse> schedule(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return lesson.scheduleForDay(date).stream().map(LessonResponse::of).toList();
+        var dayLessons = lesson.scheduleForDay(date);
+        var attendance = lesson.attendanceByLesson(dayLessons);
+        return dayLessons.stream().map(l -> LessonResponse.of(l, attendance.get(l.getId()))).toList();
     }
 
     @GetMapping("/reports")

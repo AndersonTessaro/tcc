@@ -1,4 +1,4 @@
-import { lessonErrorMessage, localIsoDate, oneHourAfter, validateLessonForm } from "../lessonForm";
+import { localIsoDate, oneHourAfter, validateLessonForm } from "../lessonForm";
 
 const valid = { enrollmentId: "e1", date: "2026-09-22", startTime: "10:00", endTime: "11:00" };
 
@@ -27,10 +27,5 @@ describe("lessonForm", () => {
 
   it("rejects malformed times", () => {
     expect(validateLessonForm({ ...valid, startTime: "9h" })).toBe("Horário inválido (HH:MM)");
-  });
-
-  it("translates schedule conflicts", () => {
-    expect(lessonErrorMessage(new Error("HTTP_409"))).toMatch(/Conflito/);
-    expect(lessonErrorMessage(new Error("boom"))).toBe("Erro ao registrar aula");
   });
 });

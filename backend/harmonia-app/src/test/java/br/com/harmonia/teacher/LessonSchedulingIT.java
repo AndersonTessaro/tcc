@@ -282,6 +282,24 @@ class LessonSchedulingIT {
     }
 
     @Test
+    void agenda_showsRecordedAttendanceInStartOrder() throws Exception {
+        String enrollment = enrollmentFor("Agd");
+        String t = login("teacherAgd", TEACHER_PASSWORD);
+        String today = LocalDate.now().toString();
+
+        String late = postId(t, "/teacher/lessons", lessonBody(enrollment, today, "15:00", "16:00"));
+        String early = postId(t, "/teacher/lessons", lessonBody(enrollment, today, "08:00", "09:00"));
+        attendance(t, late, 200);
+
+        mvc.perform(get("/teacher/schedule").param("date", today).header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id", is(early)))
+            .andExpect(jsonPath("$[0].attendance").doesNotExist())
+            .andExpect(jsonPath("$[1].id", is(late)))
+            .andExpect(jsonPath("$[1].attendance", is("PRESENT")));
+    }
+
+    @Test
     void canceledLessonFreesTheSlot() throws Exception {
         String enrollment = enrollmentFor("Cnl");
         String t = login("teacherCnl", TEACHER_PASSWORD);

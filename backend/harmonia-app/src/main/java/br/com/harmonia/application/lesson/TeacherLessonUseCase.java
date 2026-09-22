@@ -1,10 +1,13 @@
 package br.com.harmonia.application.lesson;
 
 import br.com.harmonia.domain.common.ResourceNotFoundException;
+import br.com.harmonia.application.lesson.port.AttendanceRepository;
 import br.com.harmonia.application.lesson.port.LessonRepository;
 import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.application.profile.EnrollmentRules;
 import br.com.harmonia.application.profile.port.EnrollmentRepository;
+import br.com.harmonia.infrastructure.persistence.lesson.Attendance;
+import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
 import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
 import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
 import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
@@ -16,19 +19,24 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class TeacherLessonUseCase {
     private final LessonRepository lessons;
+    private final AttendanceRepository attendances;
     private final EnrollmentRepository enrollments;
     private final CurrentUserService current;
     private final LessonSchedulingGuard schedulingGuard;
     private final LessonLifecyclePolicy lifecyclePolicy = new LessonLifecyclePolicy();
 
-    public TeacherLessonUseCase(LessonRepository lessons, EnrollmentRepository enrollments,
-                                CurrentUserService current, LessonSchedulingGuard schedulingGuard) {
+    public TeacherLessonUseCase(LessonRepository lessons, AttendanceRepository attendances,
+                                EnrollmentRepository enrollments, CurrentUserService current,
+                                LessonSchedulingGuard schedulingGuard) {
         this.lessons = lessons;
+        this.attendances = attendances;
         this.enrollments = enrollments;
         this.current = current;
         this.schedulingGuard = schedulingGuard;
@@ -70,6 +78,14 @@ public class TeacherLessonUseCase {
     }
 
     public List<Lesson> scheduleForDay(LocalDate date) {
-        return lessons.findByEnrollmentTeacherIdAndDate(current.currentTeacher().getId(), date);
+        return lessons.findByEnrollmentTeacherIdAndDate(current.currentTeacher().getId(), date).stream()
+            .sorted(java.util.Comparator.comparing(Lesson::getStartTime))
+            .toList();
+    }
+
+    public Map<UUID, AttendanceStatus> attendanceByLesson(List<Lesson> dayLessons) {
+        List<UUID> ids = dayLessons.stream().map(Lesson::getId).toList();
+        return attendances.findByLessonIdIn(ids).stream()
+            .collect(Collectors.toMap(a -> a.getLesson().getId(), Attendance::getStatus));
     }
 }

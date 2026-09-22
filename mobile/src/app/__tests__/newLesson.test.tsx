@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import NewLesson from "@/app/(teacher)/new-lesson";
 import { teacherService } from "@/features/teacher/teacherService";
+import { ApiError } from "@/lib/http/apiError";
 
 jest.mock("@/features/teacher/teacherService", () => ({
   teacherService: { enrollments: jest.fn(), newLesson: jest.fn() },
@@ -47,7 +48,7 @@ describe("NewLesson screen", () => {
   });
 
   it("shows a schedule conflict returned by the backend", async () => {
-    service.newLesson.mockRejectedValue(new Error("HTTP_409"));
+    service.newLesson.mockRejectedValue(new ApiError(409, "SCHEDULE_CONFLICT"));
     await render(<NewLesson />);
     await fireEvent.press(await screen.findByText("Ana Souza"));
     await fireEvent.press(screen.getByText("Salvar"));
