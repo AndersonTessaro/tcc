@@ -44,7 +44,7 @@ class TeacherFlowIT {
         String admin = login("admin", "Admin@123");
         String inst = postId(admin, "/admin/instruments", "{\"name\":\"Guitar\"}");
         String teacher = postId(admin, "/admin/teachers",
-            "{\"username\":\"teacherP\",\"email\":\"teacherP@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher P\"}");
+            "{\"username\":\"teacherP\",\"email\":\"teacherP@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher P\",\"instrumentIds\":[\"" + inst + "\"]}");
         String student = postId(admin, "/admin/students",
             "{\"username\":\"studentP\",\"email\":\"studentP@h.local\",\"password\":\"Student@123\",\"name\":\"Student P\"}");
         String enrollment = postId(admin, "/admin/enrollments",
@@ -113,7 +113,7 @@ class TeacherFlowIT {
         String inst = postId(admin, "/admin/instruments",
             "{\"name\":\"Instrument-" + UUID.randomUUID() + "\"}");
         String teacher = postId(admin, "/admin/teachers",
-            "{\"username\":\"teacherIdorR\",\"email\":\"teacherIdorR@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher IdorR\"}");
+            "{\"username\":\"teacherIdorR\",\"email\":\"teacherIdorR@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher IdorR\",\"instrumentIds\":[\"" + inst + "\"]}");
         String student = postId(admin, "/admin/students",
             "{\"username\":\"studentIdorR\",\"email\":\"studentIdorR@h.local\",\"password\":\"Student@123\",\"name\":\"Student IdorR\"}");
         postId(admin, "/admin/enrollments",

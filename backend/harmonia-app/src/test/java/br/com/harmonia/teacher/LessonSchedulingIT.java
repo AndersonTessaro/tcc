@@ -49,7 +49,8 @@ class LessonSchedulingIT {
         String instrument = postId(admin, "/admin/instruments", "{\"name\":\"Instrument " + suffix + "\"}");
         String teacher = postId(admin, "/admin/teachers",
             "{\"username\":\"teacher" + suffix + "\",\"email\":\"" + suffix + "@h.local\",\"password\":\""
-                + TEACHER_PASSWORD + "\",\"name\":\"Teacher " + suffix + "\"}");
+                + TEACHER_PASSWORD + "\",\"name\":\"Teacher " + suffix + "\",\"instrumentIds\":[\"" + instrument
+                + "\"]}");
         String student = postId(admin, "/admin/students",
             "{\"username\":\"student" + suffix + "\",\"email\":\"st" + suffix + "@h.local\","
                 + "\"password\":\"Student@123\",\"name\":\"Student " + suffix + "\"}");
@@ -64,7 +65,8 @@ class LessonSchedulingIT {
         String instrument = postId(admin, "/admin/instruments", "{\"name\":\"Instrument " + suffix + "\"}");
         String teacher = postId(admin, "/admin/teachers",
             "{\"username\":\"teacher" + suffix + "\",\"email\":\"" + suffix + "@h.local\",\"password\":\""
-                + TEACHER_PASSWORD + "\",\"name\":\"Teacher " + suffix + "\"}");
+                + TEACHER_PASSWORD + "\",\"name\":\"Teacher " + suffix + "\",\"instrumentIds\":[\"" + instrument
+                + "\"]}");
         String[] enrollments = new String[2];
         for (int i = 0; i < 2; i++) {
             String student = postId(admin, "/admin/students",

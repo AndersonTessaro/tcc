@@ -127,6 +127,9 @@ As exceções são traduzidas pelo `GlobalExceptionHandler`:
 | `DomainValidationException` | 422 | `DOMAIN_VALIDATION` |
 | `DuplicateResourceException` (aplicação) | 409 | `DUPLICATE_RESOURCE` |
 | `ResourceNotFoundException` (aplicação) | 404 | `NOT_FOUND` |
+| `ProfileRequiredException` (aplicação) | 403 | `PROFILE_REQUIRED` |
+
+O administrador tem acesso completo (RN13): nas ações sobre um recurso específico (aula, matrícula, horário, relatório do aluno) a verificação de dono é dispensada. Rotas "minhas", como a lista de alunos ou a agenda do professor, exigem um perfil de professor e respondem 403 `PROFILE_REQUIRED` para quem não tem.
 
 As respostas da API são DTOs (`presentation/response`), não entidades JPA: uma aula volta com `studentName`, `teacherName` e `instrument` já resolvidos, sem expor `enrollment`, `user`, e-mails ou roles.
 
@@ -247,7 +250,7 @@ Essas credenciais são apenas para ambiente local.
 
 ### Opção recomendada: importar a coleção pronta
 
-O arquivo `postman/Harmonia-lesson-core.postman_collection.json` já contém todas as requisições, autenticação, corpos JSON e testes automáticos (57 requisições, 79 verificações). No Postman:
+O arquivo `postman/Harmonia-lesson-core.postman_collection.json` já contém todas as requisições, autenticação, corpos JSON e testes automáticos (62 requisições, 86 verificações). No Postman:
 
 1. clique em **Import**;
 2. selecione o arquivo da coleção;
@@ -273,7 +276,7 @@ As instruções abaixo permanecem como referência para execução manual com `c
 | `today` | a data de hoje, no formato `AAAA-MM-DD` |
 | `testDate` | a próxima segunda-feira, no formato `AAAA-MM-DD` |
 | `adminToken`, `teacherToken`, `studentToken` | vazio |
-| `instrumentId`, `teacherId`, `studentId`, `student2Id` | vazio |
+| `instrumentId`, `instrument2Id`, `teacherId`, `studentId`, `student2Id` | vazio |
 | `enrollmentId`, `enrollment2Id` | vazio |
 | `lessonId`, `futureLessonId`, `scheduleId`, `makeupLessonId` | vazio |
 | `lifecycleOriginalId`, `lifecycleMakeupId` | vazio |
@@ -287,12 +290,12 @@ Para importar uma chamada avulsa, use **Import > Raw text** e cole o `curl`. Exe
 ```bash
 curl --request POST '{{baseUrl}}/auth/login' --header 'Content-Type: application/json' --data-raw '{"login":"admin","password":"Admin@123"}'
 curl --request POST '{{baseUrl}}/admin/instruments' --header 'Authorization: Bearer {{adminToken}}' --header 'Content-Type: application/json' --data-raw '{"name":"Piano {{suffix}}"}'
-curl --request POST '{{baseUrl}}/admin/teachers' --header 'Authorization: Bearer {{adminToken}}' --header 'Content-Type: application/json' --data-raw '{"username":"prof{{suffix}}","email":"prof{{suffix}}@harmonia.local","password":"Senha@123","name":"Professor Demo"}'
+curl --request POST '{{baseUrl}}/admin/teachers' --header 'Authorization: Bearer {{adminToken}}' --header 'Content-Type: application/json' --data-raw '{"username":"prof{{suffix}}","email":"prof{{suffix}}@harmonia.local","password":"Senha@123","name":"Professor Demo","instrumentIds":["{{instrumentId}}"]}'
 curl --request POST '{{baseUrl}}/admin/students' --header 'Authorization: Bearer {{adminToken}}' --header 'Content-Type: application/json' --data-raw '{"username":"aluno{{suffix}}","email":"aluno{{suffix}}@harmonia.local","password":"Senha@123","name":"Aluno Demo"}'
 curl --request POST '{{baseUrl}}/admin/students' --header 'Authorization: Bearer {{adminToken}}' --header 'Content-Type: application/json' --data-raw '{"username":"aluno2{{suffix}}","email":"aluno2{{suffix}}@harmonia.local","password":"Senha@123","name":"Aluno Dois"}'
 ```
 
-Guarde `accessToken` como `adminToken` e o `id` de cada cadastro em `instrumentId`, `teacherId`, `studentId` e `student2Id`. O segundo aluno, do mesmo professor, é usado para mostrar conflitos entre alunos diferentes.
+Guarde `accessToken` como `adminToken` e o `id` de cada cadastro em `instrumentId`, `teacherId`, `studentId` e `student2Id`. O professor já nasce ensinando o instrumento (`instrumentIds`), requisito da matrícula. O segundo aluno, do mesmo professor, é usado para mostrar conflitos entre alunos diferentes.
 
 ### 8.2 Consultar os cadastros (seletores das telas)
 
@@ -302,7 +305,7 @@ curl --request GET '{{baseUrl}}/admin/teachers' --header 'Authorization: Bearer 
 curl --request GET '{{baseUrl}}/admin/instruments' --header 'Authorization: Bearer {{adminToken}}'
 ```
 
-Resultado esperado: listas com `id`, `name` e `username` (ou `id` e `name` para instrumentos). São esses endpoints que alimentam os seletores da tela de matrícula, no lugar de digitar UUIDs.
+Resultado esperado: listas com `id`, `name` e `username` (ou `id` e `name` para instrumentos); cada professor traz também os `instruments` que ensina. São esses endpoints que alimentam os seletores da tela de matrícula, no lugar de digitar UUIDs.
 
 ### 8.3 Criar as matrículas
 
@@ -311,6 +314,15 @@ curl --request POST '{{baseUrl}}/admin/enrollments' --header 'Authorization: Bea
 ```
 
 Guarde o `id` em `enrollmentId`. Repetir a mesma chamada retorna HTTP 409 com `code: DUPLICATE_RESOURCE`, e trocar `studentId` por um UUID inexistente retorna HTTP 404 com `code: NOT_FOUND`. Crie a matrícula do segundo aluno com `{{student2Id}}` e guarde em `enrollment2Id`.
+
+A matrícula só é aceita se o professor ensina o instrumento. Para demonstrar, crie um segundo instrumento (`Violino {{suffix}}`, guarde em `instrument2Id`) e tente matricular nele:
+
+```bash
+curl --request POST '{{baseUrl}}/admin/enrollments' --header 'Authorization: Bearer {{adminToken}}' --header 'Content-Type: application/json' --data-raw '{"studentId":"{{studentId}}","teacherId":"{{teacherId}}","instrumentId":"{{instrument2Id}}"}'
+curl --request PUT '{{baseUrl}}/admin/teachers/{{teacherId}}/instruments' --header 'Authorization: Bearer {{adminToken}}' --header 'Content-Type: application/json' --data-raw '{"instrumentIds":["{{instrumentId}}","{{instrument2Id}}"]}'
+```
+
+Resultados esperados: 422 `DOMAIN_VALIDATION` ("Teacher does not teach this instrument"); depois 200 com os dois instrumentos em `instruments`. Na web, esse vínculo fica no card **Instrumentos do professor**, e o seletor de instrumento da matrícula só oferece o que o professor escolhido ensina.
 
 ### 8.4 Login do professor e do aluno
 
@@ -491,6 +503,8 @@ curl --request GET '{{baseUrl}}/me/lessons/{{lifecycleOriginalId}}' --header 'Au
 curl --request GET '{{baseUrl}}/teacher/students' --header 'Authorization: Bearer {{teacherToken}}'
 curl --request GET '{{baseUrl}}/teacher/students/{{studentId}}' --header 'Authorization: Bearer {{teacherToken}}'
 curl --request POST '{{baseUrl}}/teacher/lessons/00000000-0000-0000-0000-000000000000/attendance' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"status":"PRESENT"}'
+curl --request GET '{{baseUrl}}/teacher/students/{{studentId}}' --header 'Authorization: Bearer {{adminToken}}'
+curl --request GET '{{baseUrl}}/teacher/students' --header 'Authorization: Bearer {{adminToken}}'
 ```
 
 Resultados esperados:
@@ -499,7 +513,8 @@ Resultados esperados:
 - o detalhe da aula de hoje mostra `status: DONE` e a lista de anexos;
 - o professor vê os dois alunos pelo `name`, sem o objeto `user`;
 - o relatório do aluno mostra `attendance.absent: 1`, resultado da correção;
-- frequência em aula inexistente retorna HTTP 404 com `code: NOT_FOUND`.
+- frequência em aula inexistente retorna HTTP 404 com `code: NOT_FOUND`;
+- o administrador vê o relatório do aluno sem ser o professor dele (RN13), mas `GET /teacher/students` retorna 403 `PROFILE_REQUIRED`, porque ele não tem agenda própria.
 
 ## 14. O que destacar para o professor
 

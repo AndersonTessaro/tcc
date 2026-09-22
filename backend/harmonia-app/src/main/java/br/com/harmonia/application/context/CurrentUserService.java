@@ -4,9 +4,11 @@ import br.com.harmonia.application.profile.port.StudentRepository;
 import br.com.harmonia.application.profile.port.TeacherRepository;
 import br.com.harmonia.application.security.port.UserRepository;
 import br.com.harmonia.domain.common.OwnershipException;
+import br.com.harmonia.domain.common.ProfileRequiredException;
 import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
 import br.com.harmonia.infrastructure.persistence.profile.Student;
 import br.com.harmonia.infrastructure.persistence.profile.Teacher;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
@@ -30,23 +32,33 @@ public class CurrentUserService {
         return users.findByUsername(jwt.getSubject()).orElseThrow().getId();
     }
 
+    public boolean isAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+    }
+
     public Student currentStudent() {
-        return students.findByUserId(userId())
-            .orElseThrow(() -> new IllegalStateException("User is not a student"));
+        return students.findByUserId(userId()).orElseThrow(() -> new ProfileRequiredException("student"));
     }
 
     public Teacher currentTeacher() {
-        return teachers.findByUserId(userId())
-            .orElseThrow(() -> new IllegalStateException("User is not a teacher"));
+        return teachers.findByUserId(userId()).orElseThrow(() -> new ProfileRequiredException("teacher"));
     }
 
+    // RN13: admin acts on any enrollment without owning it.
     public Enrollment assertOwnedByCurrentTeacher(Enrollment enrollment) {
+        if (isAdmin()) {
+            return enrollment;
+        }
         if (!enrollment.getTeacher().getId().equals(currentTeacher().getId()))
             throw new OwnershipException("Enrollment belongs to another teacher");
         return enrollment;
     }
 
     public Student assertOwnedByCurrentStudent(Student student) {
+        if (isAdmin()) {
+            return student;
+        }
         if (!student.getId().equals(currentStudent().getId()))
             throw new OwnershipException("Resource belongs to another student");
         return student;

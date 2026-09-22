@@ -13,6 +13,7 @@ export type UserDto = {
 
 export type PersonOption = { id: string; name: string; username: string };
 export type InstrumentOption = { id: string; name: string };
+export type TeacherOption = PersonOption & { instruments: InstrumentOption[] };
 
 export const adminService = {
   users: () => api.get<UserDto[]>("/admin/security/users"),
@@ -29,9 +30,11 @@ export const adminService = {
   // registrations (Plan 2)
   createInstrument: (name: string) => api.post<{ id: string }>("/admin/instruments", { name }),
   createStudent: (b: NewUser) => api.post<{ id: string }>("/admin/students", b),
-  createTeacher: (b: NewUser) => api.post<{ id: string }>("/admin/teachers", b),
+  createTeacher: (b: NewTeacher) => api.post<{ id: string }>("/admin/teachers", b),
+  setTeacherInstruments: (teacherId: string, instrumentIds: string[]) =>
+    api.put<TeacherOption>(`/admin/teachers/${teacherId}/instruments`, { instrumentIds }),
   students: () => api.get<PersonOption[]>("/admin/students"),
-  teachers: () => api.get<PersonOption[]>("/admin/teachers"),
+  teachers: () => api.get<TeacherOption[]>("/admin/teachers"),
   instruments: () => api.get<InstrumentOption[]>("/admin/instruments"),
   createEnrollment: (b: { studentId: string; teacherId: string; instrumentId: string }) =>
     api.post<{ id: string }>("/admin/enrollments", b),
@@ -47,6 +50,7 @@ export const adminService = {
 };
 
 export type NewUser = { username: string; email: string; password: string; name: string };
+export type NewTeacher = NewUser & { instrumentIds: string[] };
 export type SettingDto = { id: string; key: string; value: string; description: string | null };
 export type TransactionType = "INCOME" | "EXPENSE";
 export type TransactionDto = {

@@ -16,6 +16,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -50,7 +51,7 @@ class AdminRegistrationIT {
         String t = token();
         String inst = postId(t, "/admin/instruments", "{\"name\":\"Acoustic Guitar\"}");
         String teacher = postId(t, "/admin/teachers",
-            "{\"username\":\"teacher1\",\"email\":\"teacher1@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher One\"}");
+            "{\"username\":\"teacher1\",\"email\":\"teacher1@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher One\",\"instrumentIds\":[\"" + inst + "\"]}");
         String student = postId(t, "/admin/students",
             "{\"username\":\"student1\",\"email\":\"student1@h.local\",\"password\":\"Student@123\",\"name\":\"Student One\"}");
         String enrollment = postId(t, "/admin/enrollments",
@@ -80,7 +81,7 @@ class AdminRegistrationIT {
         String t = token();
         String inst = postId(t, "/admin/instruments", "{\"name\":\"Double Bass\"}");
         String teacher = postId(t, "/admin/teachers",
-            "{\"username\":\"teacherDup\",\"email\":\"teacherDup@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher Dup\"}");
+            "{\"username\":\"teacherDup\",\"email\":\"teacherDup@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher Dup\",\"instrumentIds\":[\"" + inst + "\"]}");
         String student = postId(t, "/admin/students",
             "{\"username\":\"studentDup\",\"email\":\"studentDup@h.local\",\"password\":\"Student@123\",\"name\":\"Student Dup\"}");
         String body = "{\"studentId\":\"" + student + "\",\"teacherId\":\"" + teacher + "\",\"instrumentId\":\"" + inst + "\"}";
@@ -100,6 +101,70 @@ class AdminRegistrationIT {
                 .content("{\"studentId\":\"" + UUID.randomUUID() + "\",\"teacherId\":\""
                     + UUID.randomUUID() + "\",\"instrumentId\":\"" + UUID.randomUUID() + "\"}"))
             .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void enrollment_requiresTeacherToTeachTheInstrument() throws Exception {
+        String t = token();
+        String taught = postId(t, "/admin/instruments", "{\"name\":\"Oboe\"}");
+        String other = postId(t, "/admin/instruments", "{\"name\":\"Harp\"}");
+        String teacher = postId(t, "/admin/teachers",
+            "{\"username\":\"teacherInst\",\"email\":\"teacherInst@h.local\",\"password\":\"Teach@1234\","
+                + "\"name\":\"Teacher Inst\",\"instrumentIds\":[\"" + taught + "\"]}");
+        String student = postId(t, "/admin/students",
+            "{\"username\":\"studentInst\",\"email\":\"studentInst@h.local\",\"password\":\"Student@123\",\"name\":\"Student Inst\"}");
+        String harpEnrollment = "{\"studentId\":\"" + student + "\",\"teacherId\":\"" + teacher + "\",\"instrumentId\":\"" + other + "\"}";
+
+        mvc.perform(post("/admin/enrollments").header("Authorization", "Bearer " + t)
+                .contentType("application/json").content(harpEnrollment))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.code", is("DOMAIN_VALIDATION")));
+
+        mvc.perform(put("/admin/teachers/" + teacher + "/instruments").header("Authorization", "Bearer " + t)
+                .contentType("application/json").content("{\"instrumentIds\":[\"" + taught + "\",\"" + other + "\"]}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.instruments.length()", is(2)));
+
+        mvc.perform(get("/admin/teachers").header("Authorization", "Bearer " + t))
+            .andExpect(jsonPath("$[?(@.id == '" + teacher + "')].instruments[*].name", hasItem("Harp")));
+
+        postId(t, "/admin/enrollments", harpEnrollment);
+    }
+
+    @Test
+    void admin_setTeacherInstruments_rejectsUnknownInstrument() throws Exception {
+        String t = token();
+        String teacher = postId(t, "/admin/teachers",
+            "{\"username\":\"teacherUnk\",\"email\":\"teacherUnk@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher Unk\"}");
+        mvc.perform(put("/admin/teachers/" + teacher + "/instruments").header("Authorization", "Bearer " + t)
+                .contentType("application/json").content("{\"instrumentIds\":[\"" + UUID.randomUUID() + "\"]}"))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void admin_actsOnAnyEnrollment_butHasNoTeacherAgenda() throws Exception {
+        String t = token();
+        String inst = postId(t, "/admin/instruments", "{\"name\":\"Bassoon\"}");
+        String teacher = postId(t, "/admin/teachers",
+            "{\"username\":\"teacherRn13\",\"email\":\"teacherRn13@h.local\",\"password\":\"Teach@1234\","
+                + "\"name\":\"Teacher Rn13\",\"instrumentIds\":[\"" + inst + "\"]}");
+        String student = postId(t, "/admin/students",
+            "{\"username\":\"studentRn13\",\"email\":\"studentRn13@h.local\",\"password\":\"Student@123\",\"name\":\"Student Rn13\"}");
+        String enrollment = postId(t, "/admin/enrollments",
+            "{\"studentId\":\"" + student + "\",\"teacherId\":\"" + teacher + "\",\"instrumentId\":\"" + inst + "\"}");
+
+        postId(t, "/teacher/lessons", "{\"enrollmentId\":\"" + enrollment + "\",\"date\":\""
+            + java.time.LocalDate.now() + "\",\"startTime\":\"07:00\",\"endTime\":\"08:00\"}");
+        mvc.perform(get("/teacher/students/" + student).header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.lessonsCount", is(1)));
+
+        mvc.perform(get("/teacher/students").header("Authorization", "Bearer " + t))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code", is("PROFILE_REQUIRED")));
+        mvc.perform(get("/me/progress").header("Authorization", "Bearer " + t))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code", is("PROFILE_REQUIRED")));
     }
 
     @Test

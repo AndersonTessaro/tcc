@@ -42,7 +42,7 @@ class MakeupIT {
         String admin = login("admin", "Admin@123");
         String inst = postId(admin, "/admin/instruments", "{\"name\":\"Cello\"}");
         String teacher = postId(admin, "/admin/teachers",
-            "{\"username\":\"teacherMk\",\"email\":\"mk@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher Mk\"}");
+            "{\"username\":\"teacherMk\",\"email\":\"mk@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher Mk\",\"instrumentIds\":[\"" + inst + "\"]}");
         String student = postId(admin, "/admin/students",
             "{\"username\":\"studentMk\",\"email\":\"stmk@h.local\",\"password\":\"Student@123\",\"name\":\"Student Mk\"}");
         String enrollment = postId(admin, "/admin/enrollments",
@@ -68,7 +68,7 @@ class MakeupIT {
         String admin = login("admin", "Admin@123");
         String inst = postId(admin, "/admin/instruments", "{\"name\":\"Flute\"}");
         String teacher = postId(admin, "/admin/teachers",
-            "{\"username\":\"teacherMk2\",\"email\":\"mk2@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher Mk2\"}");
+            "{\"username\":\"teacherMk2\",\"email\":\"mk2@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher Mk2\",\"instrumentIds\":[\"" + inst + "\"]}");
         String student = postId(admin, "/admin/students",
             "{\"username\":\"studentMk2\",\"email\":\"stmk2@h.local\",\"password\":\"Student@123\",\"name\":\"Student Mk2\"}");
         String enrollment = postId(admin, "/admin/enrollments",
