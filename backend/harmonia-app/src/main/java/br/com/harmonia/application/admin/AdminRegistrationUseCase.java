@@ -1,7 +1,9 @@
 package br.com.harmonia.application.admin;
 
 import br.com.harmonia.application.profile.port.*;
+import br.com.harmonia.domain.common.DuplicateResourceException;
 import br.com.harmonia.domain.common.ResourceNotFoundException;
+import br.com.harmonia.lessoncore.DomainValidationException;
 import br.com.harmonia.application.security.port.RoleRepository;
 import br.com.harmonia.application.security.port.UserRepository;
 import br.com.harmonia.infrastructure.persistence.profile.*;
@@ -71,11 +73,29 @@ public class AdminRegistrationUseCase {
 
     @Transactional
     public UUID createEnrollment(UUID studentId, UUID teacherId, UUID instrumentId) {
+        Student student = students.findById(studentId).orElseThrow(() -> new ResourceNotFoundException("Student"));
+        Teacher teacher = teachers.findById(teacherId).orElseThrow(() -> new ResourceNotFoundException("Teacher"));
+        Instrument instrument = instruments.findById(instrumentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Instrument"));
+        requireActive(student.getActive(), "Student");
+        requireActive(teacher.getActive(), "Teacher");
+        requireActive(instrument.getActive(), "Instrument");
+        if (enrollments.existsByStudentIdAndTeacherIdAndInstrumentIdAndStatus(studentId, teacherId, instrumentId,
+                EnrollmentStatus.ACTIVE)) {
+            throw new DuplicateResourceException(
+                "Student already has an active enrollment with this teacher and instrument");
+        }
         Enrollment e = new Enrollment();
-        e.setStudent(students.findById(studentId).orElseThrow(() -> new ResourceNotFoundException("Student")));
-        e.setTeacher(teachers.findById(teacherId).orElseThrow(() -> new ResourceNotFoundException("Teacher")));
-        e.setInstrument(instruments.findById(instrumentId).orElseThrow(() -> new ResourceNotFoundException("Instrument")));
+        e.setStudent(student);
+        e.setTeacher(teacher);
+        e.setInstrument(instrument);
         return enrollments.save(e).getId();
+    }
+
+    private static void requireActive(boolean active, String resource) {
+        if (!active) {
+            throw new DomainValidationException(resource + " is not active");
+        }
     }
 
     public List<Student> activeStudents() {

@@ -1,5 +1,6 @@
 package br.com.harmonia.application.material;
 
+import br.com.harmonia.domain.common.ResourceNotFoundException;
 import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.application.material.port.MaterialRepository;
 import br.com.harmonia.infrastructure.persistence.material.Material;
@@ -29,7 +30,7 @@ public class StudentMaterialUseCase {
     }
 
     public byte[] download(UUID materialId) {
-        Material m = materials.findById(materialId).orElseThrow();
+        Material m = materials.findById(materialId).orElseThrow(() -> new ResourceNotFoundException("Material"));
         current.assertOwnedByCurrentStudent(m.getStudent());
         return storage.read(m.getStoragePath());
     }

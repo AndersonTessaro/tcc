@@ -2,11 +2,36 @@ package br.com.harmonia.lessoncore;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AttendanceRecordingRuleTest {
     private final AttendanceRecordingRule rule = new AttendanceRecordingRule();
+    private final LocalDate today = LocalDate.of(2026, 9, 22);
+
+    @Test
+    void canceledLesson_rejectsAttendance() {
+        assertThatThrownBy(() -> rule.validateRecordable(SessionStatus.CANCELED, today, today))
+            .isInstanceOf(DomainValidationException.class)
+            .hasMessageContaining("canceled");
+    }
+
+    @Test
+    void futureLesson_rejectsAttendance() {
+        assertThatThrownBy(() -> rule.validateRecordable(SessionStatus.SCHEDULED, today.plusDays(1), today))
+            .isInstanceOf(DomainValidationException.class)
+            .hasMessageContaining("before the lesson date");
+    }
+
+    @Test
+    void scheduledOrDoneLessonOnOrBeforeToday_acceptsAttendance() {
+        assertThatCode(() -> rule.validateRecordable(SessionStatus.SCHEDULED, today, today)).doesNotThrowAnyException();
+        assertThatCode(() -> rule.validateRecordable(SessionStatus.DONE, today.minusDays(3), today))
+            .doesNotThrowAnyException();
+    }
 
     @Test
     void firstRecordingPresent_awardsXp() {

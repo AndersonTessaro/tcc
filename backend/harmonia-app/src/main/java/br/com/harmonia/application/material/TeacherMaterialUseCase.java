@@ -1,5 +1,6 @@
 package br.com.harmonia.application.material;
 
+import br.com.harmonia.domain.common.ResourceNotFoundException;
 import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.application.material.port.MaterialRepository;
 import br.com.harmonia.application.profile.port.EnrollmentRepository;
@@ -38,7 +39,7 @@ public class TeacherMaterialUseCase {
     @Transactional
     public Material attach(UUID studentId, String title, String description, MultipartFile file) {
         Teacher teacher = current.currentTeacher();
-        Student student = students.findById(studentId).orElseThrow();
+        Student student = students.findById(studentId).orElseThrow(() -> new ResourceNotFoundException("Student"));
         if (enrollments.findByTeacherIdAndStudentId(teacher.getId(), studentId).isEmpty())
             throw new OwnershipException("Student is not linked to this teacher");
         try {

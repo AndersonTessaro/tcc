@@ -1,7 +1,9 @@
 package br.com.harmonia.application.lesson;
 
+import br.com.harmonia.domain.common.ResourceNotFoundException;
 import br.com.harmonia.application.lesson.port.LessonRepository;
 import br.com.harmonia.application.context.CurrentUserService;
+import br.com.harmonia.application.profile.EnrollmentRules;
 import br.com.harmonia.application.profile.port.EnrollmentRepository;
 import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
 import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
@@ -33,13 +35,14 @@ public class TeacherLessonUseCase {
     }
 
     private Enrollment teacherEnrollment(UUID enrollmentId) {
-        return current.assertOwnedByCurrentTeacher(enrollments.findById(enrollmentId).orElseThrow());
+        return current.assertOwnedByCurrentTeacher(enrollments.findById(enrollmentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Enrollment")));
     }
 
     @Transactional
     public Lesson register(UUID enrollmentId, LocalDate date, LocalTime start, LocalTime end,
                            String content, String homework) {
-        Enrollment enrollment = teacherEnrollment(enrollmentId);
+        Enrollment enrollment = EnrollmentRules.requireActive(teacherEnrollment(enrollmentId));
         schedulingGuard.assertSlotIsFree(enrollment, date, start, end, SessionStatus.DONE);
         Lesson l = new Lesson();
         l.setEnrollment(enrollment);
@@ -54,7 +57,7 @@ public class TeacherLessonUseCase {
 
     @Transactional
     public Lesson changeStatus(UUID lessonId, LessonStatus next) {
-        Lesson lesson = lessons.findById(lessonId).orElseThrow();
+        Lesson lesson = lessons.findById(lessonId).orElseThrow(() -> new ResourceNotFoundException("Lesson"));
         current.assertOwnedByCurrentTeacher(lesson.getEnrollment());
         lifecyclePolicy.validateTransition(LessonStatuses.toSessionStatus(lesson.getStatus()),
             LessonStatuses.toSessionStatus(next));

@@ -1,5 +1,6 @@
 package br.com.harmonia.application.lesson;
 
+import br.com.harmonia.domain.common.ResourceNotFoundException;
 import br.com.harmonia.application.lesson.port.LessonAttachmentRepository;
 import br.com.harmonia.application.lesson.port.LessonRepository;
 import br.com.harmonia.application.context.CurrentUserService;
@@ -32,7 +33,7 @@ public class StudentLessonUseCase {
     }
 
     public Lesson detail(UUID lessonId) {
-        Lesson l = lessons.findById(lessonId).orElseThrow();
+        Lesson l = lessons.findById(lessonId).orElseThrow(() -> new ResourceNotFoundException("Lesson"));
         current.assertOwnedByCurrentStudent(l.getEnrollment().getStudent());
         return l;
     }

@@ -1,7 +1,9 @@
 package br.com.harmonia.application.lesson;
 
+import br.com.harmonia.domain.common.ResourceNotFoundException;
 import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.application.lesson.port.LessonRepository;
+import br.com.harmonia.application.profile.EnrollmentRules;
 import br.com.harmonia.application.lesson.port.MakeupLessonRepository;
 import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
 import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
@@ -34,8 +36,8 @@ public class MakeupUseCase {
     @Transactional
     public MakeupLesson create(UUID originalLessonId, LocalDate date, LocalTime startTime,
                                LocalTime endTime, String reason) {
-        Lesson original = lessons.findById(originalLessonId).orElseThrow();
-        current.assertOwnedByCurrentTeacher(original.getEnrollment());
+        Lesson original = lessons.findById(originalLessonId).orElseThrow(() -> new ResourceNotFoundException("Lesson"));
+        EnrollmentRules.requireActive(current.assertOwnedByCurrentTeacher(original.getEnrollment()));
 
         validator.validate(LessonStatuses.toSessionStatus(original.getStatus()),
             makeups.existsByOriginalLessonId(originalLessonId));

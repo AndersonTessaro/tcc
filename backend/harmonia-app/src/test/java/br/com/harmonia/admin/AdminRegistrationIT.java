@@ -9,6 +9,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.UUID;
+
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -71,6 +73,33 @@ class AdminRegistrationIT {
             .andExpect(jsonPath("$[0].studentId", is(student)))
             .andExpect(jsonPath("$[0].studentName", is("Student One")))
             .andExpect(jsonPath("$[0].instrument", is("Acoustic Guitar")));
+    }
+
+    @Test
+    void admin_cannotDuplicateActiveEnrollment() throws Exception {
+        String t = token();
+        String inst = postId(t, "/admin/instruments", "{\"name\":\"Double Bass\"}");
+        String teacher = postId(t, "/admin/teachers",
+            "{\"username\":\"teacherDup\",\"email\":\"teacherDup@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher Dup\"}");
+        String student = postId(t, "/admin/students",
+            "{\"username\":\"studentDup\",\"email\":\"studentDup@h.local\",\"password\":\"Student@123\",\"name\":\"Student Dup\"}");
+        String body = "{\"studentId\":\"" + student + "\",\"teacherId\":\"" + teacher + "\",\"instrumentId\":\"" + inst + "\"}";
+        postId(t, "/admin/enrollments", body);
+
+        mvc.perform(post("/admin/enrollments").header("Authorization", "Bearer " + t)
+                .contentType("application/json").content(body))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code", is("DUPLICATE_RESOURCE")));
+    }
+
+    @Test
+    void admin_enrollmentWithUnknownStudent_is404() throws Exception {
+        String t = token();
+        mvc.perform(post("/admin/enrollments").header("Authorization", "Bearer " + t)
+                .contentType("application/json")
+                .content("{\"studentId\":\"" + UUID.randomUUID() + "\",\"teacherId\":\""
+                    + UUID.randomUUID() + "\",\"instrumentId\":\"" + UUID.randomUUID() + "\"}"))
+            .andExpect(status().isNotFound());
     }
 
     @Test

@@ -123,6 +123,43 @@ class SchedulingPolicyTest {
             .isInstanceOf(ScheduleConflictException.class);
     }
 
+    @Test
+    void rejectsRecurringScheduleOverAnotherStudentsUpcomingLesson() {
+        LocalDate monday = LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.MONDAY));
+        LessonSlot upcoming = new LessonSlot(UUID.randomUUID(), teacher, UUID.randomUUID(), monday,
+            new TimeRange(LocalTime.of(10, 30), LocalTime.of(11, 30)), SessionStatus.SCHEDULED);
+        WeeklyScheduleSlot candidate = weekly(teacher, student, LocalTime.of(10, 0), LocalTime.of(11, 0));
+
+        assertThatThrownBy(() -> policy.validateWeeklySlotAgainstLessons(candidate, List.of(upcoming)))
+            .isInstanceOf(ScheduleConflictException.class)
+            .hasMessageContaining("upcoming lesson");
+    }
+
+    @Test
+    void allowsRecurringScheduleOverCanceledOrSamePairLessons() {
+        LocalDate monday = LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.MONDAY));
+        TimeRange range = new TimeRange(LocalTime.of(10, 0), LocalTime.of(11, 0));
+        LessonSlot canceled = new LessonSlot(UUID.randomUUID(), teacher, UUID.randomUUID(), monday, range,
+            SessionStatus.CANCELED);
+        LessonSlot samePair = new LessonSlot(UUID.randomUUID(), teacher, student, monday, range,
+            SessionStatus.SCHEDULED);
+        WeeklyScheduleSlot candidate = weekly(teacher, student, LocalTime.of(10, 0), LocalTime.of(11, 0));
+
+        assertThatCode(() -> policy.validateWeeklySlotAgainstLessons(candidate, List.of(canceled, samePair)))
+            .doesNotThrowAnyException();
+    }
+
+    @Test
+    void allowsRecurringScheduleWhenUpcomingLessonIsOnAnotherWeekday() {
+        LocalDate tuesday = LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.TUESDAY));
+        LessonSlot upcoming = new LessonSlot(UUID.randomUUID(), teacher, UUID.randomUUID(), tuesday,
+            new TimeRange(LocalTime.of(10, 0), LocalTime.of(11, 0)), SessionStatus.SCHEDULED);
+        WeeklyScheduleSlot candidate = weekly(teacher, student, LocalTime.of(10, 0), LocalTime.of(11, 0));
+
+        assertThatCode(() -> policy.validateWeeklySlotAgainstLessons(candidate, List.of(upcoming)))
+            .doesNotThrowAnyException();
+    }
+
     private LessonSlot lesson(UUID teacherId, UUID studentId, LocalTime start, LocalTime end) {
         return new LessonSlot(UUID.randomUUID(), teacherId, studentId, LocalDate.now(),
             new TimeRange(start, end), SessionStatus.SCHEDULED);
