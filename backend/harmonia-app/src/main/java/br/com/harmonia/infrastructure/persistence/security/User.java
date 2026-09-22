@@ -47,6 +47,10 @@ public class User implements UserDetails {
         inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new LinkedHashSet<>();
 
+    public String nameForDisplay() {
+        return displayName != null && !displayName.isBlank() ? displayName : username;
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return roles.stream()

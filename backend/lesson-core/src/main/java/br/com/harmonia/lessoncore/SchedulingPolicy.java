@@ -42,11 +42,18 @@ public final class SchedulingPolicy {
         DayOfWeek weekday = candidate.date().getDayOfWeek();
         for (WeeklyScheduleSlot recurring : recurringSlots) {
             if (recurring.weekday() == weekday
+                && !isSamePair(recurring, candidate)
                 && recurring.timeRange().overlaps(candidate.timeRange())
                 && (recurring.teacherId().equals(candidate.teacherId())
                     || recurring.studentId().equals(candidate.studentId()))) {
                 throw new ScheduleConflictException("Lesson conflicts with a recurring schedule");
             }
         }
+    }
+
+    // A lesson for the same teacher and student fulfills that recurring slot instead of competing with it.
+    private static boolean isSamePair(WeeklyScheduleSlot recurring, LessonSlot lesson) {
+        return recurring.teacherId().equals(lesson.teacherId())
+            && recurring.studentId().equals(lesson.studentId());
     }
 }

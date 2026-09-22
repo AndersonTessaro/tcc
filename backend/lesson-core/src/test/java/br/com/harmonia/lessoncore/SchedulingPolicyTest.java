@@ -101,6 +101,28 @@ class SchedulingPolicyTest {
             .hasMessageContaining("recurring");
     }
 
+    @Test
+    void allowsLessonThatFulfillsItsOwnRecurringSchedule() {
+        LocalDate monday = LocalDate.now().with(TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
+        LessonSlot candidate = new LessonSlot(UUID.randomUUID(), teacher, student, monday,
+            new TimeRange(LocalTime.of(10, 0), LocalTime.of(11, 0)), SessionStatus.DONE);
+        WeeklyScheduleSlot recurring = weekly(teacher, student, LocalTime.of(10, 0), LocalTime.of(11, 0));
+
+        assertThatCode(() -> policy.validateLessonAgainstWeeklySchedules(candidate, List.of(recurring)))
+            .doesNotThrowAnyException();
+    }
+
+    @Test
+    void rejectsLessonWhenStudentHasRecurringScheduleWithAnotherTeacher() {
+        LocalDate monday = LocalDate.now().with(TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
+        LessonSlot candidate = new LessonSlot(UUID.randomUUID(), teacher, student, monday,
+            new TimeRange(LocalTime.of(10, 0), LocalTime.of(11, 0)), SessionStatus.SCHEDULED);
+        WeeklyScheduleSlot recurring = weekly(UUID.randomUUID(), student, LocalTime.of(10, 30), LocalTime.of(11, 30));
+
+        assertThatThrownBy(() -> policy.validateLessonAgainstWeeklySchedules(candidate, List.of(recurring)))
+            .isInstanceOf(ScheduleConflictException.class);
+    }
+
     private LessonSlot lesson(UUID teacherId, UUID studentId, LocalTime start, LocalTime end) {
         return new LessonSlot(UUID.randomUUID(), teacherId, studentId, LocalDate.now(),
             new TimeRange(start, end), SessionStatus.SCHEDULED);

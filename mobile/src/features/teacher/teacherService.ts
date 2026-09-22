@@ -1,14 +1,22 @@
 import { api } from "../../lib/http";
 
+export type TeacherEnrollment = {
+  id: string;
+  studentId: string;
+  studentName: string;
+  instrument: string;
+};
+
 export const teacherService = {
   dashboard: () => api.get<any>("/teacher/dashboard"),
   students: () => api.get<any[]>("/teacher/students"),
   student: (id: string) => api.get<any>(`/teacher/students/${id}`),
+  enrollments: () => api.get<TeacherEnrollment[]>("/teacher/enrollments"),
   newLesson: (b: {
     enrollmentId: string;
     date: string;
     startTime: string;
-    endTime?: string;
+    endTime: string;
     content?: string;
     homework?: string;
   }) => api.post<any>("/teacher/lessons", b),

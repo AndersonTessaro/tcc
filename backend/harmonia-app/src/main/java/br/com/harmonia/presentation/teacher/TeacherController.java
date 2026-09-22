@@ -4,6 +4,7 @@ import br.com.harmonia.application.lesson.AttendanceUseCase;
 import br.com.harmonia.application.lesson.TeacherLessonUseCase;
 import br.com.harmonia.application.material.TeacherMaterialUseCase;
 import br.com.harmonia.application.teacher.TeacherUseCase;
+import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
 import br.com.harmonia.infrastructure.persistence.lesson.Attendance;
 import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
 import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
@@ -18,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -41,6 +43,12 @@ public class TeacherController {
                             String content, String homework) {}
     public record RegisterAttendance(@NotNull AttendanceStatus status, String justification) {}
     public record ChangeLessonStatus(@NotNull LessonStatus status) {}
+    public record EnrollmentOption(UUID id, UUID studentId, String studentName, String instrument) {
+        static EnrollmentOption of(Enrollment e) {
+            return new EnrollmentOption(e.getId(), e.getStudent().getId(),
+                e.getStudent().getUser().nameForDisplay(), e.getInstrument().getName());
+        }
+    }
 
     @GetMapping("/dashboard")
     @PreAuthorize("hasAuthority('student.read')")
@@ -52,6 +60,12 @@ public class TeacherController {
     @PreAuthorize("hasAuthority('student.read')")
     public Object students() {
         return teacher.linkedStudents();
+    }
+
+    @GetMapping("/enrollments")
+    @PreAuthorize("hasAuthority('student.read')")
+    public List<EnrollmentOption> enrollments() {
+        return teacher.myActiveEnrollments().stream().map(EnrollmentOption::of).toList();
     }
 
     @GetMapping("/students/{id}")
