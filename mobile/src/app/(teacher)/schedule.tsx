@@ -1,12 +1,25 @@
 import { useEffect, useState, useCallback } from "react";
 import { View, Text, TextInput, Pressable, FlatList } from "react-native";
-import { teacherService, type AttendanceStatus, type TeacherLesson } from "@/features/teacher/teacherService";
-import { ATTENDANCE_OPTIONS, canRecordAttendance, hhmm, lessonStatusLabel } from "@/features/teacher/agenda";
+import { useRouter } from "expo-router";
+import {
+  teacherService,
+  type AttendanceStatus,
+  type LessonStatus,
+  type TeacherLesson,
+} from "@/features/teacher/teacherService";
+import {
+  ATTENDANCE_OPTIONS,
+  canRecordAttendance,
+  hhmm,
+  lessonActions,
+  lessonStatusLabel,
+} from "@/features/teacher/agenda";
 import { localIsoDate } from "@/features/teacher/lessonForm";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Card } from "@/ui/Card";
 
 export default function Schedule() {
+  const router = useRouter();
   const today = localIsoDate();
   const [date, setDate] = useState(today);
   const [lessons, setLessons] = useState<TeacherLesson[]>([]);
@@ -34,6 +47,27 @@ export default function Schedule() {
       setMsg(apiErrorMessage(error, "Erro ao marcar frequência"));
     }
   };
+
+  const changeStatus = async (lessonId: string, status: LessonStatus) => {
+    setMsg("");
+    try {
+      await teacherService.changeLessonStatus(lessonId, status);
+      load();
+    } catch (error) {
+      setMsg(apiErrorMessage(error, "Erro ao alterar a aula"));
+    }
+  };
+
+  const actionButton = (label: string, onPress: () => void) => (
+    <Pressable
+      key={label}
+      accessibilityRole="button"
+      className="rounded-lg px-3 py-2 bg-white/5 border border-white/20"
+      onPress={onPress}
+    >
+      <Text className="text-white">{label}</Text>
+    </Pressable>
+  );
 
   return (
     <View className="flex-1 bg-bg p-6">
@@ -82,6 +116,17 @@ export default function Schedule() {
                 {item.status === "CANCELED" ? "Aula cancelada" : "Frequência disponível no dia da aula"}
               </Text>
             )}
+            <View className="flex-row gap-2 mt-2">
+              {lessonActions(item, today).canComplete
+                ? actionButton("Concluir", () => changeStatus(item.id, "DONE"))
+                : null}
+              {lessonActions(item, today).canCancel
+                ? actionButton("Cancelar aula", () => changeStatus(item.id, "CANCELED"))
+                : null}
+              {lessonActions(item, today).canReplace
+                ? actionButton("Repor", () => router.push(`/(teacher)/makeup/${item.id}`))
+                : null}
+            </View>
           </Card>
         )}
       />

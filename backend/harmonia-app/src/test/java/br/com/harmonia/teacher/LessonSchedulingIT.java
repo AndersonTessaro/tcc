@@ -300,6 +300,33 @@ class LessonSchedulingIT {
     }
 
     @Test
+    void futureLesson_isRegisteredAsScheduled() throws Exception {
+        String enrollment = enrollmentFor("Fut");
+        String t = login("teacherFut", TEACHER_PASSWORD);
+        String nextWeek = LocalDate.now().plusDays(7).toString();
+
+        mvc.perform(post("/teacher/lessons").header("Authorization", "Bearer " + t)
+                .contentType("application/json").content(lessonBody(enrollment, nextWeek, "09:00", "10:00")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status", is("SCHEDULED")));
+    }
+
+    @Test
+    void canceledLesson_canReceiveMakeup() throws Exception {
+        String enrollment = enrollmentFor("MkC");
+        String t = login("teacherMkC", TEACHER_PASSWORD);
+        LocalDate today = LocalDate.now();
+
+        String future = postId(t, "/teacher/lessons",
+            lessonBody(enrollment, today.plusDays(2).toString(), "09:00", "10:00"));
+        mvc.perform(patch("/teacher/lessons/" + future + "/status").header("Authorization", "Bearer " + t)
+                .contentType("application/json").content("{\"status\":\"CANCELED\"}"))
+            .andExpect(status().isOk());
+
+        makeupOf(t, future, today.plusDays(3).toString(), "09:00", "10:00");
+    }
+
+    @Test
     void canceledLessonFreesTheSlot() throws Exception {
         String enrollment = enrollmentFor("Cnl");
         String t = login("teacherCnl", TEACHER_PASSWORD);

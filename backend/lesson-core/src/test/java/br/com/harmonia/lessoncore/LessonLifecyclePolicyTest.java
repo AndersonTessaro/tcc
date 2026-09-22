@@ -2,6 +2,9 @@ package br.com.harmonia.lessoncore;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -41,5 +44,13 @@ class LessonLifecyclePolicyTest {
             .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> policy.validateTransition(SessionStatus.SCHEDULED, null))
             .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void futureLesson_startsScheduled_otherwiseDone() {
+        LocalDate today = LocalDate.of(2026, 9, 22);
+        assertThat(new LessonLifecyclePolicy().initialStatus(today.plusDays(1), today)).isEqualTo(SessionStatus.SCHEDULED);
+        assertThat(new LessonLifecyclePolicy().initialStatus(today, today)).isEqualTo(SessionStatus.DONE);
+        assertThat(new LessonLifecyclePolicy().initialStatus(today.minusDays(7), today)).isEqualTo(SessionStatus.DONE);
     }
 }

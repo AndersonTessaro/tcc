@@ -10,6 +10,8 @@ export default function TeacherLayout() {
       <Tabs.Screen name="reports" options={{ title: "Relatórios" }} />
       <Tabs.Screen name="more" options={{ title: "Mais" }} />
       <Tabs.Screen name="student/[id]" options={{ href: null }} />
+      <Tabs.Screen name="schedules" options={{ href: null, title: "Horários" }} />
+      <Tabs.Screen name="makeup/[lessonId]" options={{ href: null, title: "Reposição" }} />
     </Tabs>
   );
 }
