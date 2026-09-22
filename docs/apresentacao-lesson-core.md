@@ -55,9 +55,9 @@ Principais componentes:
 | `TimeRange` | Garante um intervalo válido e detecta sobreposição. |
 | `LessonSlot` | Representa uma aula em uma data específica. |
 | `WeeklyScheduleSlot` | Representa um horário semanal recorrente. |
-| `SchedulingPolicy` | Impede conflitos de professor ou aluno. |
-| `LessonLifecyclePolicy` | Controla as mudanças permitidas no estado da aula. |
-| `AttendanceRecordingRule` | Decide se uma alteração de frequência concede, remove ou não altera XP. |
+| `SchedulingPolicy` | Impede conflitos de professor ou aluno entre aulas e horários recorrentes. |
+| `LessonLifecyclePolicy` | Define o estado inicial da aula e controla as mudanças de estado. |
+| `AttendanceRecordingRule` | Decide se a aula aceita frequência e se a alteração concede, remove ou não altera XP. |
 | `MakeupLinkValidator` | Valida a criação de uma reposição. |
 | `AttendanceRecordedEvent` | Comunica ao sistema o efeito de uma frequência, sem acoplar o core à gamificação. |
 
@@ -80,7 +80,18 @@ A `SchedulingPolicy` verifica conflitos quando:
 - os intervalos se sobrepõem; e
 - o professor ou o aluno é o mesmo.
 
-Aulas canceladas não bloqueiam o horário. Horários recorrentes inativos são filtrados pela aplicação antes de chegar ao core.
+Ela é aplicada em três direções:
+
+| Verificação | Método | Exemplo de conflito |
+|---|---|---|
+| aula × aula | `validateLessonSlot` | duas aulas do professor às 09:00 |
+| aula × horário fixo | `validateLessonAgainstWeeklySchedules` | aula de outro aluno dentro do horário fixo de segunda 14:00 |
+| horário fixo × aula futura | `validateWeeklySlotAgainstLessons` | horário fixo novo sobre uma aula já agendada |
+
+Duas exceções evitam falsos conflitos:
+
+- aulas canceladas não bloqueiam o horário, e horários recorrentes inativos são filtrados pela aplicação antes de chegar ao core;
+- uma aula do **mesmo professor e aluno** de um horário fixo não conflita com ele, porque é justamente a aula que o horário representa.
 
 O ciclo de vida permitido é:
 
@@ -91,11 +102,13 @@ SCHEDULED ──► DONE
 
 `DONE` e `CANCELED` são estados finais. Repetir o estado atual é aceito, o que torna a operação idempotente, mas uma aula finalizada ou cancelada não pode ser reaberta.
 
+O estado inicial também é decidido pelo core: `initialStatus(data, hoje)` devolve `SCHEDULED` para datas futuras e `DONE` para hoje ou datas passadas. Assim o professor usa a mesma operação para lançar uma aula dada ou agendar uma próxima.
+
 ### 3.4 Adapter de integração
 
 No `harmonia-app`, o `LessonSchedulingGuard` funciona como adapter entre a aplicação e o framework. Ele:
 
-1. recebe a matrícula, data e horários;
+1. recebe a matrícula (ou o horário fixo), a data e os horários;
 2. obtém o professor e o aluno envolvidos;
 3. adquire as travas de concorrência;
 4. consulta aulas e horários recorrentes relevantes;
@@ -103,13 +116,19 @@ No `harmonia-app`, o `LessonSchedulingGuard` funciona como adapter entre a aplic
 6. executa a `SchedulingPolicy`;
 7. permite a persistência somente quando as regras são atendidas.
 
-As exceções do core são traduzidas pelo `GlobalExceptionHandler`:
+`assertSlotIsFree` valida uma aula concreta; `assertWeeklySlotIsFree` valida um horário fixo novo ou reativado contra os outros horários fixos e contra as aulas a partir de hoje.
 
-| Exceção do domínio | HTTP | Código da API |
+As exceções são traduzidas pelo `GlobalExceptionHandler`:
+
+| Exceção | HTTP | Código da API |
 |---|---:|---|
 | `ScheduleConflictException` | 409 | `SCHEDULE_CONFLICT` |
 | `InvalidMakeupLinkException` | 409 | `INVALID_MAKEUP_LINK` |
 | `DomainValidationException` | 422 | `DOMAIN_VALIDATION` |
+| `DuplicateResourceException` (aplicação) | 409 | `DUPLICATE_RESOURCE` |
+| `ResourceNotFoundException` (aplicação) | 404 | `NOT_FOUND` |
+
+As respostas da API são DTOs (`presentation/response`), não entidades JPA: uma aula volta com `studentName`, `teacherName` e `instrument` já resolvidos, sem expor `enrollment`, `user`, e-mails ou roles.
 
 ### 3.5 Concorrência e consistência
 
@@ -120,6 +139,8 @@ Por isso, `LessonSlotLock` usa `pg_advisory_xact_lock` do PostgreSQL para serial
 A migration `V10__enforce_lesson_time_ranges.sql` também exige no banco que `end_time > start_time`. Assim, a regra principal fica no domínio e a restrição estrutural é reforçada na persistência.
 
 ### 3.6 Frequência, eventos e XP
+
+Antes de qualquer cálculo, `validateRecordable` recusa frequência em aula `CANCELED` ou em aula cuja data ainda não chegou. Sem essa regra, marcar presença numa aula cancelada daria XP ao aluno.
 
 O core não conhece o valor numérico do XP. A `AttendanceRecordingRule` produz apenas um efeito:
 
@@ -137,20 +158,20 @@ A tabela `processed_domain_event`, criada pela migration V11, registra os evento
 
 O `MakeupLinkValidator` estabelece duas condições:
 
-- somente uma aula com estado `DONE` pode originar reposição;
+- somente uma aula `DONE` (realizada, por exemplo com falta do aluno) ou `CANCELED` pode originar reposição; aula ainda `SCHEDULED` é recusada;
 - uma aula original pode ter no máximo uma reposição.
 
-A nova aula de reposição também passa pela política de agenda antes de ser salva.
+A nova aula de reposição nasce `SCHEDULED` e também passa pela política de agenda antes de ser salva.
 
 ## 4. Onde o framework é usado
 
 | Fluxo da aplicação | Uso do framework |
 |---|---|
-| `TeacherLessonUseCase.register` | Valida o intervalo e os conflitos antes de criar a aula. |
+| `TeacherLessonUseCase.register` | Define o estado inicial pela data e valida intervalo e conflitos antes de criar a aula. |
 | `TeacherLessonUseCase.changeStatus` | Valida a transição de estado. |
-| `ScheduleUseCase.create` | Valida conflitos entre horários semanais recorrentes. |
+| `ScheduleUseCase.create` / `setActive` | Valida o horário fixo novo ou reativado contra horários fixos e aulas futuras. |
 | `MakeupUseCase.create` | Valida o vínculo da reposição e o horário da nova aula. |
-| `AttendanceUseCase.register` | Calcula o efeito da alteração de frequência. |
+| `AttendanceUseCase.register` | Recusa aula cancelada/futura e calcula o efeito da frequência. |
 | `GamificationAttendanceListener` | Consome o evento e concede ou remove XP de forma idempotente. |
 
 Arquivos centrais para mostrar durante a apresentação:
@@ -159,6 +180,7 @@ Arquivos centrais para mostrar durante a apresentação:
 - `backend/harmonia-app/src/main/java/br/com/harmonia/application/lesson/LessonSchedulingGuard.java`
 - `backend/harmonia-app/src/main/java/br/com/harmonia/application/lesson/LessonSlotLock.java`
 - `backend/harmonia-app/src/main/java/br/com/harmonia/application/gamification/GamificationAttendanceListener.java`
+- `backend/harmonia-app/src/main/java/br/com/harmonia/presentation/response/`
 - `backend/harmonia-app/src/main/resources/db/migration/V10__enforce_lesson_time_ranges.sql`
 - `backend/harmonia-app/src/main/resources/db/migration/V11__processed_domain_events.sql`
 
@@ -178,19 +200,28 @@ cd backend
 .\mvnw.cmd verify
 ```
 
-Entre os casos cobertos estão intervalo inválido, conflito, horários consecutivos, aula cancelada liberando o horário, transições finais, reposição duplicada e correção de frequência.
+Entre os casos cobertos estão intervalo inválido, conflito, horários consecutivos, aula dentro do próprio horário fixo, reativação de horário com vaga ocupada, horário fixo sobre aula futura, aula cancelada liberando o horário, aula futura nascendo agendada, transições finais, reposição de aula cancelada, reposição duplicada, frequência recusada em aula cancelada ou futura e correção de frequência.
+
+A coleção do Postman também roda por linha de comando, com a API no ar:
+
+```powershell
+npx newman run postman/Harmonia-lesson-core.postman_collection.json
+```
 
 ## 6. Como executar a aplicação para a demonstração
 
 Há duas opções.
 
-Somente banco no Docker e aplicação pelo Maven:
+Somente banco no Docker e aplicação pelo jar:
 
 ```powershell
 cd backend
 docker compose up -d db
-.\mvnw.cmd -pl harmonia-app -am spring-boot:run
+.\mvnw.cmd -pl harmonia-app -am package -DskipTests
+java -jar harmonia-app\target\harmonia-app-0.0.1-SNAPSHOT.jar
 ```
+
+Não use `.\mvnw.cmd -pl harmonia-app -am spring-boot:run`: com `-am` o plugin também é executado no pom pai e a aplicação falha com `ClassNotFoundException: org.springframework.boot.SpringApplication`.
 
 Aplicação e banco no Docker:
 
@@ -208,17 +239,15 @@ senha:   Admin@123
 
 Essas credenciais são apenas para ambiente local.
 
-### Atenção antes da demonstração na `main` atual
+### Estado da trava de agenda
 
-No estado atual da `main`, `LessonSlotLock` usa `queryForObject(..., Long.class)` para executar `pg_advisory_xact_lock`. Essa função do PostgreSQL retorna `void`, portanto a tentativa de convertê-la para `Long` causa `DataIntegrityViolationException` nos fluxos de aula e horário.
-
-A correção já existe no commit `601af72` (`fix(lesson-core): execute advisory lock without result mapping`), mas esse commit não faz parte da `main` atual. Antes da demonstração dos passos de agenda, a correção precisa estar integrada: a consulta deve ser executada sem mapear o retorno para `Long`. Login e cadastros administrativos não dependem dessa trava, mas os passos a partir da criação da primeira aula dependem.
+`LessonSlotLock` executa `pg_advisory_xact_lock` sem tentar mapear o retorno. Como a função do PostgreSQL retorna `void`, essa forma permite que os passos de aula, horário e reposição da collection sejam executados normalmente.
 
 ## 7. Preparação do Postman
 
 ### Opção recomendada: importar a coleção pronta
 
-O arquivo `postman/Harmonia-lesson-core.postman_collection.json` já contém todas as requisições, autenticação, corpos JSON e testes automáticos. No Postman:
+O arquivo `postman/Harmonia-lesson-core.postman_collection.json` já contém todas as requisições, autenticação, corpos JSON e testes automáticos (57 requisições, 79 verificações). No Postman:
 
 1. clique em **Import**;
 2. selecione o arquivo da coleção;
@@ -226,372 +255,264 @@ O arquivo `postman/Harmonia-lesson-core.postman_collection.json` já contém tod
 4. confirme que a variável `baseUrl` aponta para `http://localhost:8080`;
 5. use **Run collection** para executar as requisições na ordem.
 
-A primeira requisição gera um sufixo único, calcula a próxima segunda-feira e limpa tokens e IDs anteriores. As respostas seguintes alimentam automaticamente as variáveis da coleção. Não é necessário criar um ambiente no Postman nem copiar IDs manualmente.
+A primeira requisição gera um sufixo único, calcula a data de hoje e a da próxima segunda-feira e limpa tokens e IDs anteriores. As respostas seguintes alimentam automaticamente as variáveis da coleção. Não é necessário criar um ambiente no Postman nem copiar IDs manualmente, e a coleção pode ser executada várias vezes na mesma base.
 
-As instruções abaixo permanecem como referência para montagem ou execução manual dos `curl`.
+As duas datas têm papéis diferentes:
 
-Crie um ambiente chamado `Harmonia local` com as variáveis abaixo:
+- `testDate` (próxima segunda) é futura: as aulas nascem `SCHEDULED` e servem para as regras de agenda, horário fixo e reposição;
+- `today` é a data atual: a aula nasce `DONE` e aceita frequência, o que permite demonstrar o XP.
+
+Cada grupo termina com um GET que mostra o estado resultante (agenda do dia, horários fixos, histórico, progresso, visão do aluno). Esses GETs são o melhor ponto para abrir a resposta e mostrar o que foi criado ou alterado.
+
+As instruções abaixo permanecem como referência para execução manual com `curl`. Se for montar um ambiente próprio, use as variáveis:
 
 | Variável | Valor inicial |
 |---|---|
 | `baseUrl` | `http://localhost:8080` |
-| `suffix` | um valor único, por exemplo `15092026a` |
-| `testDate` | uma data que seja segunda-feira, no formato `AAAA-MM-DD` |
-| `adminToken` | vazio |
-| `teacherToken` | vazio |
-| `studentToken` | vazio |
-| `instrumentId` | vazio |
-| `teacherId` | vazio |
-| `studentId` | vazio |
-| `enrollmentId` | vazio |
-| `lessonId` | vazio |
-| `scheduleId` | vazio |
-| `makeupLessonId` | vazio |
-| `lifecycleOriginalId` | vazio |
-| `lifecycleMakeupId` | vazio |
+| `suffix` | um valor único, por exemplo `22092026a` |
+| `today` | a data de hoje, no formato `AAAA-MM-DD` |
+| `testDate` | a próxima segunda-feira, no formato `AAAA-MM-DD` |
+| `adminToken`, `teacherToken`, `studentToken` | vazio |
+| `instrumentId`, `teacherId`, `studentId`, `student2Id` | vazio |
+| `enrollmentId`, `enrollment2Id` | vazio |
+| `lessonId`, `futureLessonId`, `scheduleId`, `makeupLessonId` | vazio |
+| `lifecycleOriginalId`, `lifecycleMakeupId` | vazio |
 
-O `suffix` evita conflito com nomes e e-mails únicos de execuções anteriores. A `testDate` deve ser uma segunda-feira porque o roteiro cria um horário recorrente com `MONDAY`.
-
-Para importar cada chamada, use **Import > Raw text** no Postman e cole o respectivo `curl`. Nos passos que criam tokens ou IDs, adicione o script indicado na aba **Scripts > Post-response**. Execute os passos na ordem apresentada.
+Para importar uma chamada avulsa, use **Import > Raw text** e cole o `curl`. Execute os passos na ordem apresentada; os IDs gerados em um passo são usados nos seguintes.
 
 ## 8. Roteiro de `curl`: preparação dos dados
 
-### 8.1 Login do administrador
+### 8.1 Login do administrador e cadastros
 
 ```bash
 curl --request POST '{{baseUrl}}/auth/login' --header 'Content-Type: application/json' --data-raw '{"login":"admin","password":"Admin@123"}'
+curl --request POST '{{baseUrl}}/admin/instruments' --header 'Authorization: Bearer {{adminToken}}' --header 'Content-Type: application/json' --data-raw '{"name":"Piano {{suffix}}"}'
+curl --request POST '{{baseUrl}}/admin/teachers' --header 'Authorization: Bearer {{adminToken}}' --header 'Content-Type: application/json' --data-raw '{"username":"prof{{suffix}}","email":"prof{{suffix}}@harmonia.local","password":"Senha@123","name":"Professor Demo"}'
+curl --request POST '{{baseUrl}}/admin/students' --header 'Authorization: Bearer {{adminToken}}' --header 'Content-Type: application/json' --data-raw '{"username":"aluno{{suffix}}","email":"aluno{{suffix}}@harmonia.local","password":"Senha@123","name":"Aluno Demo"}'
+curl --request POST '{{baseUrl}}/admin/students' --header 'Authorization: Bearer {{adminToken}}' --header 'Content-Type: application/json' --data-raw '{"username":"aluno2{{suffix}}","email":"aluno2{{suffix}}@harmonia.local","password":"Senha@123","name":"Aluno Dois"}'
 ```
 
-Resultado esperado: HTTP 200, com `accessToken`, `username` e `authorities`.
+Guarde `accessToken` como `adminToken` e o `id` de cada cadastro em `instrumentId`, `teacherId`, `studentId` e `student2Id`. O segundo aluno, do mesmo professor, é usado para mostrar conflitos entre alunos diferentes.
 
-Script pós-resposta:
-
-```javascript
-pm.test("login do administrador", () => pm.response.to.have.status(200));
-pm.environment.set("adminToken", pm.response.json().accessToken);
-```
-
-### 8.2 Confirmar usuário autenticado
+### 8.2 Consultar os cadastros (seletores das telas)
 
 ```bash
-curl --request GET '{{baseUrl}}/auth/me' --header 'Authorization: Bearer {{adminToken}}'
+curl --request GET '{{baseUrl}}/admin/students' --header 'Authorization: Bearer {{adminToken}}'
+curl --request GET '{{baseUrl}}/admin/teachers' --header 'Authorization: Bearer {{adminToken}}'
+curl --request GET '{{baseUrl}}/admin/instruments' --header 'Authorization: Bearer {{adminToken}}'
 ```
 
-Resultado esperado: HTTP 200 e `username` igual a `admin`.
+Resultado esperado: listas com `id`, `name` e `username` (ou `id` e `name` para instrumentos). São esses endpoints que alimentam os seletores da tela de matrícula, no lugar de digitar UUIDs.
 
-### 8.3 Criar instrumento
-
-```bash
-curl --request POST '{{baseUrl}}/admin/instruments' --header 'Authorization: Bearer {{adminToken}}' --header 'Content-Type: application/json' --data-raw '{"name":"Violão Framework {{suffix}}"}'
-```
-
-Script pós-resposta:
-
-```javascript
-pm.test("instrumento criado", () => pm.response.to.have.status(200));
-pm.environment.set("instrumentId", pm.response.json().id);
-```
-
-### 8.4 Criar professor
-
-```bash
-curl --request POST '{{baseUrl}}/admin/teachers' --header 'Authorization: Bearer {{adminToken}}' --header 'Content-Type: application/json' --data-raw '{"username":"prof_framework_{{suffix}}","email":"prof_{{suffix}}@harmonia.local","password":"Teach@1234","name":"Professor Framework"}'
-```
-
-Script pós-resposta:
-
-```javascript
-pm.test("professor criado", () => pm.response.to.have.status(200));
-pm.environment.set("teacherId", pm.response.json().id);
-```
-
-### 8.5 Criar aluno
-
-```bash
-curl --request POST '{{baseUrl}}/admin/students' --header 'Authorization: Bearer {{adminToken}}' --header 'Content-Type: application/json' --data-raw '{"username":"aluno_framework_{{suffix}}","email":"aluno_{{suffix}}@harmonia.local","password":"Student@123","name":"Aluno Framework"}'
-```
-
-Script pós-resposta:
-
-```javascript
-pm.test("aluno criado", () => pm.response.to.have.status(200));
-pm.environment.set("studentId", pm.response.json().id);
-```
-
-### 8.6 Criar matrícula
+### 8.3 Criar as matrículas
 
 ```bash
 curl --request POST '{{baseUrl}}/admin/enrollments' --header 'Authorization: Bearer {{adminToken}}' --header 'Content-Type: application/json' --data-raw '{"studentId":"{{studentId}}","teacherId":"{{teacherId}}","instrumentId":"{{instrumentId}}"}'
 ```
 
-Script pós-resposta:
+Guarde o `id` em `enrollmentId`. Repetir a mesma chamada retorna HTTP 409 com `code: DUPLICATE_RESOURCE`, e trocar `studentId` por um UUID inexistente retorna HTTP 404 com `code: NOT_FOUND`. Crie a matrícula do segundo aluno com `{{student2Id}}` e guarde em `enrollment2Id`.
 
-```javascript
-pm.test("matrícula criada", () => pm.response.to.have.status(200));
-pm.environment.set("enrollmentId", pm.response.json().id);
-```
-
-### 8.7 Login do professor
+### 8.4 Login do professor e do aluno
 
 ```bash
-curl --request POST '{{baseUrl}}/auth/login' --header 'Content-Type: application/json' --data-raw '{"login":"prof_framework_{{suffix}}","password":"Teach@1234"}'
+curl --request POST '{{baseUrl}}/auth/login' --header 'Content-Type: application/json' --data-raw '{"login":"prof{{suffix}}","password":"Senha@123"}'
+curl --request POST '{{baseUrl}}/auth/login' --header 'Content-Type: application/json' --data-raw '{"login":"aluno{{suffix}}","password":"Senha@123"}'
+curl --request GET '{{baseUrl}}/teacher/enrollments' --header 'Authorization: Bearer {{teacherToken}}'
 ```
 
-Script pós-resposta:
-
-```javascript
-pm.test("login do professor", () => pm.response.to.have.status(200));
-pm.environment.set("teacherToken", pm.response.json().accessToken);
-```
-
-### 8.8 Login do aluno
-
-```bash
-curl --request POST '{{baseUrl}}/auth/login' --header 'Content-Type: application/json' --data-raw '{"login":"aluno_framework_{{suffix}}","password":"Student@123"}'
-```
-
-Script pós-resposta:
-
-```javascript
-pm.test("login do aluno", () => pm.response.to.have.status(200));
-pm.environment.set("studentToken", pm.response.json().accessToken);
-```
+O último GET mostra as duas matrículas do professor com `studentName` e `instrument`: é a lista que a tela Nova Aula exibe.
 
 ## 9. Validação das regras de agenda
 
-### 9.1 Criar uma aula válida
+Todas as aulas deste bloco usam `testDate`, a próxima segunda-feira.
+
+### 9.1 Criar uma aula futura
 
 ```bash
-curl --request POST '{{baseUrl}}/teacher/lessons' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollmentId}}","date":"{{testDate}}","startTime":"09:00","endTime":"10:00","content":"Demonstração do framework","homework":"Praticar escalas"}'
+curl --request POST '{{baseUrl}}/teacher/lessons' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollmentId}}","date":"{{testDate}}","startTime":"09:00","endTime":"10:00","content":"Escalas"}'
 ```
 
-Resultado esperado: HTTP 200. Na implementação atual, uma aula comum registrada pelo professor é salva como `DONE`.
+Resultado esperado: HTTP 200 e `status: SCHEDULED`, porque a data é futura (`initialStatus`). A resposta traz `studentName`, `teacherName` e `instrument`, sem `enrollment`. Guarde o `id` em `lessonId`.
 
-Script pós-resposta:
-
-```javascript
-pm.test("aula válida criada", () => pm.response.to.have.status(200));
-pm.environment.set("lessonId", pm.response.json().id);
-```
-
-### 9.2 Tentar criar uma aula sobreposta
+### 9.2 Sobreposição, horário consecutivo e intervalo inválido
 
 ```bash
-curl --request POST '{{baseUrl}}/teacher/lessons' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollmentId}}","date":"{{testDate}}","startTime":"09:30","endTime":"10:30","content":"Deve falhar"}'
+curl --request POST '{{baseUrl}}/teacher/lessons' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollmentId}}","date":"{{testDate}}","startTime":"09:30","endTime":"10:30","content":"Sobreposição"}'
+curl --request POST '{{baseUrl}}/teacher/lessons' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollmentId}}","date":"{{testDate}}","startTime":"10:00","endTime":"11:00","content":"Arpejos"}'
+curl --request POST '{{baseUrl}}/teacher/lessons' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollmentId}}","date":"{{testDate}}","startTime":"12:00","endTime":"11:00","content":"Inválida"}'
 ```
 
-Resultado esperado: HTTP 409 e `code: SCHEDULE_CONFLICT`.
+Resultados esperados, na ordem: 409 `SCHEDULE_CONFLICT`; 200 (fim exclusivo do `TimeRange`, guarde em `futureLessonId`); 422 `DOMAIN_VALIDATION`.
 
-Script opcional de validação:
-
-```javascript
-pm.test("sobreposição rejeitada", () => {
-  pm.response.to.have.status(409);
-  pm.expect(pm.response.json().code).to.eql("SCHEDULE_CONFLICT");
-});
-```
-
-### 9.3 Criar uma aula imediatamente após a primeira
+### 9.3 Consultar a agenda do dia
 
 ```bash
-curl --request POST '{{baseUrl}}/teacher/lessons' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollmentId}}","date":"{{testDate}}","startTime":"10:00","endTime":"11:00","content":"Horário consecutivo permitido"}'
+curl --request GET '{{baseUrl}}/teacher/schedule?date={{testDate}}' --header 'Authorization: Bearer {{teacherToken}}'
 ```
 
-Resultado esperado: HTTP 200. Isso demonstra o fim exclusivo do `TimeRange`.
+Resultado esperado: as aulas das 09:00 e das 10:00, ordenadas por horário, com `attendance: null`.
 
-### 9.4 Enviar um intervalo inválido
-
-```bash
-curl --request POST '{{baseUrl}}/teacher/lessons' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollmentId}}","date":"{{testDate}}","startTime":"12:00","endTime":"11:00","content":"Deve falhar"}'
-```
-
-Resultado esperado: HTTP 422, `code: DOMAIN_VALIDATION` e mensagem informando que o fim deve ser posterior ao início.
-
-### 9.5 Criar um horário semanal recorrente
+### 9.4 Horário fixo e a aula que ele representa
 
 ```bash
 curl --request POST '{{baseUrl}}/teacher/schedules' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollmentId}}","weekday":"MONDAY","startTime":"14:00","endTime":"15:00"}'
+curl --request GET '{{baseUrl}}/teacher/schedules' --header 'Authorization: Bearer {{teacherToken}}'
+curl --request POST '{{baseUrl}}/teacher/lessons' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollmentId}}","date":"{{testDate}}","startTime":"14:00","endTime":"14:30","content":"Aula do horário fixo"}'
 ```
 
-Script pós-resposta:
+Guarde o `id` do horário em `scheduleId`; o GET mostra o horário com `active: true`. A aula do **mesmo aluno** dentro do próprio horário fixo é aceita (HTTP 200): ela é a aula que o horário representa.
 
-```javascript
-pm.test("horário recorrente criado", () => pm.response.to.have.status(200));
-pm.environment.set("scheduleId", pm.response.json().id);
-```
-
-### 9.6 Tentar criar aula contra o horário recorrente
+### 9.5 Conflito de outro aluno com o horário fixo
 
 ```bash
-curl --request POST '{{baseUrl}}/teacher/lessons' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollmentId}}","date":"{{testDate}}","startTime":"14:30","endTime":"15:30","content":"Conflito com recorrência"}'
+curl --request POST '{{baseUrl}}/teacher/lessons' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollment2Id}}","date":"{{testDate}}","startTime":"14:30","endTime":"15:30","content":"Invasão do horário fixo"}'
 ```
 
 Resultado esperado: HTTP 409 e `code: SCHEDULE_CONFLICT`.
 
-### 9.7 Desativar o horário recorrente
+### 9.6 Desativar, ocupar a vaga e tentar reativar
 
 ```bash
 curl --request PATCH '{{baseUrl}}/teacher/schedules/{{scheduleId}}/active' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"active":false}'
+curl --request POST '{{baseUrl}}/teacher/lessons' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollment2Id}}","date":"{{testDate}}","startTime":"14:30","endTime":"15:30","content":"Horário liberado"}'
+curl --request PATCH '{{baseUrl}}/teacher/schedules/{{scheduleId}}/active' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"active":true}'
 ```
 
-Resultado esperado: HTTP 200 e `active: false`.
+Resultados esperados: 200 com `active: false`; 200, porque o adapter não envia horários inativos para a política; e 409 `SCHEDULE_CONFLICT` na reativação, porque a vaga foi ocupada por uma aula futura do segundo aluno.
 
-### 9.8 Repetir a criação após desativar o horário
+### 9.7 Horário fixo sobre aula futura
 
 ```bash
-curl --request POST '{{baseUrl}}/teacher/lessons' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollmentId}}","date":"{{testDate}}","startTime":"14:30","endTime":"15:30","content":"Agora permitido"}'
+curl --request POST '{{baseUrl}}/teacher/schedules' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollment2Id}}","weekday":"MONDAY","startTime":"09:00","endTime":"10:00"}'
+curl --request GET '{{baseUrl}}/teacher/schedules' --header 'Authorization: Bearer {{teacherToken}}'
 ```
 
-Resultado esperado: HTTP 200. O adapter não envia horários inativos para a política.
+Resultado esperado: HTTP 409, porque já existe aula agendada às 09:00 na próxima segunda. O GET continua mostrando apenas o horário original, agora inativo.
 
 ## 10. Validação de reposição e cancelamento
 
-### 10.1 Criar uma reposição para a primeira aula
+### 10.1 Aula ainda agendada não gera reposição
 
 ```bash
-curl --request POST '{{baseUrl}}/teacher/lessons/{{lessonId}}/makeup' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"date":"{{testDate}}","startTime":"16:00","endTime":"17:00","reason":"Reposição demonstrativa"}'
-```
-
-Resultado esperado: HTTP 200, com `originalLesson` e `newLesson`. A nova aula começa como `SCHEDULED`.
-
-Script pós-resposta:
-
-```javascript
-pm.test("reposição criada", () => pm.response.to.have.status(200));
-pm.environment.set("makeupLessonId", pm.response.json().newLesson.id);
-```
-
-### 10.2 Tentar criar uma segunda reposição para a mesma aula
-
-```bash
-curl --request POST '{{baseUrl}}/teacher/lessons/{{lessonId}}/makeup' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"date":"{{testDate}}","startTime":"17:00","endTime":"18:00","reason":"Deve falhar"}'
+curl --request POST '{{baseUrl}}/teacher/lessons/{{lessonId}}/makeup' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"date":"{{testDate}}","startTime":"16:00","endTime":"17:00","reason":"Cedo demais"}'
 ```
 
 Resultado esperado: HTTP 409 e `code: INVALID_MAKEUP_LINK`.
 
-### 10.3 Cancelar a aula de reposição
+### 10.2 Cancelar a aula e criar a reposição
 
 ```bash
+curl --request PATCH '{{baseUrl}}/teacher/lessons/{{lessonId}}/status' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"status":"CANCELED"}'
+curl --request POST '{{baseUrl}}/teacher/lessons/{{lessonId}}/makeup' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"date":"{{testDate}}","startTime":"16:00","endTime":"17:00","reason":"Reposição demonstrativa"}'
+```
+
+Resultados esperados: 200 com `status: CANCELED`; e 200 com `originalLesson.status: CANCELED` e `newLesson.status: SCHEDULED`. Guarde `newLesson.id` em `makeupLessonId`.
+
+### 10.3 Segunda reposição, cancelamento e horário liberado
+
+```bash
+curl --request POST '{{baseUrl}}/teacher/lessons/{{lessonId}}/makeup' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"date":"{{testDate}}","startTime":"18:00","endTime":"19:00","reason":"Duplicada"}'
 curl --request PATCH '{{baseUrl}}/teacher/lessons/{{makeupLessonId}}/status' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"status":"CANCELED"}'
+curl --request POST '{{baseUrl}}/teacher/lessons' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollmentId}}","date":"{{testDate}}","startTime":"16:00","endTime":"17:00","content":"Horário liberado"}'
+curl --request GET '{{baseUrl}}/teacher/schedule?date={{testDate}}' --header 'Authorization: Bearer {{teacherToken}}'
 ```
 
-Resultado esperado: HTTP 200 e `status: CANCELED`.
-
-### 10.4 Comprovar que o cancelamento liberou o horário
-
-```bash
-curl --request POST '{{baseUrl}}/teacher/lessons' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollmentId}}","date":"{{testDate}}","startTime":"16:00","endTime":"17:00","content":"Horário liberado pelo cancelamento"}'
-```
-
-Resultado esperado: HTTP 200.
+Resultados esperados: 409 `INVALID_MAKEUP_LINK` (uma reposição por aula); 200 no cancelamento; 200 na nova aula das 16:00, porque a reposição cancelada liberou o horário. A agenda mostra a aula original e a reposição como `CANCELED` e a nova aula das 16:00 como `SCHEDULED`.
 
 ## 11. Validação do ciclo de vida
 
-Uma nova reposição será usada porque a anterior foi cancelada e estados finais não podem ser reabertos.
+Este bloco usa `today`, a data atual.
 
-### 11.1 Criar outra aula original
-
-```bash
-curl --request POST '{{baseUrl}}/teacher/lessons' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollmentId}}","date":"{{testDate}}","startTime":"18:00","endTime":"19:00","content":"Aula para testar ciclo de vida"}'
-```
-
-Script pós-resposta:
-
-```javascript
-pm.test("segunda aula original criada", () => pm.response.to.have.status(200));
-pm.environment.set("lifecycleOriginalId", pm.response.json().id);
-```
-
-### 11.2 Criar a reposição agendada
+### 11.1 Aula de hoje nasce realizada
 
 ```bash
-curl --request POST '{{baseUrl}}/teacher/lessons/{{lifecycleOriginalId}}/makeup' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"date":"{{testDate}}","startTime":"20:00","endTime":"21:00","reason":"Teste de ciclo de vida"}'
+curl --request POST '{{baseUrl}}/teacher/lessons' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"enrollmentId":"{{enrollmentId}}","date":"{{today}}","startTime":"06:00","endTime":"07:00","content":"Aula realizada"}'
 ```
 
-Script pós-resposta:
+Resultado esperado: HTTP 200 e `status: DONE`. Guarde o `id` em `lifecycleOriginalId`.
 
-```javascript
-pm.test("reposição para ciclo de vida criada", () => pm.response.to.have.status(200));
-pm.environment.set("lifecycleMakeupId", pm.response.json().newLesson.id);
-```
-
-### 11.3 Finalizar a reposição
+### 11.2 Reposição, finalização e reabertura
 
 ```bash
+curl --request POST '{{baseUrl}}/teacher/lessons/{{lifecycleOriginalId}}/makeup' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"date":"{{testDate}}","startTime":"20:00","endTime":"21:00","reason":"Reforço"}'
 curl --request PATCH '{{baseUrl}}/teacher/lessons/{{lifecycleMakeupId}}/status' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"status":"DONE"}'
-```
-
-Resultado esperado: HTTP 200 e `status: DONE`.
-
-### 11.4 Tentar reabrir a aula finalizada
-
-```bash
 curl --request PATCH '{{baseUrl}}/teacher/lessons/{{lifecycleMakeupId}}/status' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"status":"SCHEDULED"}'
+curl --request GET '{{baseUrl}}/teacher/lessons?start={{today}}&end={{testDate}}' --header 'Authorization: Bearer {{teacherToken}}'
 ```
 
-Resultado esperado: HTTP 422 e `code: DOMAIN_VALIDATION`.
+Guarde `newLesson.id` da reposição em `lifecycleMakeupId`. Resultados esperados: 200; 200 com `status: DONE`; 422 `DOMAIN_VALIDATION`, porque `DONE` é estado final. O histórico mostra a aula de hoje e a reposição como `DONE`.
 
 ## 12. Validação de frequência e XP
 
 Como os dados foram criados com um `suffix` novo, o aluno começa com zero XP.
 
-### 12.1 Consultar o progresso inicial
+### 12.1 Progresso inicial e frequências recusadas
 
 ```bash
 curl --request GET '{{baseUrl}}/me/progress' --header 'Authorization: Bearer {{studentToken}}'
-```
-
-Resultado esperado: HTTP 200 e `xpTotal: 0`.
-
-### 12.2 Registrar presença
-
-```bash
 curl --request POST '{{baseUrl}}/teacher/lessons/{{lessonId}}/attendance' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"status":"PRESENT"}'
+curl --request POST '{{baseUrl}}/teacher/lessons/{{futureLessonId}}/attendance' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"status":"PRESENT"}'
 ```
 
-Resultado esperado: HTTP 200 e `status: PRESENT`.
+Resultados esperados: `xpTotal: 0`; 422 `DOMAIN_VALIDATION` para a aula cancelada; 422 `DOMAIN_VALIDATION` para a aula da próxima segunda, que ainda não aconteceu.
 
-### 12.3 Conferir a concessão de XP
+### 12.2 Registrar presença e conferir na agenda
 
 ```bash
+curl --request POST '{{baseUrl}}/teacher/lessons/{{lifecycleOriginalId}}/attendance' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"status":"PRESENT"}'
+curl --request GET '{{baseUrl}}/teacher/schedule?date={{today}}' --header 'Authorization: Bearer {{teacherToken}}'
 curl --request GET '{{baseUrl}}/me/progress' --header 'Authorization: Bearer {{studentToken}}'
 ```
 
-Resultado esperado: `xpTotal: 20`.
+Resultados esperados: 200 com `status: PRESENT`; a agenda de hoje mostra a aula com `attendance: PRESENT`; `xpTotal: 20`.
 
-### 12.4 Registrar a mesma presença novamente
+### 12.3 Repetir a presença
 
 ```bash
-curl --request POST '{{baseUrl}}/teacher/lessons/{{lessonId}}/attendance' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"status":"PRESENT"}'
+curl --request POST '{{baseUrl}}/teacher/lessons/{{lifecycleOriginalId}}/attendance' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"status":"PRESENT"}'
 ```
 
 Consulte novamente `/me/progress`. O resultado deve continuar em `xpTotal: 20`, demonstrando que a repetição não concede XP duplicado.
 
-### 12.5 Corrigir a frequência para falta
+### 12.4 Corrigir a frequência para falta
 
 ```bash
-curl --request POST '{{baseUrl}}/teacher/lessons/{{lessonId}}/attendance' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"status":"ABSENT","justification":"Correção para demonstrar reversibilidade"}'
-```
-
-Consulte novamente o progresso:
-
-```bash
+curl --request POST '{{baseUrl}}/teacher/lessons/{{lifecycleOriginalId}}/attendance' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"status":"ABSENT","justification":"Correção de lançamento"}'
 curl --request GET '{{baseUrl}}/me/progress' --header 'Authorization: Bearer {{studentToken}}'
 ```
 
 Resultado esperado: `xpTotal: 0`. A correção produz `REVOKE_XP` e desfaz os 20 pontos.
 
-## 13. O que destacar para o professor
+## 13. Consultas finais
+
+```bash
+curl --request GET '{{baseUrl}}/me/lessons?status=upcoming' --header 'Authorization: Bearer {{studentToken}}'
+curl --request GET '{{baseUrl}}/me/lessons/{{lifecycleOriginalId}}' --header 'Authorization: Bearer {{studentToken}}'
+curl --request GET '{{baseUrl}}/teacher/students' --header 'Authorization: Bearer {{teacherToken}}'
+curl --request GET '{{baseUrl}}/teacher/students/{{studentId}}' --header 'Authorization: Bearer {{teacherToken}}'
+curl --request POST '{{baseUrl}}/teacher/lessons/00000000-0000-0000-0000-000000000000/attendance' --header 'Authorization: Bearer {{teacherToken}}' --header 'Content-Type: application/json' --data-raw '{"status":"PRESENT"}'
+```
+
+Resultados esperados:
+
+- o aluno vê apenas as próprias aulas, com `teacherName` e `instrument` e sem `enrollment`;
+- o detalhe da aula de hoje mostra `status: DONE` e a lista de anexos;
+- o professor vê os dois alunos pelo `name`, sem o objeto `user`;
+- o relatório do aluno mostra `attendance.absent: 1`, resultado da correção;
+- frequência em aula inexistente retorna HTTP 404 com `code: NOT_FOUND`.
+
+## 14. O que destacar para o professor
 
 Uma apresentação curta pode seguir esta ordem:
 
 1. mostrar que `lesson-core` é Java puro e não possui dependências de produção;
 2. explicar `TimeRange` e executar os testes de sobreposição e horários consecutivos;
-3. mostrar a `SchedulingPolicy` sendo reutilizada por aulas, recorrências e reposições;
+3. mostrar a `SchedulingPolicy` nas três direções (aula × aula, aula × horário fixo, horário fixo × aula futura) e a exceção do mesmo aluno;
 4. mostrar o `LessonSchedulingGuard` como fronteira entre JPA/Spring e o core;
-5. demonstrar as respostas 409 e 422 no Postman;
+5. demonstrar as respostas 404, 409 e 422 no Postman e abrir os GETs de agenda e horários para mostrar o estado;
 6. explicar a trava transacional contra concorrência;
-7. registrar presença, repetir e corrigir para mostrar idempotência e reversibilidade do XP;
-8. encerrar mostrando os testes unitários do core e os testes de integração da API.
+7. mostrar o estado inicial pela data e a reposição de aula cancelada;
+8. registrar presença, repetir e corrigir para mostrar idempotência e reversibilidade do XP;
+9. encerrar mostrando os testes unitários do core e os testes de integração da API.
 
 O principal ponto arquitetural é que o domínio decide **se a operação é válida**, enquanto a aplicação decide **como buscar dados, autenticar, persistir e responder pela API**. Isso torna as regras mais fáceis de manter, testar e reaproveitar.
