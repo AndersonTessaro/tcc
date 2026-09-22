@@ -9,6 +9,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -22,8 +24,12 @@ class AdminRegistrationIT {
     @Autowired MockMvc mvc;
 
     private String token() throws Exception {
+        return login("admin", "Admin@123");
+    }
+
+    private String login(String user, String password) throws Exception {
         String body = mvc.perform(post("/auth/login").contentType("application/json")
-                .content("{\"login\":\"admin\",\"password\":\"Admin@123\"}"))
+                .content("{\"login\":\"" + user + "\",\"password\":\"" + password + "\"}"))
             .andReturn().getResponse().getContentAsString();
         return JsonPath.read(body, "$.accessToken");
     }
@@ -45,8 +51,35 @@ class AdminRegistrationIT {
             "{\"username\":\"teacher1\",\"email\":\"teacher1@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher One\"}");
         String student = postId(t, "/admin/students",
             "{\"username\":\"student1\",\"email\":\"student1@h.local\",\"password\":\"Student@123\",\"name\":\"Student One\"}");
-        postId(t, "/admin/enrollments",
+        String enrollment = postId(t, "/admin/enrollments",
             "{\"studentId\":\"" + student + "\",\"teacherId\":\"" + teacher + "\",\"instrumentId\":\"" + inst + "\"}");
+
+        mvc.perform(get("/admin/students").header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[?(@.id == '" + student + "')].name", hasItem("Student One")));
+        mvc.perform(get("/admin/teachers").header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[?(@.id == '" + teacher + "')].username", hasItem("teacher1")));
+        mvc.perform(get("/admin/instruments").header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[?(@.id == '" + inst + "')].name", hasItem("Acoustic Guitar")));
+
+        String teacherToken = login("teacher1", "Teach@1234");
+        mvc.perform(get("/teacher/enrollments").header("Authorization", "Bearer " + teacherToken))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id", is(enrollment)))
+            .andExpect(jsonPath("$[0].studentId", is(student)))
+            .andExpect(jsonPath("$[0].studentName", is("Student One")))
+            .andExpect(jsonPath("$[0].instrument", is("Acoustic Guitar")));
+    }
+
+    @Test
+    void student_cannotListAdminRegistrations() throws Exception {
+        String t = token();
+        postId(t, "/admin/students",
+            "{\"username\":\"student2\",\"email\":\"student2@h.local\",\"password\":\"Student@123\",\"name\":\"Student Two\"}");
+        mvc.perform(get("/admin/students").header("Authorization", "Bearer " + login("student2", "Student@123")))
+            .andExpect(status().isForbidden());
     }
 
     @Test

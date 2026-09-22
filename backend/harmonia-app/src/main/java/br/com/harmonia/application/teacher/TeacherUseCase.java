@@ -10,6 +10,7 @@ import br.com.harmonia.domain.common.OwnershipException;
 import br.com.harmonia.infrastructure.persistence.gamification.GoalStatus;
 import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
 import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
+import br.com.harmonia.infrastructure.persistence.profile.EnrollmentStatus;
 import br.com.harmonia.infrastructure.persistence.profile.Student;
 import org.springframework.stereotype.Service;
 
@@ -36,6 +37,11 @@ public class TeacherUseCase {
         this.attendances = attendances;
         this.goals = goals;
         this.current = current;
+    }
+
+    public List<Enrollment> myActiveEnrollments() {
+        return enrollments.findByTeacherId(current.currentTeacher().getId()).stream()
+            .filter(e -> e.getStatus() == EnrollmentStatus.ACTIVE).toList();
     }
 
     public List<Student> linkedStudents() {

@@ -11,6 +11,9 @@ export type UserDto = {
   roles: RoleDto[];
 };
 
+export type PersonOption = { id: string; name: string; username: string };
+export type InstrumentOption = { id: string; name: string };
+
 export const adminService = {
   users: () => api.get<UserDto[]>("/admin/security/users"),
   roles: () => api.get<RoleDto[]>("/admin/security/roles"),
@@ -27,6 +30,9 @@ export const adminService = {
   createInstrument: (name: string) => api.post<{ id: string }>("/admin/instruments", { name }),
   createStudent: (b: NewUser) => api.post<{ id: string }>("/admin/students", b),
   createTeacher: (b: NewUser) => api.post<{ id: string }>("/admin/teachers", b),
+  students: () => api.get<PersonOption[]>("/admin/students"),
+  teachers: () => api.get<PersonOption[]>("/admin/teachers"),
+  instruments: () => api.get<InstrumentOption[]>("/admin/instruments"),
   createEnrollment: (b: { studentId: string; teacherId: string; instrumentId: string }) =>
     api.post<{ id: string }>("/admin/enrollments", b),
   // settings (RF29)

@@ -1,6 +1,8 @@
 package br.com.harmonia.presentation.admin;
 
 import br.com.harmonia.application.admin.AdminRegistrationUseCase;
+import br.com.harmonia.infrastructure.persistence.profile.Instrument;
+import br.com.harmonia.infrastructure.persistence.security.User;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
@@ -10,6 +12,7 @@ import jakarta.validation.constraints.Size;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.nio.charset.StandardCharsets;
@@ -34,6 +37,34 @@ public class AdminController {
     }
     public record NewInstrument(@NotBlank @Size(max = 80) String name) {}
     public record NewEnrollment(@NotNull UUID studentId, @NotNull UUID teacherId, @NotNull UUID instrumentId) {}
+    public record PersonOption(UUID id, String name, String username) {
+        static PersonOption of(UUID id, User user) {
+            return new PersonOption(id, user.nameForDisplay(), user.getUsername());
+        }
+    }
+    public record InstrumentOption(UUID id, String name) {
+        static InstrumentOption of(Instrument instrument) {
+            return new InstrumentOption(instrument.getId(), instrument.getName());
+        }
+    }
+
+    @GetMapping("/students")
+    @PreAuthorize("hasAnyAuthority('student.manage', 'enrollment.manage')")
+    public List<PersonOption> students() {
+        return uc.activeStudents().stream().map(s -> PersonOption.of(s.getId(), s.getUser())).toList();
+    }
+
+    @GetMapping("/teachers")
+    @PreAuthorize("hasAnyAuthority('teacher.manage', 'enrollment.manage')")
+    public List<PersonOption> teachers() {
+        return uc.activeTeachers().stream().map(t -> PersonOption.of(t.getId(), t.getUser())).toList();
+    }
+
+    @GetMapping("/instruments")
+    @PreAuthorize("hasAnyAuthority('instrument.manage', 'enrollment.manage')")
+    public List<InstrumentOption> instruments() {
+        return uc.activeInstruments().stream().map(InstrumentOption::of).toList();
+    }
 
     @PostMapping("/students")
     @PreAuthorize("hasAuthority('student.manage')")

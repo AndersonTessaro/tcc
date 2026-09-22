@@ -130,6 +130,20 @@ class LessonSchedulingIT {
     }
 
     @Test
+    void teacher_registersLessonInsideItsOwnRecurringSchedule() throws Exception {
+        String enrollment = enrollmentFor("Rec");
+        String t = login("teacherRec", TEACHER_PASSWORD);
+        LocalDate today = LocalDate.now();
+
+        postId(t, "/teacher/schedules", "{\"enrollmentId\":\"" + enrollment + "\",\"weekday\":\""
+            + today.getDayOfWeek().name() + "\",\"startTime\":\"10:00\",\"endTime\":\"11:00\"}");
+
+        mvc.perform(post("/teacher/lessons").header("Authorization", "Bearer " + t)
+                .contentType("application/json").content(lessonBody(enrollment, today.toString(), "10:00", "11:00")))
+            .andExpect(status().isOk());
+    }
+
+    @Test
     void canceledLessonFreesTheSlot() throws Exception {
         String enrollment = enrollmentFor("Cnl");
         String t = login("teacherCnl", TEACHER_PASSWORD);

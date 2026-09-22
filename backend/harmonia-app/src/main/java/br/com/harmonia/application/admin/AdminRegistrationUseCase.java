@@ -10,7 +10,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -74,5 +76,20 @@ public class AdminRegistrationUseCase {
         e.setTeacher(teachers.findById(teacherId).orElseThrow(() -> new ResourceNotFoundException("Teacher")));
         e.setInstrument(instruments.findById(instrumentId).orElseThrow(() -> new ResourceNotFoundException("Instrument")));
         return enrollments.save(e).getId();
+    }
+
+    public List<Student> activeStudents() {
+        return students.findAll().stream().filter(Student::getActive)
+            .sorted(Comparator.comparing(s -> s.getUser().nameForDisplay())).toList();
+    }
+
+    public List<Teacher> activeTeachers() {
+        return teachers.findAll().stream().filter(Teacher::getActive)
+            .sorted(Comparator.comparing(t -> t.getUser().nameForDisplay())).toList();
+    }
+
+    public List<Instrument> activeInstruments() {
+        return instruments.findAll().stream().filter(Instrument::getActive)
+            .sorted(Comparator.comparing(Instrument::getName)).toList();
     }
 }
