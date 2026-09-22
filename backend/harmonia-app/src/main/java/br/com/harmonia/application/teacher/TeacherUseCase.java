@@ -79,9 +79,4 @@ public class TeacherUseCase {
         body.put("goals", goalsSummary);
         return body;
     }
-
-    public Map<String, Object> dashboard() {
-        var students = linkedStudents();
-        return Map.of("totalStudents", students.size(), "students", students);
-    }
 }

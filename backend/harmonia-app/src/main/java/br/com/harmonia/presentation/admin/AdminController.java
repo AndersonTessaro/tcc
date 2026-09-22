@@ -2,7 +2,7 @@ package br.com.harmonia.presentation.admin;
 
 import br.com.harmonia.application.admin.AdminRegistrationUseCase;
 import br.com.harmonia.infrastructure.persistence.profile.Instrument;
-import br.com.harmonia.infrastructure.persistence.security.User;
+import br.com.harmonia.presentation.response.PersonSummary;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
@@ -37,11 +37,6 @@ public class AdminController {
     }
     public record NewInstrument(@NotBlank @Size(max = 80) String name) {}
     public record NewEnrollment(@NotNull UUID studentId, @NotNull UUID teacherId, @NotNull UUID instrumentId) {}
-    public record PersonOption(UUID id, String name, String username) {
-        static PersonOption of(UUID id, User user) {
-            return new PersonOption(id, user.nameForDisplay(), user.getUsername());
-        }
-    }
     public record InstrumentOption(UUID id, String name) {
         static InstrumentOption of(Instrument instrument) {
             return new InstrumentOption(instrument.getId(), instrument.getName());
@@ -50,14 +45,14 @@ public class AdminController {
 
     @GetMapping("/students")
     @PreAuthorize("hasAnyAuthority('student.manage', 'enrollment.manage')")
-    public List<PersonOption> students() {
-        return uc.activeStudents().stream().map(s -> PersonOption.of(s.getId(), s.getUser())).toList();
+    public List<PersonSummary> students() {
+        return uc.activeStudents().stream().map(PersonSummary::of).toList();
     }
 
     @GetMapping("/teachers")
     @PreAuthorize("hasAnyAuthority('teacher.manage', 'enrollment.manage')")
-    public List<PersonOption> teachers() {
-        return uc.activeTeachers().stream().map(t -> PersonOption.of(t.getId(), t.getUser())).toList();
+    public List<PersonSummary> teachers() {
+        return uc.activeTeachers().stream().map(t -> PersonSummary.of(t.getId(), t.getUser())).toList();
     }
 
     @GetMapping("/instruments")

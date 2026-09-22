@@ -9,6 +9,9 @@ import br.com.harmonia.infrastructure.persistence.gamification.Goal;
 import br.com.harmonia.infrastructure.persistence.gamification.GoalStatus;
 import br.com.harmonia.infrastructure.persistence.gamification.GoalType;
 import br.com.harmonia.infrastructure.persistence.gamification.Progress;
+import br.com.harmonia.presentation.response.AttachmentResponse;
+import br.com.harmonia.presentation.response.LessonResponse;
+import br.com.harmonia.presentation.response.MaterialResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -55,26 +58,27 @@ public class StudentController {
         body.put("level", p.getLevel());
         body.put("streakDays", p.getStreakDays());
         body.put("weeklyPracticeMin", practice.weeklyPracticeMin(p.getStudent().getId()));
-        body.put("nextLesson", upcoming.isEmpty() ? null : upcoming.get(upcoming.size() - 1));
+        body.put("nextLesson", upcoming.isEmpty() ? null : LessonResponse.of(upcoming.get(upcoming.size() - 1)));
         return body;
     }
 
     @GetMapping("/lessons")
     @PreAuthorize("hasAuthority('lesson.read')")
-    public Object lessons(@RequestParam(defaultValue = "upcoming") String status) {
-        return lesson.myLessons("upcoming".equals(status));
+    public List<LessonResponse> lessons(@RequestParam(defaultValue = "upcoming") String status) {
+        return lesson.myLessons("upcoming".equals(status)).stream().map(LessonResponse::of).toList();
     }
 
     @GetMapping("/lessons/{id}")
     @PreAuthorize("hasAuthority('lesson.read')")
     public Map<String, Object> lessonDetail(@PathVariable UUID id) {
-        return Map.of("lesson", lesson.detail(id), "attachments", lesson.attachments(id));
+        return Map.of("lesson", LessonResponse.of(lesson.detail(id)),
+            "attachments", lesson.attachments(id).stream().map(AttachmentResponse::of).toList());
     }
 
     @GetMapping("/materials")
     @PreAuthorize("hasAuthority('material.read')")
-    public Object materials(@RequestParam(required = false) String search) {
-        return material.list(search);
+    public List<MaterialResponse> materials(@RequestParam(required = false) String search) {
+        return material.list(search).stream().map(MaterialResponse::of).toList();
     }
 
     @GetMapping("/materials/{id}/download")

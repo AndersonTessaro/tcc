@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -247,6 +248,37 @@ class LessonSchedulingIT {
                 .content(scheduleBody(enrollments[1], nextWeek.getDayOfWeek().name(), "10:30", "11:30")))
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.code", is("SCHEDULE_CONFLICT")));
+    }
+
+    @Test
+    void lessonAndMakeupResponses_doNotExposePersistenceGraph() throws Exception {
+        String enrollment = enrollmentFor("Dto");
+        String t = login("teacherDto", TEACHER_PASSWORD);
+        String today = LocalDate.now().toString();
+
+        String body = mvc.perform(post("/teacher/lessons").header("Authorization", "Bearer " + t)
+                .contentType("application/json").content(lessonBody(enrollment, today, "09:00", "10:00")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.enrollment").doesNotExist())
+            .andExpect(jsonPath("$.enrollmentId", is(enrollment)))
+            .andExpect(jsonPath("$.studentName", is("Student Dto")))
+            .andExpect(jsonPath("$.teacherName", is("Teacher Dto")))
+            .andExpect(jsonPath("$.instrument", is("Instrument Dto")))
+            .andReturn().getResponse().getContentAsString();
+        String lessonId = JsonPath.read(body, "$.id");
+
+        mvc.perform(post("/teacher/lessons/" + lessonId + "/makeup").header("Authorization", "Bearer " + t)
+                .contentType("application/json")
+                .content("{\"date\":\"" + today + "\",\"startTime\":\"11:00\",\"endTime\":\"12:00\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.newLesson.enrollment").doesNotExist())
+            .andExpect(jsonPath("$.newLesson.status", is("SCHEDULED")))
+            .andExpect(jsonPath("$.originalLesson.id", is(lessonId)));
+
+        mvc.perform(get("/teacher/students").header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].name", is("Student Dto")))
+            .andExpect(jsonPath("$[0].user").doesNotExist());
     }
 
     @Test
