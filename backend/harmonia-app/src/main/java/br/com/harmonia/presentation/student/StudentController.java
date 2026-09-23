@@ -5,6 +5,7 @@ import br.com.harmonia.application.gamification.GoalUseCase;
 import br.com.harmonia.application.gamification.PracticeUseCase;
 import br.com.harmonia.application.gamification.ProgressUseCase;
 import br.com.harmonia.application.material.StudentMaterialUseCase;
+import br.com.harmonia.domain.gamification.GamificationService;
 import br.com.harmonia.infrastructure.persistence.gamification.Goal;
 import br.com.harmonia.infrastructure.persistence.gamification.GoalStatus;
 import br.com.harmonia.infrastructure.persistence.gamification.GoalType;
@@ -35,6 +36,7 @@ public class StudentController {
     private final GoalUseCase goal;
     private final StudentLessonUseCase lesson;
     private final StudentMaterialUseCase material;
+    private final GamificationService gamification = new GamificationService();
 
     public StudentController(ProgressUseCase progress, PracticeUseCase practice, GoalUseCase goal,
                             StudentLessonUseCase lesson, StudentMaterialUseCase material) {
@@ -56,6 +58,8 @@ public class StudentController {
         Map<String, Object> body = new HashMap<>();
         body.put("xp", p.getXpTotal());
         body.put("level", p.getLevel());
+        body.put("levelStartXp", gamification.xpToReachLevel(p.getLevel()));
+        body.put("nextLevelXp", gamification.xpToReachLevel(p.getLevel() + 1));
         body.put("streakDays", p.getStreakDays());
         body.put("weeklyPracticeMin", practice.weeklyPracticeMin(p.getStudent().getId()));
         body.put("nextLesson", upcoming.isEmpty() ? null : LessonResponse.of(upcoming.get(upcoming.size() - 1)));

@@ -11,6 +11,10 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+  docker:
+    compose:
+      # Resolved against the working dir, which is harmonia-app/ under spring-boot:run and the IDE.
+      file: ../../docker-compose.yml
 
 app:
   rsa:

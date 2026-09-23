@@ -75,7 +75,7 @@ faz nada; sem ele (par removido, clone parcial), gera um.
 ## Rodando local
 
 ```bash
-cd backend && docker compose up -d       # Postgres de dev (os testes usam Testcontainers)
+docker compose up -d && cd backend       # Postgres de dev (compose na raiz) (os testes usam Testcontainers)
 ./mvnw test                              # unitário
 ./mvnw verify                            # integração + portão de cobertura
 ./mvnw -pl harmonia-app -am -Psystem-tests verify   # sistema
