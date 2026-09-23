@@ -9,7 +9,7 @@ describe("mobile test infra smoke test", () => {
   it("renders the login screen without error", async () => {
     await render(<Login />);
 
-    expect(screen.getByText("Bem-vindo")).toBeVisible();
-    expect(screen.getByPlaceholderText("E-mail ou usuário")).toBeVisible();
+    expect(screen.getByText("Bem-vindo(a)!")).toBeVisible();
+    expect(screen.getByPlaceholderText("seu@email.com")).toBeVisible();
   });
 });
