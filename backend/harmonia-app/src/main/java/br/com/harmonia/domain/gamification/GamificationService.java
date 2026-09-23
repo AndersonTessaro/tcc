@@ -19,6 +19,11 @@ public class GamificationService {
         return (int) Math.floor(Math.sqrt(Math.max(xpTotal, 0) / 100.0)) + 1;
     }
 
+    public int xpToReachLevel(int level) {
+        int completedLevels = Math.max(level, 1) - 1;
+        return completedLevels * completedLevels * 100;
+    }
+
     /** New streak of consecutive days with practice. */
     public int newStreak(int currentStreak, LocalDate lastPractice, LocalDate today) {
         if (lastPractice == null) return 1;

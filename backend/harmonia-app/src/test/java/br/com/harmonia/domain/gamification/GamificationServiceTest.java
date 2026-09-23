@@ -27,6 +27,15 @@ class GamificationServiceTest {
         assertEquals(4, s.level(900));
     }
 
+    @Test void xpToReachLevel_isLowerBoundOfLevelBand() {
+        assertEquals(0, s.xpToReachLevel(1));
+        assertEquals(100, s.xpToReachLevel(2));
+        assertEquals(400, s.xpToReachLevel(3));
+        assertEquals(900, s.xpToReachLevel(4));
+        assertEquals(5, s.level(s.xpToReachLevel(5)));
+        assertEquals(4, s.level(s.xpToReachLevel(5) - 1));
+    }
+
     @Test void streak_incrementsWhenYesterday() {
         assertEquals(6, s.newStreak(5, LocalDate.of(2026, 5, 30), LocalDate.of(2026, 5, 31)));
     }

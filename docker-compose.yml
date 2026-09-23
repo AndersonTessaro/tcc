@@ -18,7 +18,7 @@ services:
   app:
     profiles: ["app"]
     build:
-      context: .
+      context: backend
     depends_on:
       db:
         condition: service_healthy
