@@ -28,7 +28,12 @@ export function validateTimeRange(startTime: string, endTime: string): string | 
 }
 
 export function validateDate(date: string): string | null {
-  return DATE_PATTERN.test(date) ? null : "Data inválida (AAAA-MM-DD)";
+  if (!DATE_PATTERN.test(date)) return "Data inválida (AAAA-MM-DD)";
+  const [year, month, day] = date.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() + 1 === month && parsed.getUTCDate() === day
+    ? null
+    : "Data inválida (AAAA-MM-DD)";
 }
 
 export function validateLessonForm(input: LessonFormInput): string | null {

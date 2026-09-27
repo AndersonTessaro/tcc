@@ -5,7 +5,10 @@ import { localIsoDate } from "@/features/teacher/lessonForm";
 import { ApiError } from "@/lib/http/apiError";
 
 const mockPush = jest.fn();
-jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: mockPush }),
+  useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
+}));
 jest.mock("@/features/teacher/teacherService", () => ({
   teacherService: { schedule: jest.fn(), attendance: jest.fn(), changeLessonStatus: jest.fn() },
 }));
@@ -60,6 +63,30 @@ describe("Schedule screen", () => {
 
     await waitFor(() => expect(service.attendance).toHaveBeenCalledWith("l1", "ABSENT"));
     await waitFor(() => expect(service.schedule).toHaveBeenCalledTimes(2));
+  });
+
+  it("queries another day only after a valid date is submitted", async () => {
+    service.schedule.mockResolvedValue([]);
+    await render(<Schedule />);
+    await screen.findByText("Sem aulas neste dia.");
+    const initialCalls = service.schedule.mock.calls.length;
+    await fireEvent.changeText(screen.getByPlaceholderText("Data (AAAA-MM-DD)"), "2026-02-30");
+    expect(service.schedule).toHaveBeenCalledTimes(initialCalls);
+    await fireEvent.press(screen.getByText("Buscar dia"));
+    expect(screen.getByText("Data inválida (AAAA-MM-DD)")).toBeVisible();
+    await fireEvent.changeText(screen.getByPlaceholderText("Data (AAAA-MM-DD)"), "2026-09-22");
+    await fireEvent.press(screen.getByText("Buscar dia"));
+    await waitFor(() => expect(service.schedule).toHaveBeenCalledWith("2026-09-22"));
+  });
+
+  it("sends a justification when correcting attendance", async () => {
+    service.schedule.mockResolvedValue([lesson({ attendance: "PRESENT" })]);
+    await render(<Schedule />);
+    await screen.findByText("09:00–10:00 · Ana Souza");
+    await fireEvent.changeText(screen.getByLabelText("Justificativa para Ana Souza"), "Correção do lançamento");
+    await fireEvent.press(screen.getByText("Falta"));
+
+    await waitFor(() => expect(service.attendance).toHaveBeenCalledWith("l1", "ABSENT", "Correção do lançamento"));
   });
 
   it("cancels a scheduled lesson", async () => {

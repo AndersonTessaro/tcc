@@ -55,9 +55,9 @@ export const teacherService = {
     endTime: string;
     content?: string;
     homework?: string;
-  }) => api.post<any>("/teacher/lessons", b),
+  }) => api.post<TeacherLesson>("/teacher/lessons", b),
   history: (start: string, end: string) =>
-    api.get<any[]>(`/teacher/lessons?start=${start}&end=${end}`),
+    api.get<TeacherLesson[]>(`/teacher/lessons?start=${start}&end=${end}`),
   attendance: (lessonId: string, status: AttendanceStatus, justification?: string) =>
     api.post<any>(`/teacher/lessons/${lessonId}/attendance`, { status, justification }),
   schedule: (date: string) => api.get<TeacherLesson[]>(`/teacher/schedule?date=${date}`),

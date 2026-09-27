@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ScrollView, Text, TextInput, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { teacherService } from "@/features/teacher/teacherService";
@@ -15,6 +15,9 @@ export default function Makeup() {
   const [endTime, setEndTime] = useState(oneHourAfter(DEFAULT_START));
   const [reason, setReason] = useState("");
   const [msg, setMsg] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const pending = useRef(false);
 
   const changeStart = (value: string) => {
     setStartTime(value);
@@ -23,6 +26,7 @@ export default function Makeup() {
   };
 
   const save = async () => {
+    if (pending.current || saved) return;
     if (!lessonId) {
       setMsg("Aula não informada");
       return;
@@ -33,20 +37,25 @@ export default function Makeup() {
       return;
     }
     setMsg("");
+    pending.current = true;
+    setSaving(true);
     try {
       await teacherService.makeup(lessonId, { date, startTime, endTime, reason: reason || undefined });
-      setMsg("Reposição agendada!");
-      router.back();
+      setSaved(true);
+      setMsg(`Reposição agendada para ${date} às ${startTime}`);
     } catch (error) {
       setMsg(apiErrorMessage(error, "Erro ao agendar reposição"));
+    } finally {
+      pending.current = false;
+      setSaving(false);
     }
   };
 
   const field = (ph: string, v: string, set: (s: string) => void) => (
     <TextInput
-      className="bg-white/10 text-white rounded-xl p-4 mb-3"
+      className="bg-white border border-[#D5D5D5] text-[#17131A] rounded-lg p-4 mb-4"
       placeholder={ph}
-      placeholderTextColor="#9ca3af"
+      placeholderTextColor="#9A969B"
       autoCapitalize="none"
       value={v}
       onChangeText={set}
@@ -54,16 +63,24 @@ export default function Makeup() {
   );
 
   return (
-    <ScrollView className="flex-1 bg-bg p-6">
-      <Text className="text-2xl font-bold text-white mb-4">Reposição</Text>
+    <ScrollView className="flex-1 bg-[#F4F4F4]" contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 32 }}>
+      <Text className="text-center text-[20px] font-bold text-[#17131A] mt-10 mb-8">Reposição</Text>
+      <Text className="text-[#17131A] font-semibold mb-2">Nova data</Text>
       {field("Data (AAAA-MM-DD)", date, setDate)}
+      <Text className="text-[#17131A] font-semibold mb-2">Horário</Text>
       {field("Início (HH:MM)", startTime, changeStart)}
       {field("Fim (HH:MM)", endTime, setEndTime)}
+      <Text className="text-[#17131A] font-semibold mb-2">Motivo</Text>
       {field("Motivo", reason, setReason)}
-      <Pressable className="bg-primary rounded-xl p-4 items-center" onPress={save}>
+      <Pressable accessibilityRole="button" disabled={saving || saved} className="bg-[#7040C5] rounded-lg p-4 items-center" onPress={save}>
         <Text className="text-white font-semibold">Agendar reposição</Text>
       </Pressable>
-      {msg ? <Text className="text-accent mt-4">{msg}</Text> : null}
+      {msg ? <Text className="text-[#5930A9] mt-4">{msg}</Text> : null}
+      {saved ? (
+        <Pressable accessibilityRole="button" className="bg-white border border-[#7040C5] rounded-lg p-4 items-center mt-3" onPress={() => router.back()}>
+          <Text className="text-[#5930A9]">Voltar à agenda</Text>
+        </Pressable>
+      ) : null}
     </ScrollView>
   );
 }

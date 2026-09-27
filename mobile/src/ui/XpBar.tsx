@@ -7,11 +7,11 @@ export function XpBar({ xp, level }: { xp: number; level: number }) {
   const width = `${pct}%` as DimensionValue;
   return (
     <View>
-      <Text className="text-white font-semibold mb-1">
+      <Text className="text-[#17131A] font-semibold mb-3">
         Nível {level} · {xp} XP
       </Text>
-      <View className="h-3 bg-white/10 rounded-full overflow-hidden">
-        <View className="h-3 bg-accent rounded-full" style={{ width }} />
+      <View className="h-3 bg-[#CECED0] rounded-full overflow-hidden">
+        <View className="h-3 bg-[#7040C5] rounded-full" style={{ width }} />
       </View>
     </View>
   );
