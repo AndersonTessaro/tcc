@@ -13,6 +13,8 @@ const BY_CODE: Record<string, string> = {
 
 // Backend domain messages are in English; only the ones a user can trigger are translated.
 const BY_DETAIL: [RegExp, string][] = [
+  [/Lesson already has a makeup linked/i, "Esta aula já tem uma reposição"],
+  [/Only a completed or canceled lesson can receive a makeup/i, "Conclua ou cancele a aula antes de agendar reposição"],
   [/canceled lesson/i, "Aula cancelada não recebe frequência"],
   [/before the lesson date/i, "A frequência só pode ser marcada a partir do dia da aula"],
   [/Enrollment is not active/i, "Matrícula inativa"],

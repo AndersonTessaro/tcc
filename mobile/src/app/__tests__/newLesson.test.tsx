@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import NewLesson from "@/app/(teacher)/new-lesson";
-import { teacherService } from "@/features/teacher/teacherService";
+import { teacherService, type TeacherLesson } from "@/features/teacher/teacherService";
 import { ApiError } from "@/lib/http/apiError";
 
 jest.mock("@/features/teacher/teacherService", () => ({
@@ -15,7 +15,7 @@ describe("NewLesson screen", () => {
     service.enrollments.mockResolvedValue([
       { id: "enr-1", studentId: "st-1", studentName: "Ana Souza", instrument: "Piano" },
     ]);
-    service.newLesson.mockResolvedValue({});
+    service.newLesson.mockResolvedValue({ status: "DONE" } as TeacherLesson);
   });
 
   it("sends the selected enrollment with start and end time", async () => {
@@ -23,7 +23,7 @@ describe("NewLesson screen", () => {
     await fireEvent.press(await screen.findByText("Ana Souza"));
     await fireEvent.changeText(screen.getByPlaceholderText("Data (AAAA-MM-DD)"), "2026-09-21");
     await fireEvent.changeText(screen.getByPlaceholderText("Início (HH:MM)"), "14:00");
-    await fireEvent.press(screen.getByText("Salvar"));
+    await fireEvent.press(screen.getByText("Salvar aula"));
 
     await waitFor(() =>
       expect(service.newLesson).toHaveBeenCalledWith({
@@ -35,13 +35,13 @@ describe("NewLesson screen", () => {
         homework: undefined,
       }),
     );
-    expect(await screen.findByText("Aula registrada!")).toBeVisible();
+    expect(await screen.findByText("Aula registrada! Realizada")).toBeVisible();
   });
 
   it("does not call the API without a selected student", async () => {
     await render(<NewLesson />);
     await screen.findByText("Ana Souza");
-    await fireEvent.press(screen.getByText("Salvar"));
+    await fireEvent.press(screen.getByText("Salvar aula"));
 
     expect(await screen.findByText("Selecione o aluno")).toBeVisible();
     expect(service.newLesson).not.toHaveBeenCalled();
@@ -51,7 +51,7 @@ describe("NewLesson screen", () => {
     service.newLesson.mockRejectedValue(new ApiError(409, "SCHEDULE_CONFLICT"));
     await render(<NewLesson />);
     await fireEvent.press(await screen.findByText("Ana Souza"));
-    await fireEvent.press(screen.getByText("Salvar"));
+    await fireEvent.press(screen.getByText("Salvar aula"));
 
     expect(await screen.findByText(/Conflito de horário/)).toBeVisible();
   });

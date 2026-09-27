@@ -31,6 +31,8 @@ describe("Makeup screen", () => {
         reason: "Aluno faltou",
       }),
     );
+    expect(await screen.findByText(/Reposição agendada para/)).toBeVisible();
+    await fireEvent.press(screen.getByText("Voltar à agenda"));
     expect(mockBack).toHaveBeenCalled();
   });
 
@@ -41,5 +43,13 @@ describe("Makeup screen", () => {
 
     expect(await screen.findByText("Esta aula não pode receber reposição")).toBeVisible();
     expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it("explains when the lesson already has a makeup", async () => {
+    service.makeup.mockRejectedValue(new ApiError(409, "INVALID_MAKEUP_LINK", "Lesson already has a makeup linked"));
+    await render(<Makeup />);
+    await fireEvent.press(screen.getByText("Agendar reposição"));
+
+    expect(await screen.findByText("Esta aula já tem uma reposição")).toBeVisible();
   });
 });

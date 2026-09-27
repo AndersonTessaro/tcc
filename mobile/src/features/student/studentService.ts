@@ -22,13 +22,20 @@ export type StudentLessonDetail = {
   attachments: LessonAttachment[];
 };
 
+export type StudentProgress = {
+  xpTotal: number;
+  level: number;
+  streakDays: number;
+  totalPracticeMin: number;
+};
+
 export const studentService = {
   dashboard: () => api.get<any>("/me/dashboard"),
   lessons: (status: "upcoming" | "past") => api.get<StudentLesson[]>(`/me/lessons?status=${status}`),
   lesson: (id: string) => api.get<StudentLessonDetail>(`/me/lessons/${id}`),
   materials: (search?: string) =>
     api.get<any[]>(`/me/materials${search ? `?search=${encodeURIComponent(search)}` : ""}`),
-  progress: () => api.get<any>("/me/progress"),
+  progress: () => api.get<StudentProgress>("/me/progress"),
   goals: (status?: "ACTIVE" | "COMPLETED") =>
     api.get<any[]>(`/me/goals${status ? `?status=${status}` : ""}`),
   registerPractice: (durationMin: number, notes?: string) =>

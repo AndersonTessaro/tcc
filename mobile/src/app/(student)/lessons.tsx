@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Image, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { studentService, type StudentLesson } from "@/features/student/studentService";
 import { colors } from "@/ui/theme";
@@ -35,7 +35,7 @@ export default function Lessons() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(load, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   return (
     <View style={styles.screen}>

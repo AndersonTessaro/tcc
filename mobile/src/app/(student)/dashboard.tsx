@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from "expo-router";
 import { useAuth } from "@/features/auth/useAuth";
 import { studentService } from "@/features/student/studentService";
 import { brandGradient, colors } from "@/ui/theme";
@@ -56,6 +57,7 @@ export default function Dashboard() {
 
   const load = useCallback(() => {
     setHasError(false);
+    setDashboard(null);
     studentService
       .dashboard()
       .then(setDashboard)
@@ -65,7 +67,7 @@ export default function Dashboard() {
       });
   }, []);
 
-  useEffect(load, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   if (!dashboard) {
     return (
