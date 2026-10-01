@@ -54,9 +54,16 @@ public class TeacherController {
 
     @GetMapping("/dashboard")
     @PreAuthorize("hasAuthority('student.read')")
-    public Map<String, Object> dashboard() {
-        List<PersonSummary> students = teacher.linkedStudents().stream().map(PersonSummary::of).toList();
-        return Map.of("totalStudents", students.size(), "students", students);
+    public Map<String, Object> dashboard(@RequestParam(required = false) String className) {
+        var summary = teacher.dashboard(className);
+        return Map.of(
+            "totalStudents", summary.totalStudents(),
+            "attendancePercent", summary.attendancePercent(),
+            "weeklyPracticeMin", summary.weeklyPracticeMin(),
+            "classes", summary.classes(),
+            "selectedClass", summary.selectedClass(),
+            "todayLessons", summary.todayLessons().stream().map(LessonResponse::of).toList(),
+            "upcomingLessons", summary.upcomingLessons().stream().map(LessonResponse::of).toList());
     }
 
     @GetMapping("/students")
@@ -75,6 +82,14 @@ public class TeacherController {
     @PreAuthorize("hasAuthority('student.read')")
     public Object studentDetail(@PathVariable UUID id) {
         return teacher.studentDetail(id);
+    }
+
+    @GetMapping("/students/{id}/lessons")
+    @PreAuthorize("hasAuthority('student.read')")
+    public List<LessonResponse> studentLessons(@PathVariable UUID id) {
+        var studentLessons = teacher.studentLessons(id);
+        var statuses = lesson.attendanceByLesson(studentLessons);
+        return studentLessons.stream().map(l -> LessonResponse.of(l, statuses.get(l.getId()))).toList();
     }
 
     @PostMapping("/lessons")
@@ -109,6 +124,12 @@ public class TeacherController {
                                    @RequestParam(required = false) String description,
                                    @RequestParam MultipartFile file) {
         return MaterialResponse.of(material.attach(id, title, description, file));
+    }
+
+    @GetMapping("/students/{id}/materials")
+    @PreAuthorize("hasAuthority('student.read')")
+    public List<MaterialResponse> studentMaterials(@PathVariable UUID id) {
+        return material.forStudent(id).stream().map(MaterialResponse::of).toList();
     }
 
     @GetMapping("/schedule")

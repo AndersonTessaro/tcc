@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ScrollView, Text, TextInput, Pressable, View } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { teacherService, type TeacherEnrollment } from "@/features/teacher/teacherService";
 import { lessonStatusLabel } from "@/features/teacher/agenda";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
@@ -12,6 +13,7 @@ import {
 const DEFAULT_START = "10:00";
 
 export default function NewLesson() {
+  const { studentId } = useLocalSearchParams<{ studentId?: string }>();
   const [enrollments, setEnrollments] = useState<TeacherEnrollment[]>([]);
   const [enrollmentId, setEnrollmentId] = useState("");
   const [date, setDate] = useState(localIsoDate());
@@ -26,9 +28,12 @@ export default function NewLesson() {
   useEffect(() => {
     teacherService
       .enrollments()
-      .then(setEnrollments)
+      .then((items) => {
+        setEnrollments(items);
+        if (studentId) setEnrollmentId(items.find((item) => item.studentId === studentId)?.id ?? "");
+      })
       .catch(() => setMsg("Erro ao carregar alunos"));
-  }, []);
+  }, [studentId]);
 
   const changeStart = (value: string) => {
     setStartTime(value);

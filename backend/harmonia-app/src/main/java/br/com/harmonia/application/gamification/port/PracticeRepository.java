@@ -5,8 +5,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Collection;
 import java.util.UUID;
 
 public interface PracticeRepository extends JpaRepository<Practice, UUID> {
     List<Practice> findByStudentIdAndDateBetween(UUID studentId, LocalDate start, LocalDate end);
+
+    List<Practice> findTop100ByStudentIdOrderByDateDescCreatedAtDesc(UUID studentId);
+    List<Practice> findByStudentIdInAndDateBetween(Collection<UUID> studentIds, LocalDate start, LocalDate end);
 }

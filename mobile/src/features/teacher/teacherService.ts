@@ -43,10 +43,43 @@ export type TeacherLesson = {
   attendance: AttendanceStatus | null;
 };
 
+export type TeacherDashboardData = {
+  totalStudents: number;
+  attendancePercent: number;
+  weeklyPracticeMin: number;
+  classes: string[];
+  selectedClass: string;
+  todayLessons: TeacherLesson[];
+  upcomingLessons: TeacherLesson[];
+};
+
+export type TeacherStudentDetailData = {
+  studentId: string;
+  progress: { xpTotal: number; level: number; streakDays: number } | null;
+  lessonsCount: number;
+  attendance: { present: number; absent: number; excused: number; rate: number };
+  attendanceHistory: { date: string; status: AttendanceStatus }[];
+  goals: { active: number; completed: number };
+  nextGoal: string;
+  weeklyPracticeMin: number;
+  recentPractices: { date: string; durationMin: number; notes: string }[];
+  enrollmentDate: string;
+};
+
+export type TeacherStudentMaterial = {
+  id: string;
+  title: string;
+  description: string | null;
+  fileName: string;
+  createdAt: string;
+};
+
 export const teacherService = {
-  dashboard: () => api.get<any>("/teacher/dashboard"),
+  dashboard: (className?: string) => api.get<TeacherDashboardData>(`/teacher/dashboard${className ? `?className=${encodeURIComponent(className)}` : ""}`),
   students: () => api.get<StudentSummary[]>("/teacher/students"),
-  student: (id: string) => api.get<any>(`/teacher/students/${id}`),
+  student: (id: string) => api.get<TeacherStudentDetailData>(`/teacher/students/${id}`),
+  studentLessons: (id: string) => api.get<TeacherLesson[]>(`/teacher/students/${id}/lessons`),
+  studentMaterials: (id: string) => api.get<TeacherStudentMaterial[]>(`/teacher/students/${id}/materials`),
   enrollments: () => api.get<TeacherEnrollment[]>("/teacher/enrollments"),
   newLesson: (b: {
     enrollmentId: string;

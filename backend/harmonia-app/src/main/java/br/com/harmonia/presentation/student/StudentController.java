@@ -10,6 +10,7 @@ import br.com.harmonia.infrastructure.persistence.gamification.Goal;
 import br.com.harmonia.infrastructure.persistence.gamification.GoalStatus;
 import br.com.harmonia.infrastructure.persistence.gamification.GoalType;
 import br.com.harmonia.infrastructure.persistence.gamification.Progress;
+import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
 import br.com.harmonia.presentation.response.AttachmentResponse;
 import br.com.harmonia.presentation.response.LessonResponse;
 import br.com.harmonia.presentation.response.MaterialResponse;
@@ -48,6 +49,13 @@ public class StudentController {
     }
 
     public record RegisterPractice(@Min(1) int durationMin, LocalDate date, String notes) {}
+    public record PracticeResponse(UUID id, LocalDate date, int durationMin, String notes) {
+        public static PracticeResponse of(br.com.harmonia.infrastructure.persistence.gamification.Practice practice) {
+            return new PracticeResponse(practice.getId(), practice.getDate(),
+                practice.getDurationMin(), practice.getNotes());
+        }
+    }
+    public record AttendanceResponse(LocalDate date, AttendanceStatus status) {}
     public record NewGoal(@NotBlank String title, String description, @NotNull GoalType type, @Min(1) int target) {}
 
     @GetMapping("/dashboard")
@@ -97,10 +105,24 @@ public class StudentController {
         return practice.register(r.durationMin(), r.date() == null ? LocalDate.now() : r.date(), r.notes());
     }
 
+    @GetMapping("/practices")
+    @PreAuthorize("hasAuthority('progress.read')")
+    public List<PracticeResponse> practices() {
+        return practice.myPractices().stream().map(PracticeResponse::of).toList();
+    }
+
     @GetMapping("/progress")
     @PreAuthorize("hasAuthority('progress.read')")
     public Progress progress() {
         return progress.myProgress();
+    }
+
+    @GetMapping("/attendance")
+    @PreAuthorize("hasAuthority('progress.read')")
+    public List<AttendanceResponse> attendance() {
+        return progress.myAttendance().stream()
+            .map(item -> new AttendanceResponse(item.getLesson().getDate(), item.getStatus()))
+            .toList();
     }
 
     @GetMapping("/goals")

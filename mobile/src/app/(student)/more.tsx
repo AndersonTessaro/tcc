@@ -1,72 +1,87 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { router, type Href } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Alert, Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/features/auth/useAuth";
 import { authService } from "@/features/auth/authService";
-import { colors } from "@/ui/theme";
 
-type MenuItem = {
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  href: Href;
+const icons = {
+  user: require("@/assets/images/figma-student/menu-user.png"),
+  instrument: require("@/assets/images/figma-student/menu-instrument.png"),
+  settings: require("@/assets/images/figma-student/menu-settings.png"),
+  notifications: require("@/assets/images/figma-student/menu-notifications.png"),
+  help: require("@/assets/images/figma-student/menu-help.png"),
+  exit: require("@/assets/images/figma-student/menu-exit.png"),
 };
 
-const menuItems: MenuItem[] = [
-  { label: "Materiais", icon: "folder-open-outline", href: "/(student)/materials" },
-  { label: "Metas", icon: "flag-outline", href: "/(student)/goals" },
-];
+function displayName(username?: string) {
+  const name = username?.split("@")[0].replace(/[._-]+/g, " ").trim();
+  return name ? name.replace(/\b\p{L}/gu, (letter) => letter.toUpperCase()) : "Aluno";
+}
 
 export default function More() {
   const { user, logout } = useAuth();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const signOut = async () => {
     await authService.logout().catch(() => {});
     logout();
   };
 
+  const openProfile = () => Alert.alert("Perfil", user?.displayName || user?.username || "Aluno", [
+    { text: "Materiais", onPress: () => router.push("/(student)/materials") },
+    { text: "Metas", onPress: () => router.push("/(student)/goals") },
+    { text: "Fechar", style: "cancel" },
+  ]);
+
+  const menuItems = [
+    { label: "Instrumento", icon: icons.instrument, action: () => router.push("/(student)/lessons") },
+    { label: "Configurações", icon: icons.settings, action: () => Alert.alert("Configurações", "Configurações pessoais ainda não disponíveis.") },
+    { label: "Notificações", icon: icons.notifications, action: () => Alert.alert("Notificações", "Nenhuma notificação no momento.") },
+    { label: "Ajuda", icon: icons.help, action: () => Alert.alert("Ajuda", "Consulte a escola para obter suporte.") },
+    { label: "Sair", icon: icons.exit, action: signOut },
+  ];
+
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <Text style={styles.title}>Mais</Text>
-      <Text style={styles.username}>{user?.username}</Text>
-
-      <View style={styles.menu}>
-        {menuItems.map((item) => (
-          <Pressable
-            key={item.label}
-            accessibilityRole="button"
-            onPress={() => router.push(item.href)}
-            style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-          >
-            <Ionicons name={item.icon} size={22} color={colors.brand} />
-            <Text style={styles.rowLabel}>{item.label}</Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.muted} />
-          </Pressable>
-        ))}
-      </View>
-
-      <Pressable accessibilityRole="button" onPress={signOut} style={styles.signOut}>
-        <Text style={styles.signOutText}>Sair</Text>
-      </Pressable>
-    </SafeAreaView>
+    <View style={styles.screen}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F4F4F4" />
+      <View style={[styles.header, { paddingTop: insets.top + 34 }]}><Text style={styles.title}>Mais</Text></View>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Ver perfil" onPress={openProfile} style={styles.profile}>
+          <Image source={icons.user} style={styles.avatar} />
+          <View style={styles.profileText}>
+            <Text numberOfLines={1} style={styles.name}>{user?.displayName || displayName(user?.username)}</Text>
+            <Text style={styles.profileLink}>Ver perfil</Text>
+          </View>
+          <Text style={styles.chevron}>&gt;</Text>
+        </Pressable>
+        <View style={styles.menu}>
+          {menuItems.map((item) => (
+            <Pressable key={item.label} accessibilityRole="button" onPress={item.action} style={styles.row}>
+              <Image source={item.icon} style={styles.rowIcon} />
+              <Text style={styles.rowLabel}>{item.label}</Text>
+              <Text style={styles.chevron}>&gt;</Text>
+            </Pressable>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.screen, paddingHorizontal: 24 },
-  title: { color: colors.text, fontSize: 24, fontWeight: "700", marginTop: 24 },
-  username: { color: colors.muted, fontSize: 14, marginTop: 4 },
-  menu: { backgroundColor: colors.surface, borderRadius: 16, marginTop: 24, overflow: "hidden" },
-  row: { alignItems: "center", flexDirection: "row", gap: 14, minHeight: 56, paddingHorizontal: 18 },
-  rowPressed: { backgroundColor: colors.field },
-  rowLabel: { color: colors.text, flex: 1, fontSize: 16 },
-  signOut: {
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    marginTop: 16,
-    minHeight: 52,
-    justifyContent: "center",
-  },
-  signOutText: { color: colors.danger, fontSize: 16, fontWeight: "600" },
-});
+  screen: { flex: 1, backgroundColor: "#F4F4F4" },
+  header: { height: 135, paddingHorizontal: 29 },
+  title: { color: "#000000", fontSize: 18, fontWeight: "700", textAlign: "center" },
+  content: { paddingHorizontal: 29, paddingTop: 24, paddingBottom: 30 },
+  profile: { height: 98, borderWidth: 1, borderColor: "#D3D3D3", borderRadius: 15, backgroundColor: "#FFFFFF", flexDirection: "row", alignItems: "center", paddingHorizontal: 15 },
+  avatar: { width: 60, height: 60 },
+  profileText: { flex: 1, marginLeft: 18, gap: 8 },
+  name: { color: "#000000", fontSize: 14, fontWeight: "700" },
+  profileLink: { color: "#572AA8", fontSize: 14 },
+  chevron: { color: "#000000", fontSize: 14, fontWeight: "300", marginRight: 13 },
+  menu: { marginTop: 42, gap: 21 },
+  row: { minHeight: 46, borderBottomWidth: 2, borderBottomColor: "#D9D9D9", flexDirection: "row", alignItems: "flex-start", paddingHorizontal: 10, paddingBottom: 14 },
+  rowIcon: { width: 30, height: 30 },
+  rowLabel: { color: "#000000", fontSize: 14, fontWeight: "500", flex: 1, marginLeft: 13, marginTop: 6 },
+  });

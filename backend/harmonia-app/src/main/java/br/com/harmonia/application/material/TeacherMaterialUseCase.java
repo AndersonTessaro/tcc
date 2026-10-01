@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.UUID;
+import java.util.List;
 
 @Service
 public class TeacherMaterialUseCase {
@@ -34,6 +35,14 @@ public class TeacherMaterialUseCase {
         this.enrollments = enrollments;
         this.storage = storage;
         this.current = current;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Material> forStudent(UUID studentId) {
+        if (!current.isAdmin() && enrollments.findByTeacherIdAndStudentId(
+            current.currentTeacher().getId(), studentId).isEmpty())
+            throw new OwnershipException("Student is not linked to this teacher");
+        return materials.findByStudentId(studentId);
     }
 
     @Transactional

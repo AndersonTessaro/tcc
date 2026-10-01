@@ -68,6 +68,13 @@ class StudentFlowIT {
             .andExpect(jsonPath("$.xp", is(180)))
             .andExpect(jsonPath("$.level", is(2)))
             .andExpect(jsonPath("$.weeklyPracticeMin", is(180)));
+        mvc.perform(get("/me/practices").header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()", is(2)))
+            .andExpect(jsonPath("$[0].durationMin", is(120)));
+        mvc.perform(get("/me/attendance").header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()", is(0)));
 
         // goal: create (target 2) -> complete
         String goal = postId(t, "/me/goals",
