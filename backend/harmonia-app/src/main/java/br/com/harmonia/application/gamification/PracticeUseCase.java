@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -60,5 +61,10 @@ public class PracticeUseCase {
         LocalDate weekStart = today.with(DayOfWeek.MONDAY);
         return practices.findByStudentIdAndDateBetween(studentId, weekStart, today)
             .stream().mapToInt(Practice::getDurationMin).sum();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Practice> myPractices() {
+        return practices.findTop100ByStudentIdOrderByDateDescCreatedAtDesc(current.currentStudent().getId());
     }
 }

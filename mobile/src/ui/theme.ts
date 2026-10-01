@@ -18,4 +18,4 @@ export const colors = {
   badge: "#E5484D",
 } as const;
 
-export const brandGradient = [colors.brandDark, colors.brandLight, colors.brandDark] as const;
+export const brandGradient = ["#2A1454", "#3B1E78", "#3B1E78", "#2A1454"] as const;

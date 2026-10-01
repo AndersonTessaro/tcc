@@ -1,12 +1,16 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { ActivityIndicator, Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import { useAuth } from "@/features/auth/useAuth";
 import { studentService } from "@/features/student/studentService";
-import { brandGradient, colors } from "@/ui/theme";
+import { colors } from "@/ui/theme";
+
+const fireIcon = require("@/assets/images/figma-student/dashboard-fire.png");
+const agendaIcon = require("@/assets/images/figma-student/dashboard-agenda.png");
+const notificationIcon = require("@/assets/images/figma-student/dashboard-notification.png");
+const waveIcon = require("@/assets/images/figma-student/dashboard-wave.png");
 
 type NextLesson = {
   date?: string;
@@ -97,20 +101,20 @@ export default function Dashboard() {
     <View style={styles.screen}>
       <StatusBar barStyle="light-content" backgroundColor={colors.brand} />
       <LinearGradient
-        colors={brandGradient}
+        colors={["#2A1454", "#3B1E78", "#3B1E78", "#2A1454"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        style={[styles.header, { paddingTop: insets.top + 20 }]}
+        style={[styles.header, { paddingTop: insets.top + 31 }]}
       >
         <View style={styles.greetingRow}>
           <View style={styles.greetingText}>
-            <Text style={styles.greeting}>Olá, {displayName(user?.username)}! 👋</Text>
+            <View style={styles.helloRow}>
+              <Text style={styles.greeting}>Olá, {displayName(user?.displayName || user?.username)}!</Text>
+              <Image source={waveIcon} style={styles.waveIcon} />
+            </View>
             <Text style={styles.greetingSubtitle}>Continue praticando e evoluindo!</Text>
           </View>
-          <View accessibilityLabel="Notificações">
-            <Ionicons name="notifications" size={26} color={colors.notification} />
-            <View style={styles.badge} />
-          </View>
+          <Image accessibilityLabel="Notificações" source={notificationIcon} style={styles.notificationIcon} />
         </View>
       </LinearGradient>
 
@@ -124,16 +128,17 @@ export default function Dashboard() {
         </View>
 
         <View style={styles.card}>
-          <Ionicons name="flame" size={30} color={colors.streak} style={styles.cardIcon} />
+          <Image source={fireIcon} style={styles.cardIcon} />
           <View>
             <Text style={styles.cardTitle}>Sequência</Text>
             <Text style={styles.cardValue}>
               {dashboard.streakDays} {dashboard.streakDays === 1 ? "dia" : "dias"}
             </Text>
+            <Text style={styles.detail}>Sequência atual</Text>
           </View>
         </View>
 
-        <View style={styles.card}>
+        <View style={[styles.card, styles.weeklyCard]}>
           <View style={styles.fullWidth}>
             <Text style={styles.cardTitle}>Prática semanal</Text>
             <Text style={styles.practiceValue}>
@@ -144,7 +149,7 @@ export default function Dashboard() {
         </View>
 
         <View style={styles.card}>
-          <Ionicons name="calendar-outline" size={28} color={colors.text} style={styles.cardIcon} />
+          <Image source={agendaIcon} style={styles.cardIcon} />
           <View>
             <Text style={styles.cardTitle}>Próxima aula</Text>
             <Text style={styles.cardValue}>
@@ -167,49 +172,42 @@ function ProgressBar({ width }: { width: `${number}%` }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.screen },
+  screen: { flex: 1, backgroundColor: "#F4F4F4" },
   centered: { alignItems: "center", backgroundColor: colors.brand, flex: 1, gap: 16, justifyContent: "center", padding: 24 },
   errorText: { color: colors.surface, fontSize: 15, textAlign: "center" },
   retry: { backgroundColor: colors.surface, borderRadius: 8, paddingHorizontal: 20, paddingVertical: 12 },
   retryText: { color: colors.brand, fontSize: 15, fontWeight: "600" },
-  header: { paddingBottom: 56, paddingHorizontal: 24 },
+  header: { height: 195, paddingHorizontal: 24 },
   greetingRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
   greetingText: { flex: 1 },
-  greeting: { color: colors.surface, fontSize: 24, fontWeight: "600" },
-  greetingSubtitle: { color: colors.surface, fontSize: 14, marginTop: 6 },
-  badge: {
-    backgroundColor: colors.badge,
-    borderColor: colors.brand,
-    borderRadius: 5,
-    borderWidth: 1,
-    height: 10,
-    position: "absolute",
-    right: 0,
-    top: 0,
-    width: 10,
-  },
-  content: { paddingBottom: 24, paddingHorizontal: 24 },
+  helloRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  greeting: { color: colors.surface, fontSize: 27, fontWeight: "500" },
+  waveIcon: { width: 27, height: 27 },
+  greetingSubtitle: { color: colors.surface, fontSize: 15, marginTop: 3 },
+  notificationIcon: { width: 25, height: 25, marginTop: 4 },
+  content: { paddingBottom: 18, paddingHorizontal: 31, marginTop: -44 },
   card: {
     alignItems: "center",
     backgroundColor: colors.surface,
     borderRadius: 16,
     flexDirection: "row",
-    marginBottom: 16,
-    minHeight: 96,
-    paddingHorizontal: 20,
+    marginBottom: 21,
+    minHeight: 116,
+    paddingHorizontal: 19,
     paddingVertical: 18,
   },
-  xpCard: { alignItems: "stretch", flexDirection: "column", marginTop: -40 },
-  cardEyebrow: { color: colors.text, fontSize: 13, textAlign: "center" },
-  xpValue: { color: colors.text, fontSize: 26, fontWeight: "700", marginTop: 8, textAlign: "center" },
-  label: { color: colors.text, fontSize: 13, marginBottom: 8, marginTop: 20 },
-  helpText: { color: colors.text, fontSize: 13, marginTop: 12, textAlign: "center" },
-  cardIcon: { marginRight: 16 },
+  xpCard: { alignItems: "stretch", flexDirection: "column", minHeight: 207, paddingHorizontal: 35, paddingTop: 21 },
+  cardEyebrow: { color: "#000000", fontSize: 14, textAlign: "center" },
+  xpValue: { color: "#000000", fontSize: 25, fontWeight: "700", marginTop: 14, textAlign: "center" },
+  label: { color: "#000000", fontSize: 14, marginBottom: 8, marginTop: 26 },
+  helpText: { color: "#000000", fontSize: 14, marginTop: 16, textAlign: "center" },
+  cardIcon: { width: 30, height: 30, marginRight: 18 },
   cardTitle: { color: colors.text, fontSize: 14, fontWeight: "700" },
-  cardValue: { color: colors.text, fontSize: 17, fontWeight: "700", marginTop: 8 },
-  detail: { color: colors.text, fontSize: 13, marginTop: 6 },
+  cardValue: { color: "#000000", fontSize: 18, fontWeight: "700", marginTop: 10 },
+  detail: { color: "#000000", fontSize: 14, marginTop: 11 },
   fullWidth: { flex: 1 },
-  practiceValue: { color: colors.accent, fontSize: 17, fontWeight: "700", marginBottom: 12, marginTop: 8 },
-  progressTrack: { backgroundColor: colors.track, borderRadius: 10, height: 10, overflow: "hidden", width: "100%" },
-  progressFill: { backgroundColor: colors.accent, borderRadius: 10, height: "100%" },
+  weeklyCard: { minHeight: 112, paddingHorizontal: 24 },
+  practiceValue: { color: "#6C45BE", fontSize: 16, fontWeight: "700", marginBottom: 15, marginTop: 13 },
+  progressTrack: { backgroundColor: "#CCCCCC", borderRadius: 10, height: 12, overflow: "hidden", width: "100%" },
+  progressFill: { backgroundColor: "#6C45BE", borderRadius: 10, height: "100%" },
 });

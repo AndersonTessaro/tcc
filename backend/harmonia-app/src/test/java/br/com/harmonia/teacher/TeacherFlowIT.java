@@ -53,6 +53,11 @@ class TeacherFlowIT {
         String t = login("teacherP", "Teach@1234");
         String today = LocalDate.now().toString();
 
+        mvc.perform(get("/teacher/dashboard").header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.selectedClass").value("Guitar"))
+            .andExpect(jsonPath("$.totalStudents").value(1));
+
         // linked students
         mvc.perform(get("/teacher/students").header("Authorization", "Bearer " + t))
             .andExpect(status().isOk())
@@ -82,10 +87,25 @@ class TeacherFlowIT {
             .andExpect(jsonPath("$.lessonsCount", greaterThanOrEqualTo(1)))
             .andExpect(jsonPath("$.attendance.present", greaterThanOrEqualTo(1)))
             .andExpect(jsonPath("$.attendance.rate", greaterThanOrEqualTo(0)))
+            .andExpect(jsonPath("$.attendanceHistory[0].date").value(today))
+            .andExpect(jsonPath("$.weeklyPracticeMin").value(greaterThanOrEqualTo(0)))
             .andExpect(jsonPath("$.goals.active", notNullValue()));
+
+        mvc.perform(get("/teacher/students/" + student + "/lessons")
+                .header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(lessonId))
+            .andExpect(jsonPath("$[0].attendance").value("PRESENT"));
+        mvc.perform(get("/teacher/students/" + student + "/materials")
+                .header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(0));
 
         // ownership: student not linked -> 403
         mvc.perform(get("/teacher/students/" + UUID.randomUUID()).header("Authorization", "Bearer " + t))
+            .andExpect(status().isForbidden());
+        mvc.perform(get("/teacher/students/" + UUID.randomUUID() + "/lessons")
+                .header("Authorization", "Bearer " + t))
             .andExpect(status().isForbidden());
     }
 

@@ -5,6 +5,7 @@ export type AuthResponse = {
   accessToken: string;
   username: string;
   authorities: string[];
+  displayName?: string;
 };
 
 export const authService = {

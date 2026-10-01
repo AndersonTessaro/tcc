@@ -14,4 +14,6 @@ public interface AttendanceRepository extends JpaRepository<Attendance, UUID> {
     List<Attendance> findByLessonIdIn(Collection<UUID> lessonIds);
     long countByLessonEnrollmentTeacherIdAndStatus(UUID teacherId, AttendanceStatus status);
     long countByLessonEnrollmentStudentIdAndStatus(UUID studentId, AttendanceStatus status);
+    long countByLessonEnrollmentIdInAndStatus(Collection<UUID> enrollmentIds, AttendanceStatus status);
+    List<Attendance> findTop100ByLessonEnrollmentStudentIdOrderByLessonDateDesc(UUID studentId);
 }
