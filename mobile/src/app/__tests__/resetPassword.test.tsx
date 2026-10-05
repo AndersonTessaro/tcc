@@ -1,0 +1,23 @@
+import { fireEvent, render, screen } from "@testing-library/react-native";
+import ResetPassword from "@/app/(auth)/reset-password";
+import { authService } from "@/features/auth/authService";
+import { ApiError } from "@/lib/http/apiError";
+jest.mock("expo-router", () => ({ useRouter: () => ({ replace: jest.fn() }), useLocalSearchParams: () => ({}) }));
+jest.mock("@/features/auth/authService", () => ({ authService: { reset: jest.fn() } }));
+const service = authService as jest.Mocked<typeof authService>;
+beforeEach(() => jest.clearAllMocks());
+it("validates confirmation, handles an expired token and saves a new password", async () => {
+  await render(<ResetPassword />);
+  await fireEvent.press(screen.getByRole("button", { name: "Redefinir senha" }));
+  expect(service.reset).not.toHaveBeenCalled();
+  await fireEvent.changeText(screen.getByLabelText("Token de recuperação"), "test-token");
+  await fireEvent.changeText(screen.getByLabelText("Nova senha"), "Changed@123");
+  await fireEvent.changeText(screen.getByLabelText("Confirmar nova senha"), "Changed@123");
+  service.reset.mockRejectedValueOnce(new ApiError(400, "INVALID_RESET_TOKEN"));
+  await fireEvent.press(screen.getByRole("button", { name: "Redefinir senha" }));
+  expect(await screen.findByText("Link de recuperação inválido ou expirado. Solicite outro link.")).toBeVisible();
+  service.reset.mockResolvedValueOnce(undefined);
+  await fireEvent.press(screen.getByRole("button", { name: "Redefinir senha" }));
+  expect(await screen.findByText("Senha redefinida. Entre com sua nova senha.")).toBeVisible();
+  expect(service.reset).toHaveBeenLastCalledWith("test-token", "Changed@123");
+});

@@ -100,6 +100,15 @@ export default function PracticeOverview() {
             )}
           </View>
 
+          <View style={[styles.card, styles.historyCard]}>
+            <Text style={styles.cardTitle}>Registros recentes</Text>
+            {practices.slice(0, 10).map((practice) => <View key={practice.id} style={styles.historyRow}>
+              <Text style={styles.song}>{formatDate(practice.date)} · {practice.durationMin} min</Text>
+              <Text style={styles.historyNotes}>{practice.notes || "Sem observações"}</Text>
+            </View>)}
+            {!practices.length ? <Text style={styles.emptySongs}>Nenhuma prática registrada.</Text> : null}
+          </View>
+
           <Pressable accessibilityRole="button" onPress={() => router.push("/(student)/practice/register")} style={styles.registerButton}>
             <Text style={styles.registerLabel}>Registrar prática</Text>
           </Pressable>
@@ -128,6 +137,9 @@ const styles = StyleSheet.create({
   songsCard: { minHeight: 172, marginTop: 30, paddingTop: 22 },
   song: { color: "#000000", fontSize: 14, marginTop: 14 },
   emptySongs: { color: colors.muted, fontSize: 14, marginTop: 14 },
+  historyCard: { marginVertical: 24, paddingVertical: 18 },
+  historyRow: { paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "#EEEEEE" },
+  historyNotes: { color: colors.muted, fontSize: 14, marginTop: 8, lineHeight: 20 },
   registerButton: { minHeight: 44, marginHorizontal: 2, marginTop: "auto", backgroundColor: "#3A1D77", borderRadius: 15, alignItems: "center", justifyContent: "center" },
   registerLabel: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16, padding: 24 },

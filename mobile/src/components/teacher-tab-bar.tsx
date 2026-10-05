@@ -1,6 +1,8 @@
 import type { ComponentProps } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Tabs } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useKeyboardVisible } from "@/hooks/use-keyboard-visible";
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["tabBar"]>>[0];
 
@@ -13,13 +15,16 @@ const tabs = [
 ] as const;
 
 export function TeacherTabBar({ state, navigation }: TabBarProps) {
+  const insets = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardVisible();
   const current = state.routes[state.index]?.name;
   const active = current === "student/[id]" || current === "new-lesson" ? "students"
     : current === "history" || current === "makeup/[lessonId]" ? "schedule"
     : current === "schedules" ? "more" : current;
 
+  if (keyboardVisible) return null;
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, { height: 91 + Math.max(0, insets.bottom - 22), paddingBottom: Math.max(0, insets.bottom - 22) }]}>
       {tabs.map((tab) => {
         const route = state.routes.find((entry) => entry.name === tab.name);
         if (!route) return null;
@@ -38,6 +43,6 @@ export function TeacherTabBar({ state, navigation }: TabBarProps) {
 const styles = StyleSheet.create({
   bar: { height: 91, backgroundColor: "#FFFFFF", flexDirection: "row", paddingHorizontal: 5 },
   item: { flex: 1, alignItems: "center", justifyContent: "center", gap: 5 },
-  indicator: { position: "absolute", top: 0, width: 76, height: 10, backgroundColor: "#6C45BE" },
+  indicator: { position: "absolute", top: 0, width: "94.5%", height: 10, backgroundColor: "#6C45BE" },
   label: { color: "#000000", fontSize: 14, fontWeight: "300" },
 });

@@ -2,18 +2,20 @@ import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
 const ACCESS = "harmonia_access";
+let memoryAccess: string | null = null;
 
 // expo-secure-store has no web implementation - its methods throw on web, which
 // would break every request before it leaves the app. localStorage covers web.
 const webStorage = {
   get: async () => {
     try {
-      return globalThis.localStorage?.getItem(ACCESS) ?? null;
+      return globalThis.localStorage?.getItem(ACCESS) ?? memoryAccess;
     } catch {
-      return null;
+      return memoryAccess;
     }
   },
   set: async (access: string) => {
+    memoryAccess = access;
     try {
       globalThis.localStorage?.setItem(ACCESS, access);
     } catch {
@@ -21,6 +23,7 @@ const webStorage = {
     }
   },
   clear: async () => {
+    memoryAccess = null;
     try {
       globalThis.localStorage?.removeItem(ACCESS);
     } catch {

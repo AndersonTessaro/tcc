@@ -62,8 +62,8 @@ function PracticeChart({ practices }: { practices: StudentPractice[] }) {
       <Path d={line} fill="none" stroke="#3A1D77" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
       <Line x1={18} y1={5} x2={18} y2={137} stroke="#333333" strokeWidth={1} />
       <Line x1={18} y1={137} x2={304} y2={137} stroke="#333333" strokeWidth={1} />
-      <SvgText x={0} y={8} fontSize={7} fill="#000000">Dias</SvgText>
-      <SvgText x={280} y={143} fontSize={7} fill="#000000">Prática</SvgText>
+      <SvgText x={0} y={8} fontSize={7} fill="#000000">Min.</SvgText>
+      <SvgText x={280} y={143} fontSize={7} fill="#000000">Dias</SvgText>
     </Svg>
   );
 }

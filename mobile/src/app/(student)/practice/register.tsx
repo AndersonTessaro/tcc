@@ -1,10 +1,9 @@
-import { useState } from "react";
-import { Alert, Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from "react-native";
+import { useRef, useState } from "react";
+import { Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { studentService } from "@/features/student/studentService";
+import { ScreenHeader } from "@/ui/ScreenHeader";
 
-const backIcon = require("@/assets/images/figma-student/back.png");
 const clockIcon = require("@/assets/images/figma-student/clock.png");
 const moods = [
   require("@/assets/images/figma-student/mood-1.png"),
@@ -39,7 +38,6 @@ function parseMinutes(value: string) {
 
 export default function RegisterPractice() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const [date, setDate] = useState(todayLabel);
   const [duration, setDuration] = useState("30 min");
   const [what, setWhat] = useState("");
@@ -47,8 +45,10 @@ export default function RegisterPractice() {
   const [mood, setMood] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const pending = useRef(false);
 
   const save = async () => {
+    if (pending.current) return;
     const isoDate = parseDate(date);
     const minutes = parseMinutes(duration);
     if (!isoDate || minutes < 1 || !what.trim()) {
@@ -62,6 +62,7 @@ export default function RegisterPractice() {
       return;
     }
     setError("");
+    pending.current = true;
     setSaving(true);
     try {
       await studentService.registerPractice(minutes, notes, isoDate);
@@ -69,6 +70,7 @@ export default function RegisterPractice() {
     } catch {
       setError("Não foi possível salvar a prática. Tente novamente.");
     } finally {
+      pending.current = false;
       setSaving(false);
     }
   };
@@ -76,12 +78,7 @@ export default function RegisterPractice() {
   return (
     <View style={styles.screen}>
       <StatusBar barStyle="dark-content" backgroundColor="#F4F4F4" />
-      <View style={[styles.header, { paddingTop: insets.top + 34 }]}>
-        <Pressable accessibilityLabel="Voltar" accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
-          <Image source={backIcon} style={styles.backIcon} />
-        </Pressable>
-        <Text style={styles.title}>Registrar prática</Text>
-      </View>
+      <ScreenHeader title="Registrar prática" back compact />
       <ScrollView contentContainerStyle={styles.form} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={styles.fieldBlock}>
           <Text style={styles.label}>Data</Text>
@@ -104,9 +101,7 @@ export default function RegisterPractice() {
         </View>
         <View style={[styles.fieldBlock, styles.attachmentBlock]}>
           <Text style={styles.label}>Anexe sua prática</Text>
-          <Pressable accessibilityRole="button" onPress={() => Alert.alert("Anexos", "A API ainda não aceita anexos em registros de prática.")} style={styles.field}>
-            <Text style={styles.attachmentPlaceholder}>Selecionar arquivo</Text>
-          </Pressable>
+          <View style={styles.field}><Text style={styles.attachmentPlaceholder}>Envio de arquivos ainda indisponível</Text></View>
         </View>
         <View style={styles.moodBlock}>
           <Text style={styles.label}>Como foi a prática?</Text>
@@ -129,10 +124,6 @@ export default function RegisterPractice() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#F4F4F4" },
-  header: { height: 120, paddingHorizontal: 29, position: "relative" },
-  backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-  backIcon: { width: 26, height: 26 },
-  title: { position: "absolute", top: 79, left: 0, right: 0, textAlign: "center", color: "#000000", fontSize: 18, fontWeight: "700" },
   form: { flexGrow: 1, paddingHorizontal: 29, paddingBottom: 17 },
   fieldBlock: { minHeight: 70, marginBottom: 22 },
   label: { color: "#000000", fontSize: 16, fontWeight: "500", marginBottom: 7 },

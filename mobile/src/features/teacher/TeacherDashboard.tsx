@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -30,14 +30,16 @@ export default function TeacherDashboard() {
   const [classPickerVisible, setClassPickerVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const request = useRef(0);
 
   const load = useCallback(() => {
+    const current = ++request.current;
     setLoading(true);
     setError(false);
     teacherService.dashboard(selectedClass || undefined).then((result) => {
+      if (current !== request.current) return;
       setData(result);
-      setSelectedClass(result.selectedClass);
-    }).catch(() => setError(true)).finally(() => setLoading(false));
+    }).catch(() => { if (current === request.current) setError(true); }).finally(() => { if (current === request.current) setLoading(false); });
   }, [selectedClass]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -64,7 +66,7 @@ export default function TeacherDashboard() {
           <Pressable accessibilityRole="button" accessibilityLabel="Escolher turma" onPress={() => setClassPickerVisible(true)} style={styles.classCard}>
             <View style={styles.classText}>
               <Text style={styles.classLabel}>Turma Atual</Text>
-              <Text numberOfLines={1} style={styles.classValue}>{selectedClass || "Nenhuma turma"}</Text>
+              <Text numberOfLines={1} style={styles.classValue}>{data.selectedClass || "Nenhuma turma"}</Text>
             </View>
             <Image source={icons.down} style={styles.downIcon} />
           </Pressable>
@@ -87,15 +89,15 @@ export default function TeacherDashboard() {
           </View>
 
           <Text style={styles.sectionTitle}>Próximas aulas</Text>
-          <Pressable accessibilityRole="button" onPress={() => router.push("/(teacher)/schedule")} style={styles.upcomingCard}>
+          <View style={styles.upcomingCard}>
             {data.upcomingLessons.length ? data.upcomingLessons.map((lesson) => (
-              <View key={lesson.id} style={styles.lessonRow}>
-                <Text style={styles.lessonTime}>{lesson.startTime.slice(0, 5)}</Text>
+              <Pressable key={lesson.id} accessibilityRole="button" accessibilityLabel={`Abrir aula de ${lesson.studentName} em ${lesson.date}`} onPress={() => router.push({ pathname: "/(teacher)/schedule", params: { date: lesson.date } })} style={styles.lessonRow}>
+                <Text style={styles.lessonTime}>{lesson.date.slice(5).split("-").reverse().join("/")} {lesson.startTime.slice(0, 5)}</Text>
                 <Text numberOfLines={1} style={styles.lessonStudent}>{lesson.studentName}</Text>
                 <Text numberOfLines={1} style={styles.lessonInstrument}>{lesson.instrument}</Text>
-              </View>
+              </Pressable>
             )) : <Text style={styles.emptyLessons}>Nenhuma aula agendada.</Text>}
-          </Pressable>
+          </View>
           <Pressable accessibilityRole="button" onPress={() => router.push("/(teacher)/schedule")} style={styles.fullSchedule}>
             <Text style={styles.fullScheduleText}>Ver agenda completa</Text>
           </Pressable>
@@ -144,8 +146,8 @@ const styles = StyleSheet.create({
   metricAction: { color: "#572AA8", fontSize: 14 },
   sectionTitle: { color: "#000000", fontSize: 14, fontWeight: "500", marginTop: 27, marginBottom: 15 },
   upcomingCard: { minHeight: 117, borderRadius: 15, backgroundColor: "#FFFFFF", paddingHorizontal: 17, paddingVertical: 12, justifyContent: "space-around" },
-  lessonRow: { height: 29, flexDirection: "row", alignItems: "center" },
-  lessonTime: { width: 74, color: "#000000", fontSize: 14 },
+  lessonRow: { minHeight: 44, flexDirection: "row", alignItems: "center" },
+  lessonTime: { width: 100, color: "#000000", fontSize: 13 },
   lessonStudent: { flex: 1, color: "#000000", fontSize: 14, fontWeight: "700" },
   lessonInstrument: { width: 70, color: "#000000", fontSize: 14, fontWeight: "300", textAlign: "right" },
   emptyLessons: { color: colors.muted, fontSize: 14 },

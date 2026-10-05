@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { ActivityIndicator, Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useAuth } from "@/features/auth/useAuth";
 import { studentService } from "@/features/student/studentService";
 import { colors } from "@/ui/theme";
@@ -13,6 +13,7 @@ const notificationIcon = require("@/assets/images/figma-student/dashboard-notifi
 const waveIcon = require("@/assets/images/figma-student/dashboard-wave.png");
 
 type NextLesson = {
+  id?: string;
   date?: string;
   startTime?: string;
   instrument?: string;
@@ -27,8 +28,6 @@ type DashboardData = {
   weeklyPracticeMin: number;
   nextLesson: NextLesson | null;
 };
-
-const WEEKLY_GOAL_MINUTES = 480;
 
 function formatMinutes(minutes: number) {
   const hours = Math.floor(minutes / 60);
@@ -54,6 +53,7 @@ function formatLessonSchedule(lesson: NextLesson) {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
@@ -142,13 +142,13 @@ export default function Dashboard() {
           <View style={styles.fullWidth}>
             <Text style={styles.cardTitle}>Prática semanal</Text>
             <Text style={styles.practiceValue}>
-              {formatMinutes(dashboard.weeklyPracticeMin)} / {formatMinutes(WEEKLY_GOAL_MINUTES)}
+              {formatMinutes(dashboard.weeklyPracticeMin)}
             </Text>
-            <ProgressBar width={progressWidth(dashboard.weeklyPracticeMin, WEEKLY_GOAL_MINUTES)} />
+            <Pressable accessibilityRole="button" onPress={() => router.push("/(student)/goals")}><Text style={styles.detail}>Ver minhas metas</Text></Pressable>
           </View>
         </View>
 
-        <View style={styles.card}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Ver próxima aula" disabled={!nextLesson?.id} onPress={() => router.push(`/(student)/lesson/${nextLesson?.id}`)} style={styles.card}>
           <Image source={agendaIcon} style={styles.cardIcon} />
           <View>
             <Text style={styles.cardTitle}>Próxima aula</Text>
@@ -157,7 +157,7 @@ export default function Dashboard() {
             </Text>
             {nextLesson?.instrument ? <Text style={styles.detail}>{nextLesson.instrument}</Text> : null}
           </View>
-        </View>
+        </Pressable>
       </ScrollView>
     </View>
   );

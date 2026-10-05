@@ -13,6 +13,7 @@ type Deps = {
 
 export function createApiClient(deps: Deps) {
   const doFetch = deps.fetchFn ?? fetch;
+  let refreshing: Promise<boolean> | null = null;
 
   // The refresh token travels as an httpOnly cookie, so this carries no body.
   async function refresh(): Promise<boolean> {
@@ -26,17 +27,30 @@ export function createApiClient(deps: Deps) {
     return true;
   }
 
+  function refreshOnce() {
+    if (!refreshing) refreshing = refresh().finally(() => { refreshing = null; });
+    return refreshing;
+  }
+
   // Sends a request, retrying once after refreshing the token on 401.
   async function dispatch<T>(
     send: (access: string | null) => Promise<Response>,
     auth: boolean,
+    read: (response: Response) => Promise<T> = (response) => response.json(),
   ): Promise<T> {
+    const initialAccess = auth ? await deps.getAccessToken() : null;
     const run = async () => send(auth ? await deps.getAccessToken() : null);
-    let res = await run();
+    let res = await send(initialAccess);
     if (auth && res.status === 401) {
-      if (await refresh()) {
+      const currentAccess = await deps.getAccessToken();
+      if ((currentAccess && currentAccess !== initialAccess) || await refreshOnce()) {
         res = await run();
       } else {
+        await deps.clearAccessToken();
+        deps.onAuthFailure();
+        throw new Error("UNAUTHENTICATED");
+      }
+      if (res.status === 401) {
         await deps.clearAccessToken();
         deps.onAuthFailure();
         throw new Error("UNAUTHENTICATED");
@@ -44,7 +58,7 @@ export function createApiClient(deps: Deps) {
     }
     if (res.status >= 400) throw await toApiError(res);
     if (res.status === 204) return undefined as T;
-    return res.json() as Promise<T>;
+    return read(res);
   }
 
   function request<T>(
@@ -84,6 +98,10 @@ export function createApiClient(deps: Deps) {
 
   return {
     get: <T>(p: string) => request<T>("GET", p),
+    getBytes: (p: string) => dispatch<ArrayBuffer>((access) => doFetch(`${deps.baseUrl}${p}`, {
+      credentials: "include",
+      headers: access ? { Authorization: `Bearer ${access}` } : {},
+    }), true, (response) => response.arrayBuffer()),
     post: <T>(p: string, b?: unknown, opts?: RequestOptions) => request<T>("POST", p, b, opts),
     put: <T>(p: string, b?: unknown) => request<T>("PUT", p, b),
     patch: <T>(p: string, b?: unknown) => request<T>("PATCH", p, b),

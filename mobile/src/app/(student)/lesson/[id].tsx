@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useLocalSearchParams } from "expo-router";
 import { studentService, type StudentLessonDetail } from "@/features/student/studentService";
 import { colors } from "@/ui/theme";
-
-const backIcon = require("@/assets/images/figma-student/back.png");
+import { ScreenHeader } from "@/ui/ScreenHeader";
+import { lessonStatusLabel } from "@/features/teacher/agenda";
 const fileIcon = require("@/assets/images/figma-student/file.png");
 
 function formatSchedule(date: string, time: string) {
@@ -22,8 +21,6 @@ function formatSize(bytes: number | null) {
 
 export default function LessonDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
   const [detail, setDetail] = useState<StudentLessonDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -46,12 +43,7 @@ export default function LessonDetail() {
   return (
     <View style={styles.screen}>
       <StatusBar barStyle="dark-content" backgroundColor="#F4F4F4" />
-      <View style={[styles.header, { paddingTop: insets.top + 34 }]}>
-        <Pressable accessibilityLabel="Voltar" accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
-          <Image source={backIcon} style={styles.backIcon} />
-        </Pressable>
-        <Text style={styles.title}>Detalhes da Aula</Text>
-      </View>
+      <ScreenHeader title="Detalhes da Aula" back />
       {loading ? (
         <ActivityIndicator color={colors.accent} style={styles.center} />
       ) : error || !lesson ? (
@@ -67,6 +59,7 @@ export default function LessonDetail() {
             <Text style={styles.body}>{formatSchedule(lesson.date, lesson.startTime)}</Text>
             <Text style={styles.instrument}>{lesson.instrument}</Text>
             <Text style={styles.teacher}>Professor: {lesson.teacherName}</Text>
+            <Text style={styles.body}>{lessonStatusLabel(lesson.status)}{lesson.endTime ? ` · Até ${lesson.endTime.slice(0, 5)}` : ""}</Text>
           </View>
 
           <View style={styles.card}>
@@ -99,10 +92,6 @@ export default function LessonDetail() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#F4F4F4" },
-  header: { height: 135, paddingHorizontal: 29, position: "relative" },
-  backButton: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-  backIcon: { width: 26, height: 26 },
-  title: { position: "absolute", top: 79, left: 0, right: 0, textAlign: "center", color: colors.text, fontSize: 18, fontWeight: "700" },
   content: { paddingHorizontal: 29, paddingTop: 24, paddingBottom: 36, gap: 31 },
   card: { minHeight: 116, backgroundColor: colors.surface, borderColor: "#D3D3D3", borderWidth: 1, borderRadius: 15, paddingHorizontal: 19, paddingVertical: 15, justifyContent: "flex-start" },
   attachmentsCard: { minHeight: 97 },

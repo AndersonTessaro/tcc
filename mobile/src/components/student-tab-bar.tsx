@@ -1,6 +1,8 @@
 import type { ComponentProps } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Tabs } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useKeyboardVisible } from "@/hooks/use-keyboard-visible";
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["tabBar"]>>[0];
 
@@ -13,13 +15,16 @@ const tabs = [
 ] as const;
 
 export function StudentTabBar({ state, navigation }: TabBarProps) {
+  const insets = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardVisible();
   const current = state.routes[state.index]?.name;
   const active = current === "lesson/[id]" ? "lessons"
     : current === "practice/register" ? "practice"
-    : current === "goals" ? "progress" : current;
+    : current === "goals" ? "progress" : current === "materials" ? "more" : current;
 
+  if (keyboardVisible) return null;
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, { height: 91 + Math.max(0, insets.bottom - 22), paddingBottom: Math.max(0, insets.bottom - 22) }]}>
       {tabs.map((tab) => {
         const route = state.routes.find((entry) => entry.name === tab.name);
         if (!route) return null;
@@ -58,7 +63,7 @@ const styles = StyleSheet.create({
   indicator: {
     position: "absolute",
     top: 0,
-    width: 76,
+    width: "94.5%",
     height: 10,
     backgroundColor: "#6C45BE",
   },

@@ -1,10 +1,11 @@
 import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { teacherService, type TeacherLesson } from "@/features/teacher/teacherService";
 import { hhmm, lessonStatusLabel } from "@/features/teacher/agenda";
 import { localIsoDate, validateDate } from "@/features/teacher/lessonForm";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
+import { ScreenHeader } from "@/ui/ScreenHeader";
 
 function initialStart() {
   const date = new Date();
@@ -13,6 +14,7 @@ function initialStart() {
 }
 
 export default function History() {
+  const router = useRouter();
   const [start, setStart] = useState(initialStart);
   const [end, setEnd] = useState(localIsoDate);
   const [range, setRange] = useState({ start, end });
@@ -51,47 +53,50 @@ export default function History() {
   };
 
   return (
-    <View className="flex-1 bg-[#F4F4F4] px-[18px]">
-      <Text className="text-center text-[20px] font-bold text-[#17131A] mt-10 mb-8">Histórico de aulas</Text>
-      <Text className="text-[#17131A] font-semibold mb-2">Período</Text>
-      <View className="flex-row gap-2 mb-3">
-        <TextInput
-          accessibilityLabel="Data inicial"
-          className="flex-1 bg-white border border-[#D5D5D5] text-[#17131A] rounded-lg p-3"
-          placeholder="Início (AAAA-MM-DD)"
-          placeholderTextColor="#9A969B"
-          value={start}
-          onChangeText={setStart}
-        />
-        <TextInput
-          accessibilityLabel="Data final"
-          className="flex-1 bg-white border border-[#D5D5D5] text-[#17131A] rounded-lg p-3"
-          placeholder="Fim (AAAA-MM-DD)"
-          placeholderTextColor="#9A969B"
-          value={end}
-          onChangeText={setEnd}
-        />
+    <View className="flex-1 bg-[#F4F4F4]">
+      <ScreenHeader title="Histórico de aulas" back />
+      <View className="flex-1 px-[18px]">
+        <Text className="text-[#17131A] font-semibold mb-2">Período</Text>
+        <View className="flex-row gap-2 mb-3">
+          <TextInput
+            accessibilityLabel="Data inicial"
+            className="flex-1 bg-white border border-[#D5D5D5] text-[#17131A] rounded-lg p-3"
+            placeholder="Início (AAAA-MM-DD)"
+            placeholderTextColor="#9A969B"
+            value={start}
+            onChangeText={setStart}
+          />
+          <TextInput
+            accessibilityLabel="Data final"
+            className="flex-1 bg-white border border-[#D5D5D5] text-[#17131A] rounded-lg p-3"
+            placeholder="Fim (AAAA-MM-DD)"
+            placeholderTextColor="#9A969B"
+            value={end}
+            onChangeText={setEnd}
+          />
+        </View>
+        <Pressable accessibilityRole="button" className="bg-[#7040C5] rounded-lg p-3 items-center mb-4" onPress={filter}>
+          <Text className="text-white font-semibold">Buscar aulas</Text>
+        </Pressable>
+        {message ? <Text className="text-[#B42318] mb-3">{message}</Text> : null}
+        {loading ? <ActivityIndicator color="#7040C5" /> : (
+          <FlatList
+            data={lessons}
+            keyExtractor={(lesson) => lesson.id}
+            ListEmptyComponent={<Text className="text-[#6A666B] text-center py-8">Nenhuma aula neste período.</Text>}
+            renderItem={({ item }) => (
+              <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/(teacher)/schedule", params: { date: item.date } })} className="bg-white border border-[#D5D5D5] rounded-lg p-4 mb-3">
+                <Text className="text-[#17131A] font-semibold">
+                  {item.date.split("-").reverse().join("/")} · {hhmm(item.startTime)}–{hhmm(item.endTime)}
+                </Text>
+                <Text className="text-[#17131A] mt-1">{item.studentName} · {item.instrument}</Text>
+                <Text className="text-[#6A666B] mt-1">{lessonStatusLabel(item.status)}</Text>
+                <Text className="text-[#5930A9] mt-2">Abrir na agenda</Text>
+              </Pressable>
+            )}
+          />
+        )}
       </View>
-      <Pressable accessibilityRole="button" className="bg-[#7040C5] rounded-lg p-3 items-center mb-4" onPress={filter}>
-        <Text className="text-white font-semibold">Buscar aulas</Text>
-      </Pressable>
-      {message ? <Text className="text-[#B42318] mb-3">{message}</Text> : null}
-      {loading ? <ActivityIndicator color="#7040C5" /> : (
-        <FlatList
-          data={lessons}
-          keyExtractor={(lesson) => lesson.id}
-          ListEmptyComponent={<Text className="text-[#6A666B] text-center py-8">Nenhuma aula neste período.</Text>}
-          renderItem={({ item }) => (
-            <View className="bg-white border border-[#D5D5D5] rounded-lg p-4 mb-3">
-              <Text className="text-[#17131A] font-semibold">
-                {item.date.split("-").reverse().join("/")} · {hhmm(item.startTime)}–{hhmm(item.endTime)}
-              </Text>
-              <Text className="text-[#17131A] mt-1">{item.studentName} · {item.instrument}</Text>
-              <Text className="text-[#6A666B] mt-1">{lessonStatusLabel(item.status)}</Text>
-            </View>
-          )}
-        />
-      )}
     </View>
   );
 }

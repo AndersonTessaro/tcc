@@ -11,6 +11,8 @@ import br.com.harmonia.infrastructure.persistence.gamification.GoalStatus;
 import br.com.harmonia.infrastructure.persistence.gamification.GoalType;
 import br.com.harmonia.infrastructure.persistence.gamification.Progress;
 import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
+import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
+import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
 import br.com.harmonia.presentation.response.AttachmentResponse;
 import br.com.harmonia.presentation.response.LessonResponse;
 import br.com.harmonia.presentation.response.MaterialResponse;
@@ -24,6 +26,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,7 +66,10 @@ public class StudentController {
     @PreAuthorize("hasAuthority('progress.read')")
     public Map<String, Object> dashboard() {
         Progress p = progress.myProgress();
-        var upcoming = lesson.myLessons(true);
+        var nextLesson = lesson.myLessons(true).stream()
+            .filter(item -> item.getStatus() == LessonStatus.SCHEDULED)
+            .filter(item -> item.getDate().isAfter(LocalDate.now()) || item.getStartTime().isAfter(LocalTime.now()))
+            .min(Comparator.comparing(Lesson::getDate).thenComparing(Lesson::getStartTime));
         Map<String, Object> body = new HashMap<>();
         body.put("xp", p.getXpTotal());
         body.put("level", p.getLevel());
@@ -70,7 +77,7 @@ public class StudentController {
         body.put("nextLevelXp", gamification.xpToReachLevel(p.getLevel() + 1));
         body.put("streakDays", p.getStreakDays());
         body.put("weeklyPracticeMin", practice.weeklyPracticeMin(p.getStudent().getId()));
-        body.put("nextLesson", upcoming.isEmpty() ? null : LessonResponse.of(upcoming.get(upcoming.size() - 1)));
+        body.put("nextLesson", nextLesson.map(LessonResponse::of).orElse(null));
         return body;
     }
 
@@ -139,7 +146,7 @@ public class StudentController {
 
     @PutMapping("/goals/{id}")
     @PreAuthorize("hasAuthority('goal.manage')")
-    public Goal updateGoalProgress(@PathVariable UUID id, @RequestParam int progress) {
+    public Goal updateGoalProgress(@PathVariable UUID id, @RequestParam @Min(0) int progress) {
         return goal.updateProgress(id, progress);
     }
 }

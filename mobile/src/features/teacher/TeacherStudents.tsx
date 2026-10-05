@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Image, Pressable, StatusBar, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ScreenHeader } from "@/ui/ScreenHeader";
 import { teacherService, type StudentSummary, type TeacherEnrollment } from "./teacherService";
 import { colors } from "@/ui/theme";
 
@@ -11,7 +11,6 @@ const plusIcon = require("@/assets/images/figma-teacher/plus.png");
 
 export default function TeacherStudents() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const [students, setStudents] = useState<StudentSummary[]>([]);
   const [enrollments, setEnrollments] = useState<TeacherEnrollment[]>([]);
   const [query, setQuery] = useState("");
@@ -41,12 +40,11 @@ export default function TeacherStudents() {
   return (
     <View style={styles.screen}>
       <StatusBar barStyle="dark-content" backgroundColor="#F4F4F4" />
-      <View style={[styles.header, { paddingTop: insets.top + 34 }]}>
-        <Text style={styles.title}>Alunos</Text>
+      <ScreenHeader title="Alunos" action={
         <Pressable accessibilityRole="button" accessibilityLabel="Adicionar aluno" onPress={() => Alert.alert("Adicionar aluno", "O cadastro de alunos é feito pela administração.")} style={styles.addButton}>
           <Image source={plusIcon} style={styles.plusIcon} />
         </Pressable>
-      </View>
+      } />
       <View style={styles.searchField}>
         <Image source={searchIcon} style={styles.searchIcon} />
         <TextInput accessibilityLabel="Buscar aluno" value={query} onChangeText={setQuery} placeholder="Buscar aluno..." placeholderTextColor="#CCCCCC" style={styles.searchInput} />
@@ -80,9 +78,7 @@ export default function TeacherStudents() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#F4F4F4" },
-  header: { height: 135, paddingHorizontal: 29, position: "relative" },
-  title: { color: "#000000", fontSize: 18, fontWeight: "700", textAlign: "center" },
-  addButton: { position: "absolute", right: 34, top: 75, width: 30, height: 30, alignItems: "center", justifyContent: "center" },
+  addButton: { width: 30, height: 30, alignItems: "center", justifyContent: "center" },
   plusIcon: { width: 20, height: 20 },
   searchField: { height: 46, borderWidth: 1, borderColor: "#CCCCCC", backgroundColor: "#FFFFFF", borderRadius: 15, marginHorizontal: 29, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 12, marginTop: 24 },
   searchIcon: { width: 15, height: 15 },

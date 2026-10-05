@@ -2,6 +2,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react-nativ
 import Schedules from "@/app/(teacher)/schedules";
 import { teacherService, type TeacherSchedule } from "@/features/teacher/teacherService";
 import { ApiError } from "@/lib/http/apiError";
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ back: jest.fn() }),
+  useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
+}));
 
 jest.mock("@/features/teacher/teacherService", () => ({
   teacherService: {

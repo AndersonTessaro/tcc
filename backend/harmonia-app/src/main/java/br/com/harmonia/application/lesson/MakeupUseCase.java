@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.UUID;
+import java.util.Optional;
 
 @Service
 public class MakeupUseCase {
@@ -31,6 +32,13 @@ public class MakeupUseCase {
         this.makeups = makeups;
         this.current = current;
         this.schedulingGuard = schedulingGuard;
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<MakeupLesson> forOriginal(UUID originalLessonId) {
+        Lesson original = lessons.findById(originalLessonId).orElseThrow(() -> new ResourceNotFoundException("Lesson"));
+        current.assertOwnedByCurrentTeacher(original.getEnrollment());
+        return makeups.findByOriginalLessonId(originalLessonId);
     }
 
     @Transactional

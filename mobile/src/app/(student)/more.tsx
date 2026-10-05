@@ -35,9 +35,11 @@ export default function More() {
   ]);
 
   const menuItems = [
+    { label: "Materiais", icon: icons.instrument, action: () => router.push("/(student)/materials") },
+    { label: "Minhas metas", icon: icons.settings, action: () => router.push("/(student)/goals") },
     { label: "Instrumento", icon: icons.instrument, action: () => router.push("/(student)/lessons") },
     { label: "Configurações", icon: icons.settings, action: () => Alert.alert("Configurações", "Configurações pessoais ainda não disponíveis.") },
-    { label: "Notificações", icon: icons.notifications, action: () => Alert.alert("Notificações", "Nenhuma notificação no momento.") },
+    { label: "Notificações", icon: icons.notifications, action: () => Alert.alert("Notificações", "Notificações ainda não disponíveis.") },
     { label: "Ajuda", icon: icons.help, action: () => Alert.alert("Ajuda", "Consulte a escola para obter suporte.") },
     { label: "Sair", icon: icons.exit, action: signOut },
   ];

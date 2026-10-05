@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -22,6 +23,13 @@ public class MakeupController {
 
     public record NewMakeup(@NotNull LocalDate date, @NotNull LocalTime startTime,
                             @NotNull LocalTime endTime, String reason) {}
+
+    @GetMapping("/{id}/makeup")
+    @PreAuthorize("hasAuthority('lesson.read')")
+    public ResponseEntity<MakeupResponse> forOriginal(@PathVariable UUID id) {
+        return uc.forOriginal(id).map(MakeupResponse::of).map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.noContent().build());
+    }
 
     @PostMapping("/{id}/makeup")
     @PreAuthorize("hasAuthority('lesson.manage')")

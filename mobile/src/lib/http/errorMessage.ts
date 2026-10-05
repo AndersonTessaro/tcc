@@ -4,6 +4,7 @@ const BY_CODE: Record<string, string> = {
   SCHEDULE_CONFLICT: "Conflito de horário com outra aula ou horário fixo",
   DUPLICATE_RESOURCE: "Já existe um cadastro com esses dados",
   VALIDATION: "Dados inválidos. Revise os campos.",
+  INVALID_RESET_TOKEN: "Link de recuperação inválido ou expirado. Solicite outro link.",
   NOT_FOUND: "Registro não encontrado",
   OWNERSHIP_DENIED: "Sem permissão para acessar este registro",
   ACCESS_DENIED: "Sem permissão para esta ação",
