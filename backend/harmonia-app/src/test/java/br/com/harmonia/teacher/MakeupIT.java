@@ -13,6 +13,7 @@ import java.time.LocalDate;
 
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -61,6 +62,14 @@ class MakeupIT {
             .andExpect(jsonPath("$.id", notNullValue()))
             .andExpect(jsonPath("$.originalLesson.id", notNullValue()))
             .andExpect(jsonPath("$.newLesson.id", notNullValue()));
+        mvc.perform(get("/teacher/lessons/" + originalLesson + "/makeup").header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.originalLesson.id", org.hamcrest.Matchers.is(originalLesson)))
+            .andExpect(jsonPath("$.newLesson.date", org.hamcrest.Matchers.is(today)))
+            .andExpect(jsonPath("$.reason", org.hamcrest.Matchers.is("Aluno faltou")));
+        String studentToken = login("studentMk", "Student@123");
+        mvc.perform(get("/teacher/lessons/" + originalLesson + "/makeup").header("Authorization", "Bearer " + studentToken))
+            .andExpect(status().isForbidden());
     }
 
     @Test

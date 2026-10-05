@@ -7,6 +7,7 @@ import { ApiError } from "@/lib/http/apiError";
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
+  useLocalSearchParams: () => ({}),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
 jest.mock("@/features/teacher/teacherService", () => ({

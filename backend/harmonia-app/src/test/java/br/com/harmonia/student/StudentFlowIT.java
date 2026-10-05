@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
+import java.time.LocalDate;
 
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -43,7 +44,7 @@ class StudentFlowIT {
             "{\"username\":\"teacherA\",\"email\":\"teacherA@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher A\",\"instrumentIds\":[\"" + inst + "\"]}");
         String student = postId(admin, "/admin/students",
             "{\"username\":\"studentA\",\"email\":\"studentA@h.local\",\"password\":\"Student@123\",\"name\":\"Student A\"}");
-        postId(admin, "/admin/enrollments",
+        String enrollment = postId(admin, "/admin/enrollments",
             "{\"studentId\":\"" + student + "\",\"teacherId\":\"" + teacher + "\",\"instrumentId\":\"" + inst + "\"}");
 
         String t = login("studentA", "Student@123");
@@ -79,6 +80,8 @@ class StudentFlowIT {
         // goal: create (target 2) -> complete
         String goal = postId(t, "/me/goals",
             "{\"title\":\"Study\",\"type\":\"LESSONS\",\"target\":2}");
+        mvc.perform(put("/me/goals/" + goal + "?progress=-1").header("Authorization", "Bearer " + t))
+            .andExpect(status().isBadRequest());
         mvc.perform(put("/me/goals/" + goal + "?progress=2").header("Authorization", "Bearer " + t))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status", is("COMPLETED")));
@@ -86,5 +89,17 @@ class StudentFlowIT {
         // upcoming lessons (empty, no lesson) -> 200
         mvc.perform(get("/me/lessons?status=upcoming").header("Authorization", "Bearer " + t))
             .andExpect(status().isOk());
+
+        String teacherToken = login("teacherA", "Teach@1234");
+        String tomorrow = LocalDate.now().plusDays(1).toString();
+        String lessonBody = "{\"enrollmentId\":\"" + enrollment + "\",\"date\":\"" + tomorrow + "\",\"startTime\":\"%s\",\"endTime\":\"%s\"}";
+        String canceled = postId(teacherToken, "/teacher/lessons", lessonBody.formatted("08:00", "09:00"));
+        postId(teacherToken, "/teacher/lessons", lessonBody.formatted("11:00", "12:00"));
+        String earliest = postId(teacherToken, "/teacher/lessons", lessonBody.formatted("09:00", "10:00"));
+        mvc.perform(patch("/teacher/lessons/" + canceled + "/status").header("Authorization", "Bearer " + teacherToken)
+                .contentType("application/json").content("{\"status\":\"CANCELED\"}"))
+            .andExpect(status().isOk());
+        mvc.perform(get("/me/dashboard").header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.nextLesson.id", is(earliest)));
     }
 }

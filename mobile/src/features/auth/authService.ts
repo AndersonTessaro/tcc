@@ -21,6 +21,7 @@ export const authService = {
   me: () =>
     api.get<{ username: string; authorities: string[]; displayName: string }>("/auth/me"),
   forgot: (email: string) => api.post("/auth/forgot-password", { email }, { auth: false }),
+  reset: (token: string, newPassword: string) => api.post("/auth/reset-password", { token, newPassword }, { auth: false }),
   async logout() {
     try {
       await api.post("/auth/logout");

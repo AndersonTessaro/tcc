@@ -3,6 +3,7 @@ import History from "@/app/(teacher)/history";
 import { teacherService, type TeacherLesson } from "@/features/teacher/teacherService";
 
 jest.mock("expo-router", () => ({
+  useRouter: () => ({ back: jest.fn() }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
 jest.mock("@/features/teacher/teacherService", () => ({

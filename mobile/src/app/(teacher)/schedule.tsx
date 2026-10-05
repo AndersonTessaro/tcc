@@ -1,10 +1,11 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { teacherService, type AttendanceStatus, type LessonStatus, type TeacherLesson } from "@/features/teacher/teacherService";
 import { ATTENDANCE_OPTIONS, canRecordAttendance, hhmm, lessonActions, lessonStatusLabel } from "@/features/teacher/agenda";
 import { localIsoDate, validateDate } from "@/features/teacher/lessonForm";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
+import { ScreenHeader } from "@/ui/ScreenHeader";
 
 const weekDays = ["D", "S", "T", "Q", "Q", "S", "S"];
 
@@ -21,8 +22,13 @@ function monthDays(value: string) {
 export default function Schedule() {
   const router = useRouter();
   const today = localIsoDate();
-  const [date, setDate] = useState(today);
-  const [dateInput, setDateInput] = useState(today);
+  const params = useLocalSearchParams<{ date?: string }>();
+  const initialDate = params.date && !validateDate(params.date) ? params.date : today;
+  const [date, setDate] = useState(initialDate);
+  const [dateInput, setDateInput] = useState(initialDate);
+  useEffect(() => {
+    if (params.date && !validateDate(params.date)) { setDate(params.date); setDateInput(params.date); }
+  }, [params.date]);
   const [lessons, setLessons] = useState<TeacherLesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
@@ -116,10 +122,11 @@ export default function Schedule() {
       <FlatList
         data={loading ? [] : lessons}
         keyExtractor={(lesson) => lesson.id}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 28, flexGrow: 1 }}
         ListHeaderComponent={
           <View>
-            <Text className="text-center text-[20px] font-bold text-[#17131A] mt-10 mb-8">Agenda</Text>
+            <View style={{ marginHorizontal: -18 }}><ScreenHeader title="Agenda" /></View>
             <Pressable accessibilityRole="button" className="bg-[#7040C5] rounded-lg p-3 items-center mb-4" onPress={() => router.push("/(teacher)/new-lesson")}>
               <Text className="text-white font-semibold">Nova aula</Text>
             </Pressable>
@@ -150,9 +157,10 @@ export default function Schedule() {
         }
         ListEmptyComponent={loading ? null : <Text className="text-[#6A666B] text-center py-8">Sem aulas neste dia.</Text>}
         renderItem={({ item }) => (
-          <View className="bg-white border border-[#D5D5D5] rounded-lg p-4 mb-3">
+          <View testID={`lesson-${item.id}`} className="bg-white border border-[#D5D5D5] rounded-lg p-4 mb-3">
             <Text className="text-[#17131A] font-bold">{hhmm(item.startTime)}–{hhmm(item.endTime)} · {item.studentName}</Text>
             <Text className="text-[#6A666B] mt-1 mb-2">{item.instrument} · {lessonStatusLabel(item.status)}{item.content ? " · " + item.content : ""}</Text>
+            {item.homework ? <Text className="text-[#6A666B] mb-2">Tarefa: {item.homework}</Text> : null}
             {canRecordAttendance(item, today) ? (
               <View>
                 <View className="flex-row flex-wrap gap-2">

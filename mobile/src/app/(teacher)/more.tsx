@@ -1,8 +1,16 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "@/features/auth/useAuth";
 import { authService } from "@/features/auth/authService";
+import { ScreenHeader } from "@/ui/ScreenHeader";
+
+const icons = {
+  user: require("@/assets/images/figma-teacher/user.png"),
+  students: require("@/assets/images/figma-teacher/students.png"),
+  calendar: require("@/assets/images/figma-teacher/calendar.png"),
+  history: require("@/assets/images/figma-teacher/clock.png"),
+  exit: require("@/assets/images/figma-student/menu-exit.png"),
+};
 
 export default function More() {
   const { user, logout } = useAuth();
@@ -13,30 +21,45 @@ export default function More() {
     logout();
   };
 
-  const row = (label: string, icon: keyof typeof Ionicons.glyphMap, onPress: () => void) => (
-    <Pressable key={label} accessibilityRole="button" onPress={onPress} className="min-h-[67px] flex-row items-center border-b border-[#D5D5D5] px-3">
-      <Ionicons name={icon} size={25} color="#17131A" />
-      <Text className="flex-1 text-[#17131A] text-[15px] ml-4">{label}</Text>
-      <Ionicons name="chevron-forward" size={16} color="#17131A" />
+  const row = (label: string, icon: number, onPress: () => void) => (
+    <Pressable key={label} accessibilityRole="button" onPress={onPress} style={styles.row}>
+      <Image source={icon} style={styles.rowIcon} />
+      <Text style={styles.rowLabel}>{label}</Text>
+      <Text style={styles.chevron}>&gt;</Text>
     </Pressable>
   );
 
   return (
-    <ScrollView className="flex-1 bg-[#F4F4F4]" contentContainerStyle={{ paddingHorizontal: 29, paddingBottom: 32 }}>
-      <Text className="text-center text-[20px] font-bold text-[#17131A] mt-10 mb-14">Mais</Text>
-      <View className="bg-white border border-[#D5D5D5] rounded-2xl flex-row items-center px-4 py-5 mb-6">
-        <View className="w-[60px] h-[60px] rounded-full bg-[#586582] items-center justify-center">
-          <Ionicons name="person" size={38} color="#FFFFFF" />
+    <View style={styles.screen}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F4F4F4" />
+      <ScreenHeader title="Mais" />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.profile}>
+          <Image source={icons.user} style={styles.avatar} />
+          <View style={styles.profileText}><Text style={styles.name}>{user?.displayName || user?.username || "Professor"}</Text><Text style={styles.role}>Professor</Text></View>
         </View>
-        <View className="ml-4">
-          <Text className="text-[#17131A] font-bold text-[15px]">{user?.username || "Professor"}</Text>
-          <Text className="text-[#7040C5] mt-1">Professor</Text>
+        <View style={styles.menu}>
+          {row("Alunos", icons.students, () => router.push("/(teacher)/students"))}
+          {row("Horários fixos", icons.calendar, () => router.push("/(teacher)/schedules"))}
+          {row("Histórico de aulas", icons.history, () => router.push("/(teacher)/history"))}
+          {row("Sair", icons.exit, signOut)}
         </View>
-      </View>
-      {row("Alunos", "people-outline", () => router.push("/(teacher)/students"))}
-      {row("Horários fixos", "calendar-outline", () => router.push("/(teacher)/schedules"))}
-      {row("Histórico de aulas", "time-outline", () => router.push("/(teacher)/history"))}
-      {row("Sair", "log-out-outline", signOut)}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: "#F4F4F4" },
+  content: { paddingHorizontal: 29, paddingTop: 24, paddingBottom: 30 },
+  profile: { minHeight: 98, borderWidth: 1, borderColor: "#D3D3D3", borderRadius: 15, backgroundColor: "#FFFFFF", flexDirection: "row", alignItems: "center", padding: 15 },
+  avatar: { width: 60, height: 60 },
+  profileText: { flex: 1, marginLeft: 18, gap: 8 },
+  name: { color: "#000000", fontSize: 14, fontWeight: "700" },
+  role: { color: "#572AA8", fontSize: 14 },
+  menu: { marginTop: 42, gap: 21 },
+  row: { minHeight: 46, borderBottomWidth: 2, borderBottomColor: "#D9D9D9", flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingBottom: 14 },
+  rowIcon: { width: 25, height: 25 },
+  rowLabel: { color: "#000000", fontSize: 14, fontWeight: "500", flex: 1, marginLeft: 18 },
+  chevron: { color: "#000000", fontSize: 14, fontWeight: "300", marginRight: 13 },
+});

@@ -1,4 +1,7 @@
 import { api } from "../../lib/http";
+import { Platform } from "react-native";
+
+export type MaterialFile = { uri: string; name: string; mimeType?: string; file?: Blob };
 
 export type TeacherEnrollment = {
   id: string;
@@ -25,6 +28,7 @@ export type TeacherSchedule = {
 
 export type NewSchedule = { enrollmentId: string; weekday: Weekday; startTime: string; endTime: string };
 export type NewMakeup = { date: string; startTime: string; endTime: string; reason?: string };
+export type MakeupLink = { id: string; originalLesson: TeacherLesson; newLesson: TeacherLesson; reason: string | null };
 export type AttendanceStatus = "PRESENT" | "ABSENT" | "EXCUSED";
 
 export type TeacherLesson = {
@@ -96,21 +100,25 @@ export const teacherService = {
   schedule: (date: string) => api.get<TeacherLesson[]>(`/teacher/schedule?date=${date}`),
   changeLessonStatus: (lessonId: string, status: LessonStatus) =>
     api.patch<TeacherLesson>(`/teacher/lessons/${lessonId}/status`, { status }),
-  makeup: (lessonId: string, b: NewMakeup) => api.post<unknown>(`/teacher/lessons/${lessonId}/makeup`, b),
+  makeup: (lessonId: string, b: NewMakeup) => api.post<MakeupLink>(`/teacher/lessons/${lessonId}/makeup`, b),
+  makeupLink: (lessonId: string) => api.get<MakeupLink | undefined>(`/teacher/lessons/${lessonId}/makeup`),
   schedules: () => api.get<TeacherSchedule[]>("/teacher/schedules"),
   createSchedule: (b: NewSchedule) => api.post<TeacherSchedule>("/teacher/schedules", b),
   setScheduleActive: (scheduleId: string, active: boolean) =>
     api.patch<TeacherSchedule>(`/teacher/schedules/${scheduleId}/active`, { active }),
-  reports: (studentId: string) => api.get<any>(`/teacher/reports?studentId=${studentId}`),
+  reports: (studentId: string) => api.get<TeacherStudentDetailData>(`/teacher/reports?studentId=${studentId}`),
   uploadMaterial: (
     studentId: string,
-    file: { uri: string; name: string; mimeType?: string },
+    file: MaterialFile,
     title: string,
     description?: string,
   ) => {
     const form = new FormData();
     // React Native FormData accepts a {uri,name,type} object for files.
-    form.append("file", {
+    if (Platform.OS === "web") {
+      if (!file.file) throw new Error("Escolha novamente o arquivo para enviar.");
+      form.append("file", file.file, file.name);
+    } else form.append("file", {
       uri: file.uri,
       name: file.name,
       type: file.mimeType ?? "application/octet-stream",
