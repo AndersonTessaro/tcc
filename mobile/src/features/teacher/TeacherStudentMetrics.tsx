@@ -1,20 +1,32 @@
 import { StyleSheet, Text, View } from "react-native";
+import { colors, radius, shadow, space, type } from "@/ui/theme";
 
-export function TeacherStudentMetrics({ attendanceRate, weeklyPracticeMin, xp, level }: { attendanceRate: number; weeklyPracticeMin: number; xp: number; level: number }) {
+type TeacherStudentMetricsProps = { attendanceRate: number; weeklyPracticeMin: number; xp: number; level: number };
+
+export function TeacherStudentMetrics({ attendanceRate, weeklyPracticeMin, xp, level }: TeacherStudentMetricsProps) {
   const practiceTime = `${Math.floor(weeklyPracticeMin / 60)}h ${String(weeklyPracticeMin % 60).padStart(2, "0")}m`;
   return (
     <View style={styles.row}>
-      <View style={styles.metric}><Text style={styles.label}>Frequência</Text><Text style={styles.value}>{attendanceRate}%</Text><Text style={styles.foot}>Últimos 30 dias</Text></View>
-      <View style={styles.metric}><Text style={styles.label}>Prática (Semana)</Text><Text style={styles.value}>{practiceTime}</Text><Text style={styles.foot}>Tempo total</Text></View>
-      <View style={styles.metric}><Text style={styles.label}>XP</Text><Text style={styles.value}>{xp}</Text><Text style={styles.foot}>Nível {level}</Text></View>
+      <Metric label="Frequência" value={`${attendanceRate}%`} foot="Últimos 30 dias" />
+      <Metric label="Prática (semana)" value={practiceTime} foot="Tempo total" />
+      <Metric label="XP" value={String(xp)} foot={`Nível ${level}`} />
+    </View>
+  );
+}
+
+function Metric({ label, value, foot }: { label: string; value: string; foot: string }) {
+  return (
+    <View accessible accessibilityLabel={`${label}: ${value}, ${foot}`} style={styles.metric}>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.value}>{value}</Text>
+      <Text style={styles.label}>{foot}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", gap: 14, marginBottom: 42 },
-  metric: { flex: 1, minHeight: 115, backgroundColor: "#FFFFFF", borderRadius: 15, paddingHorizontal: 11, paddingVertical: 15, justifyContent: "space-between", gap: 8 },
-  label: { color: "#111111", fontSize: 12 },
-  value: { color: "#000000", fontSize: 19, fontWeight: "700" },
-  foot: { color: "#222222", fontSize: 12 },
+  row: { flexDirection: "row", gap: space.md },
+  metric: { flex: 1, minHeight: 104, backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.md, justifyContent: "space-between", gap: space.sm, ...shadow },
+  label: { ...type.caption, fontSize: 12 },
+  value: { ...type.title, fontSize: 19 },
 });

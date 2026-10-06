@@ -1,128 +1,145 @@
-import { useEffect, useRef, useState } from "react";
-import { ScrollView, Text, TextInput, Pressable, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
-import { teacherService, type TeacherEnrollment } from "@/features/teacher/teacherService";
-import { lessonStatusLabel } from "@/features/teacher/agenda";
-import { apiErrorMessage } from "@/lib/http/errorMessage";
+import { useEffect, useState } from "react";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { teacherService } from "@/features/teacher/teacherService";
+import { EnrollmentPicker } from "@/features/teacher/EnrollmentPicker";
+import { oneHourAfter, validateDate, validateTimeRange } from "@/features/teacher/lessonForm";
+import { useResource } from "@/hooks/use-resource";
+import { todayIso } from "@/lib/format";
+import { confirm } from "@/lib/confirm";
+import { apiErrorKey, apiErrorMessage } from "@/lib/http/errorMessage";
+import { Button } from "@/ui/Button";
+import { DateTimeField } from "@/ui/DateTimeField";
 import { ScreenHeader } from "@/ui/ScreenHeader";
-import {
-  localIsoDate,
-  oneHourAfter,
-  validateLessonForm,
-} from "@/features/teacher/lessonForm";
+import { ScreenState } from "@/ui/ScreenState";
+import { TextField } from "@/ui/TextField";
+import { useToast } from "@/ui/Toast";
+import { colors, space, type } from "@/ui/theme";
 
 const DEFAULT_START = "10:00";
 
+type FieldErrors = { enrollment?: string; date?: string; time?: string; form?: string };
+
 export default function NewLesson() {
-  const { studentId } = useLocalSearchParams<{ studentId?: string }>();
-  const [enrollments, setEnrollments] = useState<TeacherEnrollment[]>([]);
+  const router = useRouter();
+  const toast = useToast();
+  const params = useLocalSearchParams<{ studentId?: string; date?: string }>();
+  const initialDate = params.date && !validateDate(params.date) ? params.date : todayIso();
+  const enrollments = useResource(() => teacherService.enrollments(), "", { refetchOnFocus: false });
   const [enrollmentId, setEnrollmentId] = useState("");
-  const [date, setDate] = useState(localIsoDate());
+  const [date, setDate] = useState(initialDate);
   const [startTime, setStartTime] = useState(DEFAULT_START);
   const [endTime, setEndTime] = useState(oneHourAfter(DEFAULT_START));
+  const [endEdited, setEndEdited] = useState(false);
   const [content, setContent] = useState("");
   const [homework, setHomework] = useState("");
-  const [msg, setMsg] = useState("");
-  const [saving, setSaving] = useState(false);
-  const pending = useRef(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
+
+  const studentEnrollments = enrollments.data?.filter((item) => item.studentId === params.studentId) ?? [];
+  const preselectedId = studentEnrollments.length === 1 ? studentEnrollments[0].id : "";
+  const initialQuery = studentEnrollments.length > 1 ? studentEnrollments[0].studentName : "";
 
   useEffect(() => {
-    teacherService
-      .enrollments()
-      .then((items) => {
-        setEnrollments(items);
-        if (studentId) setEnrollmentId(items.find((item) => item.studentId === studentId)?.id ?? "");
-      })
-      .catch(() => setMsg("Erro ao carregar alunos"));
-  }, [studentId]);
+    if (preselectedId) setEnrollmentId(preselectedId);
+  }, [preselectedId]);
+
+  const dirty = enrollmentId !== preselectedId || date !== initialDate || startTime !== DEFAULT_START || endEdited || !!content.trim() || !!homework.trim();
+
+  const goBack = async () => {
+    if (dirty && !(await confirm({ title: "Descartar aula?", message: "Os dados preenchidos serão perdidos.", confirmLabel: "Descartar", destructive: true }))) return;
+    router.back();
+  };
 
   const changeStart = (value: string) => {
     setStartTime(value);
+    setErrors(({ time: _time, ...rest }) => rest);
     const suggested = oneHourAfter(value);
-    if (suggested) setEndTime(suggested);
+    if (!endEdited && suggested) setEndTime(suggested);
   };
+
+  const changeEnd = (value: string) => {
+    setEndEdited(true);
+    setEndTime(value);
+    setErrors(({ time: _time, ...rest }) => rest);
+  };
+
+  const validate = (): FieldErrors => ({
+    enrollment: enrollmentId ? undefined : "Selecione o aluno",
+    date: validateDate(date) ?? undefined,
+    time: validateTimeRange(startTime, endTime) ?? undefined,
+  });
 
   const save = async () => {
-    if (pending.current) return;
-    const lesson = { enrollmentId, date, startTime, endTime };
-    const invalid = validateLessonForm(lesson);
-    if (invalid) {
-      setMsg(invalid);
+    const found = validate();
+    if (found.enrollment || found.date || found.time) {
+      setErrors(found);
       return;
     }
-    setMsg("");
-    pending.current = true;
-    setSaving(true);
+    setErrors({});
     try {
-      const created = await teacherService.newLesson({
-        ...lesson,
-        content: content || undefined,
-        homework: homework || undefined,
+      await teacherService.newLesson({
+        enrollmentId,
+        date,
+        startTime,
+        endTime,
+        content: content.trim() || undefined,
+        homework: homework.trim() || undefined,
       });
-      setMsg(`Aula registrada! ${lessonStatusLabel(created.status)}`);
-      setEnrollmentId("");
-      setContent("");
-      setHomework("");
+      toast.show("Aula registrada", "success");
+      router.back();
     } catch (error) {
-      setMsg(apiErrorMessage(error, "Erro ao registrar aula"));
-    } finally {
-      pending.current = false;
-      setSaving(false);
+      const message = apiErrorMessage(error, "Erro ao registrar aula");
+      setErrors({ [apiErrorKey(error, ["enrollment", "date", "time"])]: message });
     }
   };
 
-  const field = (ph: string, v: string, set: (s: string) => void) => (
-    <TextInput
-      className="bg-white border border-[#C9C9C9] text-[#17131A] rounded-lg px-3 py-3 mb-4"
-      placeholder={ph}
-      placeholderTextColor="#9A969B"
-      autoCapitalize="none"
-      value={v}
-      onChangeText={set}
-    />
-  );
-
   return (
-    <ScrollView className="flex-1 bg-[#F4F4F4]" contentContainerStyle={{ paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
-      <ScreenHeader title="Nova aula" back />
-      <View style={{ paddingHorizontal: 18 }}>
-        <Text className="text-[#17131A] font-semibold mb-2">Aluno e instrumento</Text>
-        {enrollments.length === 0 ? (
-          <Text className="text-[#6A666B] mb-3">Nenhuma matrícula ativa.</Text>
+    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <ScreenHeader title="Nova aula" back onBack={goBack} />
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
+        <Text accessibilityRole="header" style={styles.section}>Aluno e instrumento</Text>
+        {enrollments.loading ? (
+          <ScreenState loading />
+        ) : enrollments.error ? (
+          <ScreenState message={apiErrorMessage(enrollments.error, "Erro ao carregar alunos")} retry={() => void enrollments.reload()} />
         ) : (
-          enrollments.map((e) => {
-            const selected = e.id === enrollmentId;
-            return (
-              <Pressable
-                key={e.id}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-                className={`rounded-lg border p-4 mb-2 ${selected ? "bg-[#F0EAFB] border-[#7040C5]" : "bg-white border-[#C9C9C9]"}`}
-                onPress={() => setEnrollmentId(e.id)}
-              >
-                <Text className="text-[#17131A] font-semibold">{e.studentName}</Text>
-                <Text className="text-[#6A666B]">{e.instrument}</Text>
-              </Pressable>
-            );
-          })
+          <EnrollmentPicker
+            key={initialQuery}
+            enrollments={enrollments.data ?? []}
+            value={enrollmentId}
+            initialQuery={initialQuery}
+            onChange={(id) => {
+              setEnrollmentId(id);
+              setErrors(({ enrollment: _enrollment, ...rest }) => rest);
+            }}
+            error={errors.enrollment}
+          />
         )}
-        <View className="mt-4">
-          <Text className="text-[#17131A] font-semibold mb-2">Data</Text>
-          {field("Data (AAAA-MM-DD)", date, setDate)}
-          <View className="flex-row gap-3">
-            <View className="flex-1"><Text className="text-[#17131A] font-semibold mb-2">Início</Text>{field("Início (HH:MM)", startTime, changeStart)}</View>
-            <View className="flex-1"><Text className="text-[#17131A] font-semibold mb-2">Fim</Text>{field("Fim (HH:MM)", endTime, setEndTime)}</View>
-          </View>
-          <Text className="text-[#17131A] font-semibold mb-2">Conteúdo trabalhado</Text>
-          {field("Conteúdo", content, setContent)}
-          <Text className="text-[#17131A] font-semibold mb-2">Tarefa para casa</Text>
-          {field("Tarefa de casa", homework, setHomework)}
+        {errors.enrollment && enrollmentId ? <Text accessibilityLiveRegion="polite" style={styles.error}>{errors.enrollment}</Text> : null}
+
+        <Text accessibilityRole="header" style={styles.section}>Quando</Text>
+        <DateTimeField mode="date" label="Data" value={date} onChange={(value) => { setDate(value); setErrors(({ date: _date, ...rest }) => rest); }} error={errors.date} />
+        <View style={styles.row}>
+          <DateTimeField mode="time" label="Início" value={startTime} onChange={changeStart} />
+          <DateTimeField mode="time" label="Fim" value={endTime} onChange={changeEnd} />
         </View>
-        <Pressable accessibilityRole="button" disabled={saving} className="bg-[#7040C5] rounded-lg p-4 items-center mt-3" onPress={save}>
-          <Text className="text-white font-semibold">Salvar aula</Text>
-        </Pressable>
-        {msg ? <Text className="text-[#5930A9] mt-4">{msg}</Text> : null}
-      </View>
-    </ScrollView>
+        {errors.time ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{errors.time}</Text> : null}
+
+        <Text accessibilityRole="header" style={styles.section}>Registro</Text>
+        <TextField label="Conteúdo trabalhado" placeholder="Ex.: escalas maiores, música X" value={content} onChangeText={setContent} multiline maxLength={2000} />
+        <TextField label="Tarefa para casa" placeholder="O que o aluno deve praticar" value={homework} onChangeText={setHomework} multiline maxLength={2000} />
+
+        {errors.form ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{errors.form}</Text> : null}
+        <Button label="Salvar aula" icon="checkmark" onPress={save} disabled={enrollments.loading || !!enrollments.error} />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.screen },
+  content: { paddingHorizontal: space.lg, paddingBottom: space.xxxl, gap: space.md },
+  section: { ...type.heading, marginTop: space.sm },
+  row: { flexDirection: "row", gap: space.md },
+  error: { color: colors.danger, fontSize: 13 },
+});

@@ -61,7 +61,13 @@ export function useResource<T>(fetcher: () => Promise<T>, key: string = "", { re
     if (refetchOnFocus) void run(hasDataRef.current ? "background" : "initial");
   }, [refetchOnFocus, run]));
 
-  const setData = useCallback((update: (current: T | undefined) => T | undefined) => setDataState(update), []);
+  // A local edit supersedes any in-flight fetch, which would otherwise overwrite it with older data.
+  const setData = useCallback((update: (current: T | undefined) => T | undefined) => {
+    requestRef.current++;
+    setLoading(false);
+    setRefreshing(false);
+    setDataState(update);
+  }, []);
   const refresh = useCallback(() => run("refresh"), [run]);
   const reload = useCallback(() => run(hasDataRef.current ? "background" : "initial"), [run]);
 

@@ -1,4 +1,4 @@
-import { canRecordAttendance, hhmm, lessonActions, lessonStatusLabel } from "../agenda";
+import { canRecordAttendance, hhmm, lessonActions, lessonStatusLabel, lessonStatusTone, weekDates } from "../agenda";
 
 describe("agenda", () => {
   it("blocks attendance for canceled lessons", () => {
@@ -31,5 +31,20 @@ describe("agenda", () => {
   it("formats time and status for display", () => {
     expect(hhmm("09:30:00")).toBe("09:30");
     expect(lessonStatusLabel("DONE")).toBe("Realizada");
+  });
+});
+
+describe("weekDates", () => {
+  it("returns the Monday-to-Sunday week containing the date", () => {
+    expect(weekDates("2026-10-07")).toEqual([
+      "2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09", "2026-10-10", "2026-10-11",
+    ]);
+    expect(weekDates("2026-10-11")[0]).toBe("2026-10-05");
+    expect(weekDates("2026-10-05")[6]).toBe("2026-10-11");
+  });
+
+  it("maps lesson status to a chip tone", () => {
+    expect(lessonStatusTone("DONE")).toBe("success");
+    expect(lessonStatusTone("CANCELED")).toBe("neutral");
   });
 });

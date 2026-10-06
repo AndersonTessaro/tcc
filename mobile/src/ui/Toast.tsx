@@ -26,7 +26,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToast({ id: ++nextId.current, message, tone });
   }, []);
 
-  const hide = useCallback(() => setToast(null), []);
+  const hide = useCallback((id: number) => setToast((current) => (current?.id === id ? null : current)), []);
   const api = useMemo(() => ({ show }), [show]);
 
   return (
@@ -37,17 +37,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function ToastView({ toast, onHide }: { toast: ToastMessage; onHide: () => void }) {
+function ToastView({ toast, onHide }: { toast: ToastMessage; onHide: (id: number) => void }) {
   const insets = useSafeAreaInsets();
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(progress, { toValue: 1, duration: 180, useNativeDriver: true }).start();
-    const timer = setTimeout(() => {
-      Animated.timing(progress, { toValue: 0, duration: 160, useNativeDriver: true }).start(() => onHide());
-    }, VISIBLE_MS);
-    return () => clearTimeout(timer);
-  }, [progress, onHide]);
+    const enter = Animated.timing(progress, { toValue: 1, duration: 180, useNativeDriver: true });
+    const exit = Animated.timing(progress, { toValue: 0, duration: 160, useNativeDriver: true });
+    enter.start();
+    const timer = setTimeout(() => exit.start(() => onHide(toast.id)), VISIBLE_MS);
+    return () => {
+      clearTimeout(timer);
+      enter.stop();
+      exit.stop();
+    };
+  }, [progress, onHide, toast.id]);
 
   const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [-24, 0] });
 

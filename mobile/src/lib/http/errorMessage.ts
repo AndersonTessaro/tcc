@@ -37,3 +37,22 @@ export function apiErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof TypeError) return "Sem conexão com o servidor";
   return fallback;
 }
+
+export type ApiErrorField = "time" | "date" | "enrollment";
+
+const FIELD_BY_DETAIL: [RegExp, ApiErrorField][] = [
+  [/End time must be after start time|time range|start time|end time/i, "time"],
+  [/before the lesson date|\bdate\b/i, "date"],
+  [/Enrollment|does not teach this instrument|(Student|Teacher|Instrument) is not active/i, "enrollment"],
+];
+
+export function apiErrorField(error: unknown): ApiErrorField | null {
+  if (!(error instanceof ApiError)) return null;
+  if (error.code === "SCHEDULE_CONFLICT") return "time";
+  return FIELD_BY_DETAIL.find(([pattern]) => pattern.test(error.detail ?? ""))?.[1] ?? null;
+}
+
+export function apiErrorKey<K extends ApiErrorField>(error: unknown, fields: readonly K[]): K | "form" {
+  const field = apiErrorField(error);
+  return field && (fields as readonly ApiErrorField[]).includes(field) ? (field as K) : "form";
+}

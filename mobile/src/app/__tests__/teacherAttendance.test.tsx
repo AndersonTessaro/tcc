@@ -1,9 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import TeacherStudentDetail from "@/features/teacher/TeacherStudentDetail";
 import { teacherService, type TeacherStudentDetailData } from "@/features/teacher/teacherService";
 
+const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ push: mockPush, back: jest.fn() }),
   useLocalSearchParams: () => ({ id: "student-1" }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
@@ -36,6 +37,9 @@ it("uses attendance records from the selected calendar month for the summary", a
 
   await render(<TeacherStudentDetail />);
   await screen.findByText("Nenhuma meta ativa");
+  expect(screen.getByRole("header", { name: "João Silva" })).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Mais opções" })).toBeNull();
+  expect(screen.queryByText("Editar aluno")).toBeNull();
   await fireEvent.press(screen.getByRole("tab", { name: "Frequência" }));
   expect(screen.getByText("50%")).toBeVisible();
   expect(screen.getByText("1/2")).toBeVisible();
@@ -45,4 +49,17 @@ it("uses attendance records from the selected calendar month for the summary", a
   expect(screen.getByText("2/3")).toBeVisible();
   await fireEvent.press(screen.getByRole("button", { name: "Próximo mês" }));
   expect(screen.getByText("1/2")).toBeVisible();
+});
+
+it("opens a lesson from the student's history in the agenda", async () => {
+  const service = teacherService as jest.Mocked<typeof teacherService>;
+  service.studentLessons.mockResolvedValue([{
+    id: "l1", enrollmentId: "e1", studentId: "student-1", studentName: "João Silva", teacherName: "Carlos", instrument: "Piano",
+    date: "2026-09-22", startTime: "09:00:00", endTime: "10:00:00", status: "DONE", content: "Escalas", homework: null, attendance: "PRESENT",
+  }]);
+  await render(<TeacherStudentDetail />);
+  await screen.findByText("Nenhuma meta ativa");
+  await fireEvent.press(screen.getByRole("tab", { name: "Aulas" }));
+  await fireEvent.press(screen.getByRole("button", { name: "Aula de 22/09/2026 às 09:00, Realizada. Abrir na agenda" }));
+  await waitFor(() => expect(mockPush).toHaveBeenCalledWith({ pathname: "/(teacher)/schedule", params: expect.objectContaining({ date: "2026-09-22" }) }));
 });
