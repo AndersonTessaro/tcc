@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import Materials from "@/app/(student)/materials";
-import Reports from "@/app/(teacher)/reports";
+import Reports from "@/app/(teacher)/(tabs)/reports";
 import Forgot from "@/app/(auth)/forgot-password";
 import { studentService, type StudentMaterial } from "@/features/student/studentService";
 import { teacherService, type TeacherStudentDetailData } from "@/features/teacher/teacherService";

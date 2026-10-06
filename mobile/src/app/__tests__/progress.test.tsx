@@ -1,5 +1,5 @@
 import { act, render, screen } from "@testing-library/react-native";
-import Progress from "@/app/(student)/progress";
+import Progress from "@/app/(student)/(tabs)/progress";
 import { studentService } from "@/features/student/studentService";
 
 let mockFocus: (() => void) | undefined;

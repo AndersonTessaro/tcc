@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
-import Lessons from "@/app/(student)/lessons";
+import Lessons from "@/app/(student)/(tabs)/lessons";
 import LessonDetail from "@/app/(student)/lesson/[id]";
 import { studentService, type StudentLesson } from "@/features/student/studentService";
 

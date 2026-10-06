@@ -1,20 +1,48 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
-import { colors } from "./theme";
+import { useEffect } from "react";
+import { AccessibilityInfo, ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Button } from "./Button";
+import { SkeletonList } from "./Skeleton";
+import { colors, space, type } from "./theme";
 
-export function ScreenState({ loading, message, retry }: { loading?: boolean; message?: string; retry?: () => void }) {
+type ScreenStateProps = {
+  loading?: boolean;
+  skeleton?: boolean;
+  title?: string;
+  message?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  retry?: () => void;
+  action?: { label: string; onPress: () => void };
+};
+
+export function ScreenState({ loading, skeleton, title, message, icon, retry, action }: ScreenStateProps) {
+  const isError = !!retry;
+
+  useEffect(() => {
+    if (isError && message) AccessibilityInfo.announceForAccessibility(message);
+  }, [isError, message]);
+
+  if (loading) {
+    return skeleton ? <SkeletonList /> : (
+      <View style={styles.container}>
+        <ActivityIndicator accessibilityLabel="Carregando" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {loading ? <ActivityIndicator accessibilityLabel="Carregando" color={colors.accent} /> : <>
-        <Text accessibilityRole={retry ? "alert" : undefined} style={styles.message}>{message}</Text>
-        {retry ? <Pressable accessibilityRole="button" onPress={retry} style={styles.retry}><Text style={styles.retryText}>Tentar novamente</Text></Pressable> : null}
-      </>}
+      <Ionicons name={icon ?? (isError ? "cloud-offline-outline" : "file-tray-outline")} size={40} color={isError ? colors.danger : colors.borderStrong} />
+      {title ? <Text accessibilityRole="header" style={styles.title}>{title}</Text> : null}
+      {message ? <Text accessibilityRole={isError ? "alert" : undefined} accessibilityLiveRegion={isError ? "polite" : undefined} style={styles.message}>{message}</Text> : null}
+      {retry ? <Button label="Tentar novamente" icon="refresh" onPress={retry} variant="secondary" compact /> : null}
+      {action ? <Button label={action.label} onPress={action.onPress} compact /> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, alignItems: "center", justifyContent: "center", gap: 16 },
-  message: { color: colors.muted, fontSize: 14, textAlign: "center" },
-  retry: { backgroundColor: "#6C45BE", borderRadius: 8, minHeight: 48, paddingHorizontal: 20, justifyContent: "center" },
-  retryText: { color: colors.surface, fontSize: 14, fontWeight: "600" },
+  container: { flexGrow: 1, padding: space.xxl, alignItems: "center", justifyContent: "center", gap: space.md },
+  title: { ...type.heading, textAlign: "center" },
+  message: { ...type.body, color: colors.muted, textAlign: "center", maxWidth: 320 },
 });
