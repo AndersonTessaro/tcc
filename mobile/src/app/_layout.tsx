@@ -14,11 +14,14 @@ function Guard() {
 
   useEffect(() => {
     if (restoring) return;
-    const inAuth = segments[0] === "(auth)";
-    if (!user && !inAuth) {
-      router.replace("/(auth)/login");
-    } else if (user && (inAuth || (isTeacher(user) && segments[0] === "(student)") || (!isTeacher(user) && segments[0] === "(teacher)"))) {
-      router.replace(isTeacher(user) ? "/(teacher)/dashboard" : "/(student)/dashboard");
+    const group = segments[0];
+    if (!user) {
+      if (group !== "(auth)") router.replace("/(auth)/login");
+      return;
+    }
+    const teacher = isTeacher(user);
+    if (group !== (teacher ? "(teacher)" : "(student)")) {
+      router.replace(teacher ? "/(teacher)/dashboard" : "/(student)/dashboard");
     }
   }, [user, restoring, segments, router]);
 
