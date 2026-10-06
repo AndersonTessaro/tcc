@@ -1,9 +1,11 @@
 import "../global.css";
 import { useEffect } from "react";
 import { Slot, useRouter, useSegments } from "expo-router";
+import { ActivityIndicator, View } from "react-native";
 import { AuthProvider, useAuth } from "@/features/auth/useAuth";
 import { isTeacher } from "@/features/auth/authService";
-import { ActivityIndicator, View } from "react-native";
+import { ToastProvider } from "@/ui/Toast";
+import { colors } from "@/ui/theme";
 
 function Guard() {
   const { user, restoring } = useAuth();
@@ -20,14 +22,16 @@ function Guard() {
     }
   }, [user, restoring, segments, router]);
 
-  if (restoring) return <View style={{ flex: 1, justifyContent: "center", backgroundColor: "#F4F4F4" }}><ActivityIndicator color="#572AA8" /></View>;
+  if (restoring) return <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.screen }}><ActivityIndicator color={colors.primary} /></View>;
   return <Slot />;
 }
 
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <Guard />
+      <ToastProvider>
+        <Guard />
+      </ToastProvider>
     </AuthProvider>
   );
 }

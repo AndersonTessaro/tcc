@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
-import Schedule from "@/app/(teacher)/schedule";
+import Schedule from "@/app/(teacher)/(tabs)/schedule";
 import { teacherService, type TeacherLesson } from "@/features/teacher/teacherService";
 import { localIsoDate } from "@/features/teacher/lessonForm";
 import { ApiError } from "@/lib/http/apiError";

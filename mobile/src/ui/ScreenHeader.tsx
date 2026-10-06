@@ -1,27 +1,42 @@
 import type { ReactNode } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { IconButton } from "./IconButton";
+import { colors, space, type } from "./theme";
 
-const backIcon = require("@/assets/images/figma-student/back.png");
+type ScreenHeaderProps = {
+  title: string;
+  back?: boolean;
+  onBack?: () => void;
+  action?: ReactNode;
+  subtitle?: string;
+  compact?: boolean;
+};
 
-export function ScreenHeader({ title, back = false, compact = false, action }: { title: string; back?: boolean; compact?: boolean; action?: ReactNode }) {
+export function ScreenHeader({ title, back = false, onBack, action, subtitle }: ScreenHeaderProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.header, { minHeight: (compact ? 120 : 135) + Math.max(0, insets.top - 44), paddingTop: insets.top + 34, paddingBottom: compact ? 13 : 28 }]}>
-      {back ? <Pressable accessibilityRole="button" accessibilityLabel="Voltar" hitSlop={10} onPress={() => router.back()} style={[styles.back, { top: insets.top + 28 }]}><Image source={backIcon} style={styles.backIcon} /></Pressable> : null}
-      <Text accessibilityRole="header" style={styles.title}>{title}</Text>
-      {action ? <View style={[styles.action, { top: insets.top + 28 }]}>{action}</View> : null}
+    <View style={[styles.header, { paddingTop: insets.top + space.sm }]}>
+      <View style={styles.side}>
+        {back ? <IconButton icon="chevron-back" label="Voltar" size={26} onPress={onBack ?? (() => router.back())} /> : null}
+      </View>
+      <View style={styles.center}>
+        <Text accessibilityRole="header" numberOfLines={1} style={styles.title}>{title}</Text>
+        {subtitle ? <Text numberOfLines={1} style={styles.subtitle}>{subtitle}</Text> : null}
+      </View>
+      <View style={[styles.side, styles.right]}>{action}</View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 60, paddingBottom: 28 },
-  title: { color: "#000000", fontSize: 18, fontWeight: "700", textAlign: "center" },
-  back: { position: "absolute", left: 29, width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-  backIcon: { width: 26, height: 26 },
-  action: { position: "absolute", right: 29, minHeight: 32, justifyContent: "center" },
+  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: space.sm, paddingBottom: space.sm, backgroundColor: colors.screen, minHeight: 56 },
+  side: { width: 52, minHeight: 44, justifyContent: "center" },
+  right: { alignItems: "flex-end" },
+  center: { flex: 1, alignItems: "center" },
+  title: { ...type.heading, fontSize: 18 },
+  subtitle: { ...type.caption },
 });
