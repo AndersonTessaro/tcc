@@ -9,10 +9,38 @@ type Deps = {
   clearAccessToken: () => Promise<void>;
   onAuthFailure: () => void;
   fetchFn?: typeof fetch;
+  timeoutMs?: number;
 };
 
+const DEFAULT_TIMEOUT_MS = 20_000;
+
+export class RequestTimeoutError extends Error {
+  constructor() {
+    super("REQUEST_TIMEOUT");
+    this.name = "RequestTimeoutError";
+  }
+}
+
+// fetch never times out on its own; a server that accepts the connection but never answers
+// would leave the app waiting forever (e.g. the session restore spinner on startup).
+function withTimeout(fetchFn: typeof fetch, timeoutMs: number): typeof fetch {
+  return (input, init) => {
+    const controller = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
+    return fetchFn(input, { ...init, signal: controller.signal })
+      .catch((error: unknown) => {
+        throw timedOut ? new RequestTimeoutError() : error;
+      })
+      .finally(() => clearTimeout(timer));
+  };
+}
+
 export function createApiClient(deps: Deps) {
-  const doFetch = deps.fetchFn ?? fetch;
+  const doFetch = withTimeout(deps.fetchFn ?? fetch, deps.timeoutMs ?? DEFAULT_TIMEOUT_MS);
   let refreshing: Promise<boolean> | null = null;
 
   // The refresh token travels as an httpOnly cookie, so this carries no body.

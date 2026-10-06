@@ -78,7 +78,7 @@ function PracticeChart({ series }: { series: number[] }) {
   const line = points.map((point, index) => `${index ? "L" : "M"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
   const fill = `${line} L${points.at(-1)?.x ?? 18} 130 L18 130 Z`;
   return (
-    <Svg width="100%" height={144} viewBox="0 0 310 144" accessible={false}>
+    <Svg width="100%" height={144} viewBox="0 0 310 144" aria-hidden>
       <Path d={fill} fill={colors.primarySoft} />
       <Path d={line} fill="none" stroke={colors.primary} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
       <Line x1={18} y1={137} x2={304} y2={137} stroke={colors.borderStrong} strokeWidth={1} />

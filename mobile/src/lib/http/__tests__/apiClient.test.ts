@@ -86,3 +86,23 @@ describe("apiClient", () => {
     await expect(api.post("/auth/logout")).resolves.toBeUndefined();
   });
 });
+
+describe("apiClient timeout", () => {
+  it("rejects with RequestTimeoutError when the server never answers", async () => {
+    const { RequestTimeoutError } = jest.requireActual("../apiClient");
+    const hangingFetch = jest.fn((_input: RequestInfo | URL, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+    }));
+    const api = createApiClient({
+      baseUrl: "http://x",
+      getAccessToken: async () => null,
+      setAccessToken: async () => undefined,
+      clearAccessToken: async () => undefined,
+      onAuthFailure: jest.fn(),
+      fetchFn: hangingFetch as unknown as typeof fetch,
+      timeoutMs: 10,
+    });
+
+    await expect(api.get("/auth/me")).rejects.toBeInstanceOf(RequestTimeoutError);
+  });
+});
