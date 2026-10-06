@@ -1,98 +1,141 @@
-import { useCallback, useRef, useState } from "react";
-import { FlatList, Image, Pressable, StatusBar, StyleSheet, Text, TextInput, View } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { Ionicons } from "@expo/vector-icons";
 import { studentService, type StudentMaterial } from "@/features/student/studentService";
+import { useResource } from "@/hooks/use-resource";
+import { saveDownload } from "@/lib/files/saveDownload";
+import { formatFileSize, formatFullDate } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
+import { Button } from "@/ui/Button";
+import { Card } from "@/ui/Card";
+import { IconButton } from "@/ui/IconButton";
 import { ScreenHeader } from "@/ui/ScreenHeader";
 import { ScreenState } from "@/ui/ScreenState";
-import { saveDownload } from "@/lib/files/saveDownload";
+import { TextField } from "@/ui/TextField";
+import { useToast } from "@/ui/Toast";
+import { colors, space, type } from "@/ui/theme";
 
-const searchIcon = require("@/assets/images/figma-teacher/search.png");
 const fileIcon = require("@/assets/images/figma-student/file.png");
+const SEARCH_DEBOUNCE_MS = 300;
 
 export default function Materials() {
+  const toast = useToast();
   const [search, setSearch] = useState("");
-  const [items, setItems] = useState<StudentMaterial[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [retry, setRetry] = useState(0);
+  const [query, setQuery] = useState("");
   const [downloading, setDownloading] = useState<string | null>(null);
-  const [downloadError, setDownloadError] = useState("");
-  const pending = useRef(false);
+  const [shownItems, setShownItems] = useState<StudentMaterial[] | undefined>(undefined);
+
+  useEffect(() => {
+    const next = search.trim();
+    const timer = setTimeout(() => setQuery(next), next ? SEARCH_DEBOUNCE_MS : 0);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const fetchMaterials = useCallback(() => studentService.materials(query), [query]);
+  const materials = useResource(fetchMaterials, query);
+  if (materials.data && materials.data !== shownItems) setShownItems(materials.data);
+  const items = materials.data ?? shownItems;
+  const searching = materials.data === undefined && items !== undefined && !materials.error;
 
   const download = async (material: StudentMaterial) => {
-    if (pending.current) return;
-    pending.current = true;
+    if (downloading) return;
     setDownloading(material.id);
-    setDownloadError("");
     try {
       await saveDownload(await studentService.downloadMaterial(material.id), material.fileName, material.contentType);
+      toast.show(`${material.title} pronto para salvar`, "success");
     } catch (cause) {
-      setDownloadError(apiErrorMessage(cause, "Não foi possível baixar o material. Tente novamente."));
+      toast.show(apiErrorMessage(cause, "Não foi possível baixar o material. Tente novamente."), "error");
     } finally {
-      pending.current = false;
       setDownloading(null);
     }
   };
 
-  useFocusEffect(useCallback(() => {
-    let active = true;
-    setLoading(true);
-    setError("");
-    const timer = setTimeout(() => {
-      studentService.materials(search.trim())
-        .then((result) => { if (active) setItems(result); })
-        .catch((cause) => { if (active) setError(apiErrorMessage(cause, "Não foi possível carregar os materiais.")); })
-        .finally(() => { if (active) setLoading(false); });
-    }, search ? 300 : 0);
-    return () => { active = false; clearTimeout(timer); };
-  }, [search, retry]));
-
   return (
     <View style={styles.screen}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F4F4F4" />
+      <StatusBar style="dark" />
       <ScreenHeader title="Materiais" back />
-      <View style={styles.searchField}>
-        <Image source={searchIcon} style={styles.searchIcon} />
-        <TextInput accessibilityLabel="Buscar material" placeholder="Buscar material..." placeholderTextColor="#9A969B" value={search} onChangeText={setSearch} style={styles.searchInput} />
+      <View style={styles.search}>
+        <TextField
+          accessibilityLabel="Buscar material"
+          placeholder="Buscar material..."
+          value={search}
+          onChangeText={setSearch}
+          returnKeyType="search"
+          autoCorrect={false}
+          onSubmitEditing={() => setQuery(search.trim())}
+          leading={<Ionicons name="search" size={18} color={colors.muted} />}
+          trailing={
+            searching ? <ActivityIndicator accessibilityLabel="Buscando" size="small" color={colors.primary} />
+              : search ? <IconButton icon="close-circle" label="Limpar busca" size={20} color={colors.muted} onPress={() => setSearch("")} />
+              : null
+          }
+        />
       </View>
-      {downloadError ? <Text accessibilityRole="alert" style={styles.downloadError}>{downloadError}</Text> : null}
-      {loading || error ? <ScreenState loading={loading} message={error} retry={() => setRetry((value) => value + 1)} /> : (
+      {materials.error ? (
+        <ScreenState message={apiErrorMessage(materials.error, "Não foi possível carregar os materiais.")} retry={materials.reload} />
+      ) : items ? (
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={<ScreenState message={search.trim() ? "Nenhum material encontrado." : "Nenhum material enviado pelo professor."} />}
-          renderItem={({ item }) => <View style={styles.card}>
-            <Image source={fileIcon} style={styles.fileIcon} />
-            <View style={styles.cardContent}>
-              <Text style={styles.title}>{item.title}</Text>
-              {item.description ? <Text style={styles.description}>{item.description}</Text> : null}
-              <Text style={styles.fileName}>{item.fileName}</Text>
-              <Text style={styles.metadata}>{item.teacherName} · {item.createdAt.slice(0, 10).split("-").reverse().join("/")}</Text>
-              <Pressable accessibilityRole="button" accessibilityLabel={`Baixar ${item.title}`} disabled={downloading !== null} onPress={() => download(item)} style={styles.downloadButton}><Text style={styles.downloadLabel}>{downloading === item.id ? "Baixando..." : "Baixar material"}</Text></Pressable>
-            </View>
-          </View>}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={<RefreshControl refreshing={materials.refreshing} onRefresh={materials.refresh} tintColor={colors.primary} />}
+          ListEmptyComponent={
+            query
+              ? <ScreenState icon="search-outline" message="Nenhum material encontrado." />
+              : <ScreenState icon="document-text-outline" title="Sem materiais" message="Nenhum material enviado pelo professor." />
+          }
+          renderItem={({ item }) => (
+            <MaterialCard material={item} downloading={downloading === item.id} disabled={downloading !== null} onDownload={() => download(item)} />
+          )}
         />
+      ) : (
+        <ScreenState loading skeleton />
       )}
     </View>
   );
 }
 
+type MaterialCardProps = { material: StudentMaterial; downloading: boolean; disabled: boolean; onDownload: () => Promise<void> };
+
+function MaterialCard({ material, downloading, disabled, onDownload }: MaterialCardProps) {
+  const size = formatFileSize(material.sizeBytes);
+  return (
+    <Card style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Image source={fileIcon} style={styles.fileIcon} accessible={false} />
+        <View style={styles.cardText}>
+          <Text style={styles.title}>{material.title}</Text>
+          {material.description ? <Text style={styles.description}>{material.description}</Text> : null}
+          <Text style={styles.fileName}>{material.fileName}{size ? ` · ${size}` : ""}</Text>
+          <Text style={styles.metadata}>{material.teacherName} · {formatFullDate(material.createdAt.slice(0, 10))}</Text>
+        </View>
+      </View>
+      <Button
+        label="Baixar material"
+        icon="download-outline"
+        variant="secondary"
+        compact
+        loading={downloading}
+        disabled={disabled && !downloading}
+        accessibilityLabel={`Baixar ${material.title}`}
+        onPress={onDownload}
+      />
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#F4F4F4" },
-  searchField: { height: 46, marginHorizontal: 29, marginTop: 24, marginBottom: 19, borderWidth: 1, borderColor: "#CCCCCC", borderRadius: 15, backgroundColor: "#FFFFFF", paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 12 },
-  searchIcon: { width: 15, height: 15 },
-  searchInput: { flex: 1, height: "100%", padding: 0, color: "#17131A", fontSize: 14 },
-  list: { paddingHorizontal: 29, paddingBottom: 30, gap: 11, flexGrow: 1 },
-  card: { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#D3D3D3", borderRadius: 15, padding: 16, flexDirection: "row", alignItems: "center", gap: 15 },
-  fileIcon: { width: 38, height: 38 },
-  cardContent: { flex: 1, gap: 6 },
-  title: { color: "#17131A", fontSize: 14, fontWeight: "700" },
-  description: { color: "#333333", fontSize: 14 },
-  fileName: { color: "#572AA8", fontSize: 13 },
-  metadata: { color: "#6A666B", fontSize: 12 },
-  downloadError: { color: "#B42318", marginHorizontal: 29, marginBottom: 12 },
-  downloadButton: { alignSelf: "flex-start", paddingVertical: 10 },
-  downloadLabel: { color: "#572AA8", fontWeight: "600", fontSize: 14 },
+  screen: { flex: 1, backgroundColor: colors.screen },
+  search: { paddingHorizontal: space.xl, paddingBottom: space.md },
+  list: { flexGrow: 1, paddingHorizontal: space.xl, paddingBottom: space.xxl, gap: space.md },
+  card: { gap: space.md },
+  cardHeader: { flexDirection: "row", gap: space.md },
+  fileIcon: { width: 36, height: 36 },
+  cardText: { flex: 1, gap: space.xs },
+  title: { ...type.bodyStrong },
+  description: { ...type.body, color: colors.muted },
+  fileName: { color: colors.link, fontSize: 13 },
+  metadata: { ...type.caption },
 });

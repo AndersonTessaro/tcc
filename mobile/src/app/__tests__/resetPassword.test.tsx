@@ -10,6 +10,13 @@ it("validates confirmation, handles an expired token and saves a new password", 
   await render(<ResetPassword />);
   await fireEvent.press(screen.getByRole("button", { name: "Redefinir senha" }));
   expect(service.reset).not.toHaveBeenCalled();
+  expect(screen.getByText("Informe o token recebido por e-mail.")).toBeVisible();
+  expect(screen.getByText("A senha precisa ter pelo menos 8 caracteres.")).toBeVisible();
+  await fireEvent.changeText(screen.getByLabelText("Nova senha"), "Changed@123");
+  await fireEvent.changeText(screen.getByLabelText("Confirmar nova senha"), "Changed@124");
+  await fireEvent.press(screen.getByRole("button", { name: "Redefinir senha" }));
+  expect(screen.getByText("As senhas não coincidem.")).toBeVisible();
+  expect(service.reset).not.toHaveBeenCalled();
   await fireEvent.changeText(screen.getByLabelText("Token de recuperação"), "test-token");
   await fireEvent.changeText(screen.getByLabelText("Nova senha"), "Changed@123");
   await fireEvent.changeText(screen.getByLabelText("Confirmar nova senha"), "Changed@123");

@@ -23,6 +23,16 @@ export type StudentLessonDetail = {
   attachments: LessonAttachment[];
 };
 
+export type StudentDashboard = {
+  xp: number;
+  level: number;
+  levelStartXp: number;
+  nextLevelXp: number;
+  streakDays: number;
+  weeklyPracticeMin: number;
+  nextLesson: Partial<StudentLesson> | null;
+};
+
 export type StudentProgress = {
   xpTotal: number;
   level: number;
@@ -65,7 +75,7 @@ export type StudentMaterial = {
 };
 
 export const studentService = {
-  dashboard: () => api.get<any>("/me/dashboard"),
+  dashboard: () => api.get<StudentDashboard>("/me/dashboard"),
   lessons: (status: "upcoming" | "past") => api.get<StudentLesson[]>(`/me/lessons?status=${status}`),
   lesson: (id: string) => api.get<StudentLessonDetail>(`/me/lessons/${id}`),
   materials: (search?: string) =>

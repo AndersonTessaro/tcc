@@ -1,70 +1,59 @@
-import { Alert, Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { useAuth } from "@/features/auth/useAuth";
 import { authService } from "@/features/auth/authService";
+import { fullName } from "@/features/student/dashboard";
+import { confirm } from "@/lib/confirm";
+import { ListRow } from "@/ui/ListRow";
+import { ScreenHeader } from "@/ui/ScreenHeader";
+import { colors, radius, shadow, space, type } from "@/ui/theme";
 
 const icons = {
   user: require("@/assets/images/figma-student/menu-user.png"),
   instrument: require("@/assets/images/figma-student/menu-instrument.png"),
-  settings: require("@/assets/images/figma-student/menu-settings.png"),
-  notifications: require("@/assets/images/figma-student/menu-notifications.png"),
+  goals: require("@/assets/images/figma-student/menu-settings.png"),
   help: require("@/assets/images/figma-student/menu-help.png"),
   exit: require("@/assets/images/figma-student/menu-exit.png"),
 };
 
-function displayName(username?: string) {
-  const name = username?.split("@")[0].replace(/[._-]+/g, " ").trim();
-  return name ? name.replace(/\b\p{L}/gu, (letter) => letter.toUpperCase()) : "Aluno";
+function MenuIcon({ source }: { source: number }) {
+  return <Image source={source} style={styles.rowIcon} accessible={false} />;
 }
 
 export default function More() {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const name = user?.displayName || fullName(user?.username);
 
   const signOut = async () => {
-    await authService.logout().catch(() => {});
+    const confirmed = await confirm({ title: "Sair da conta?", message: "Você precisará entrar novamente.", confirmLabel: "Sair", destructive: true });
+    if (!confirmed) return;
+    await authService.logout().catch(() => undefined);
     logout();
   };
 
-  const openProfile = () => Alert.alert("Perfil", user?.displayName || user?.username || "Aluno", [
-    { text: "Materiais", onPress: () => router.push("/(student)/materials") },
-    { text: "Metas", onPress: () => router.push("/(student)/goals") },
-    { text: "Fechar", style: "cancel" },
-  ]);
-
-  const menuItems = [
-    { label: "Materiais", icon: icons.instrument, action: () => router.push("/(student)/materials") },
-    { label: "Minhas metas", icon: icons.settings, action: () => router.push("/(student)/goals") },
-    { label: "Instrumento", icon: icons.instrument, action: () => router.push("/(student)/lessons") },
-    { label: "Configurações", icon: icons.settings, action: () => Alert.alert("Configurações", "Configurações pessoais ainda não disponíveis.") },
-    { label: "Notificações", icon: icons.notifications, action: () => Alert.alert("Notificações", "Notificações ainda não disponíveis.") },
-    { label: "Ajuda", icon: icons.help, action: () => Alert.alert("Ajuda", "Consulte a escola para obter suporte.") },
-    { label: "Sair", icon: icons.exit, action: signOut },
-  ];
-
   return (
     <View style={styles.screen}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F4F4F4" />
-      <View style={[styles.header, { paddingTop: insets.top + 34 }]}><Text style={styles.title}>Mais</Text></View>
+      <StatusBar style="dark" />
+      <ScreenHeader title="Mais" />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Ver perfil" onPress={openProfile} style={styles.profile}>
-          <Image source={icons.user} style={styles.avatar} />
+        <View accessible accessibilityLabel={`Perfil: ${name}${user?.username ? `, usuário ${user.username}` : ""}`} style={styles.profile}>
+          <Image source={icons.user} style={styles.avatar} accessible={false} />
           <View style={styles.profileText}>
-            <Text numberOfLines={1} style={styles.name}>{user?.displayName || displayName(user?.username)}</Text>
-            <Text style={styles.profileLink}>Ver perfil</Text>
+            <Text numberOfLines={2} style={styles.name}>{name}</Text>
+            {user?.username ? <Text numberOfLines={1} style={styles.username}>{user.username}</Text> : null}
           </View>
-          <Text style={styles.chevron}>&gt;</Text>
-        </Pressable>
+        </View>
+
         <View style={styles.menu}>
-          {menuItems.map((item) => (
-            <Pressable key={item.label} accessibilityRole="button" onPress={item.action} style={styles.row}>
-              <Image source={item.icon} style={styles.rowIcon} />
-              <Text style={styles.rowLabel}>{item.label}</Text>
-              <Text style={styles.chevron}>&gt;</Text>
-            </Pressable>
-          ))}
+          <ListRow title="Materiais" subtitle="Arquivos enviados pelo professor" leading={<MenuIcon source={icons.instrument} />} onPress={() => router.push("/(student)/materials")} />
+          <ListRow title="Minhas metas" subtitle="Acompanhe e crie metas" leading={<MenuIcon source={icons.goals} />} onPress={() => router.push("/(student)/goals")} />
+          <ListRow title="Ajuda" leading={<MenuIcon source={icons.help} />} onPress={() => Alert.alert("Ajuda", "Para dúvidas sobre aulas ou acesso, procure a secretaria da escola.")} />
+        </View>
+
+        <View style={styles.menu}>
+          <ListRow title="Sair" tone="danger" leading={<MenuIcon source={icons.exit} />} onPress={signOut} />
         </View>
       </ScrollView>
     </View>
@@ -72,18 +61,13 @@ export default function More() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#F4F4F4" },
-  header: { height: 135, paddingHorizontal: 29 },
-  title: { color: "#000000", fontSize: 18, fontWeight: "700", textAlign: "center" },
-  content: { paddingHorizontal: 29, paddingTop: 24, paddingBottom: 30 },
-  profile: { height: 98, borderWidth: 1, borderColor: "#D3D3D3", borderRadius: 15, backgroundColor: "#FFFFFF", flexDirection: "row", alignItems: "center", paddingHorizontal: 15 },
-  avatar: { width: 60, height: 60 },
-  profileText: { flex: 1, marginLeft: 18, gap: 8 },
-  name: { color: "#000000", fontSize: 14, fontWeight: "700" },
-  profileLink: { color: "#572AA8", fontSize: 14 },
-  chevron: { color: "#000000", fontSize: 14, fontWeight: "300", marginRight: 13 },
-  menu: { marginTop: 42, gap: 21 },
-  row: { minHeight: 46, borderBottomWidth: 2, borderBottomColor: "#D9D9D9", flexDirection: "row", alignItems: "flex-start", paddingHorizontal: 10, paddingBottom: 14 },
-  rowIcon: { width: 30, height: 30 },
-  rowLabel: { color: "#000000", fontSize: 14, fontWeight: "500", flex: 1, marginLeft: 13, marginTop: 6 },
-  });
+  screen: { flex: 1, backgroundColor: colors.screen },
+  content: { paddingHorizontal: space.xl, paddingBottom: space.xxl, gap: space.xl },
+  profile: { flexDirection: "row", alignItems: "center", gap: space.lg, padding: space.lg, borderRadius: radius.lg, backgroundColor: colors.surface, ...shadow },
+  avatar: { width: 56, height: 56 },
+  profileText: { flex: 1, gap: 2 },
+  name: { ...type.heading },
+  username: { ...type.caption },
+  menu: { borderRadius: radius.lg, overflow: "hidden", backgroundColor: colors.surface, gap: 1 },
+  rowIcon: { width: 26, height: 26 },
+});

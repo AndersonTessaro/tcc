@@ -1,213 +1,169 @@
-import { useCallback, useState } from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
+import { useRef } from "react";
+import { Image, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/features/auth/useAuth";
-import { studentService } from "@/features/student/studentService";
-import { colors } from "@/ui/theme";
+import { fetchDashboard, firstName, type StudentDashboard } from "@/features/student/dashboard";
+import { levelProgress, remainingXpLabel } from "@/features/student/level";
+import { dayCount } from "@/features/student/reward";
+import { useResource } from "@/hooks/use-resource";
+import { formatLessonWhen, formatMinutes } from "@/lib/format";
+import { apiErrorMessage } from "@/lib/http/errorMessage";
+import { Button } from "@/ui/Button";
+import { Card } from "@/ui/Card";
+import { ProgressBar } from "@/ui/ProgressBar";
+import { ScreenState } from "@/ui/ScreenState";
+import { Skeleton } from "@/ui/Skeleton";
+import { brandGradient, colors, radius, space, type } from "@/ui/theme";
+import { useTabScrollToTop } from "@/hooks/use-tab-scroll-to-top";
 
 const fireIcon = require("@/assets/images/figma-student/dashboard-fire.png");
 const agendaIcon = require("@/assets/images/figma-student/dashboard-agenda.png");
-const notificationIcon = require("@/assets/images/figma-student/dashboard-notification.png");
 const waveIcon = require("@/assets/images/figma-student/dashboard-wave.png");
 
-type NextLesson = {
-  id?: string;
-  date?: string;
-  startTime?: string;
-  instrument?: string;
-};
-
-type DashboardData = {
-  xp: number;
-  level: number;
-  levelStartXp: number;
-  nextLevelXp: number;
-  streakDays: number;
-  weeklyPracticeMin: number;
-  nextLesson: NextLesson | null;
-};
-
-function formatMinutes(minutes: number) {
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  if (!hours) return `${remainingMinutes}m`;
-  return remainingMinutes ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
-}
-
-function displayName(username?: string) {
-  const firstName = username?.split(/[.@ _-]/)[0];
-  return firstName ? `${firstName.charAt(0).toUpperCase()}${firstName.slice(1)}` : "Aluno";
-}
-
-function progressWidth(value: number, maximum: number) {
-  const ratio = maximum > 0 ? value / maximum : 0;
-  return `${Math.min(100, Math.max(0, ratio * 100))}%` as const;
-}
-
-function formatLessonSchedule(lesson: NextLesson) {
-  const date = lesson.date ? lesson.date.split("-").reverse().slice(0, 2).join("/") : "A definir";
-  const start = lesson.startTime?.slice(0, 5);
-  return start ? `${date} - ${start}` : date;
-}
-
 export default function Dashboard() {
+  const listRef = useRef<ScrollView>(null);
+  useTabScrollToTop(listRef);
   const router = useRouter();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
-  const [hasError, setHasError] = useState(false);
+  const dashboard = useResource(fetchDashboard);
 
-  const load = useCallback(() => {
-    setHasError(false);
-    setDashboard(null);
-    studentService
-      .dashboard()
-      .then(setDashboard)
-      .catch((cause) => {
-        console.warn("dashboard failed", cause);
-        setHasError(true);
-      });
-  }, []);
-
-  useFocusEffect(useCallback(() => { load(); }, [load]));
-
-  if (!dashboard) {
-    return (
-      <View style={styles.centered}>
-        <StatusBar barStyle="light-content" backgroundColor={colors.brand} />
-        {hasError ? (
-          <>
-            <Text style={styles.errorText}>Não foi possível carregar seu painel.</Text>
-            <Pressable accessibilityRole="button" onPress={load} style={styles.retry}>
-              <Text style={styles.retryText}>Tentar novamente</Text>
-            </Pressable>
-          </>
-        ) : (
-          <ActivityIndicator color={colors.surface} />
-        )}
-      </View>
-    );
-  }
-
-  const { nextLesson } = dashboard;
-  const levelProgress = progressWidth(
-    dashboard.xp - dashboard.levelStartXp,
-    dashboard.nextLevelXp - dashboard.levelStartXp,
+  const content = dashboard.data ? (
+    <DashboardCards data={dashboard.data} onNavigate={(href) => router.push(href)} />
+  ) : dashboard.error ? (
+    <ScreenState message={apiErrorMessage(dashboard.error, "Não foi possível carregar seu painel.")} retry={dashboard.reload} />
+  ) : (
+    <DashboardSkeleton />
   );
 
   return (
     <View style={styles.screen}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.brand} />
-      <LinearGradient
-        colors={["#2A1454", "#3B1E78", "#3B1E78", "#2A1454"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={[styles.header, { paddingTop: insets.top + 31 }]}
-      >
-        <View style={styles.greetingRow}>
-          <View style={styles.greetingText}>
-            <View style={styles.helloRow}>
-              <Text style={styles.greeting}>Olá, {displayName(user?.displayName || user?.username)}!</Text>
-              <Image source={waveIcon} style={styles.waveIcon} />
-            </View>
-            <Text style={styles.greetingSubtitle}>Continue praticando e evoluindo!</Text>
-          </View>
-          <Image accessibilityLabel="Notificações" source={notificationIcon} style={styles.notificationIcon} />
+      <StatusBar style="light" />
+      <LinearGradient colors={brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.hero, { paddingTop: insets.top + space.xxl }]}>
+        <View style={styles.helloRow}>
+          <Text accessibilityRole="header" style={styles.greeting}>Olá, {firstName(user?.displayName || user?.username)}!</Text>
+          <Image source={waveIcon} style={styles.waveIcon} accessible={false} />
         </View>
+        <Text style={styles.greetingSubtitle}>Continue praticando e evoluindo!</Text>
       </LinearGradient>
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.card, styles.xpCard]}>
-          <Text style={styles.cardEyebrow}>XP Atual</Text>
-          <Text style={styles.xpValue}>{dashboard.xp} XP</Text>
-          <Text style={styles.label}>Nível {dashboard.level}</Text>
-          <ProgressBar width={levelProgress} />
-          <Text style={styles.helpText}>Próximo nível: {dashboard.nextLevelXp} XP</Text>
-        </View>
-
-        <View style={styles.card}>
-          <Image source={fireIcon} style={styles.cardIcon} />
-          <View>
-            <Text style={styles.cardTitle}>Sequência</Text>
-            <Text style={styles.cardValue}>
-              {dashboard.streakDays} {dashboard.streakDays === 1 ? "dia" : "dias"}
-            </Text>
-            <Text style={styles.detail}>Sequência atual</Text>
-          </View>
-        </View>
-
-        <View style={[styles.card, styles.weeklyCard]}>
-          <View style={styles.fullWidth}>
-            <Text style={styles.cardTitle}>Prática semanal</Text>
-            <Text style={styles.practiceValue}>
-              {formatMinutes(dashboard.weeklyPracticeMin)}
-            </Text>
-            <Pressable accessibilityRole="button" onPress={() => router.push("/(student)/goals")}><Text style={styles.detail}>Ver minhas metas</Text></Pressable>
-          </View>
-        </View>
-
-        <Pressable accessibilityRole="button" accessibilityLabel="Ver próxima aula" disabled={!nextLesson?.id} onPress={() => router.push(`/(student)/lesson/${nextLesson?.id}`)} style={styles.card}>
-          <Image source={agendaIcon} style={styles.cardIcon} />
-          <View>
-            <Text style={styles.cardTitle}>Próxima aula</Text>
-            <Text style={styles.cardValue}>
-              {nextLesson ? formatLessonSchedule(nextLesson) : "Nenhuma aula agendada"}
-            </Text>
-            {nextLesson?.instrument ? <Text style={styles.detail}>{nextLesson.instrument}</Text> : null}
-          </View>
-        </Pressable>
+      <ScrollView ref={listRef}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={dashboard.refreshing} onRefresh={dashboard.refresh} tintColor={colors.primary} />}
+      >
+        {content}
       </ScrollView>
     </View>
   );
 }
 
-function ProgressBar({ width }: { width: `${number}%` }) {
+type Href = "/(student)/practice/register" | "/(student)/goals" | `/(student)/lesson/${string}`;
+
+function DashboardCards({ data, onNavigate }: { data: StudentDashboard; onNavigate: (href: Href) => void }) {
+  const progress = levelProgress(data.xp, data.level, data);
+  const nextLesson = data.nextLesson;
+  const nextLessonWhen = nextLesson?.date ? formatLessonWhen(nextLesson.date, nextLesson.startTime) : null;
+  const weekly = formatMinutes(data.weeklyPracticeMin);
+
   return (
-    <View style={styles.progressTrack}>
-      <View style={[styles.progressFill, { width }]} />
+    <>
+      <Card style={styles.xpCard}>
+        <View style={styles.rowBetween}>
+          <Text style={styles.eyebrow}>XP atual</Text>
+          <Text style={styles.levelBadge}>Nível {data.level}</Text>
+        </View>
+        <Text style={styles.xpValue}>{data.xp} XP</Text>
+        <ProgressBar value={progress.earned} max={progress.span} label={`Progresso para o nível ${progress.nextLevel}`} />
+        <Text style={styles.caption}>{remainingXpLabel(progress)}</Text>
+      </Card>
+
+      <Button label="Registrar prática" icon="add-circle-outline" onPress={() => onNavigate("/(student)/practice/register")} />
+
+      <View style={styles.statRow}>
+        <Card style={styles.statCard}>
+          <Image source={fireIcon} style={styles.cardIcon} accessible={false} />
+          <Text style={styles.cardTitle}>Sequência</Text>
+          <Text style={styles.statValue}>{dayCount(data.streakDays)}</Text>
+        </Card>
+        <Card
+          style={styles.statCard}
+          onPress={() => onNavigate("/(student)/goals")}
+          accessibilityLabel={`Prática semanal: ${weekly}. Ver minhas metas`}
+        >
+          <Ionicons name="musical-notes-outline" size={28} color={colors.primary} />
+          <Text style={styles.cardTitle}>Prática semanal</Text>
+          <Text style={styles.statValue}>{weekly}</Text>
+          <Text style={styles.link}>Ver minhas metas</Text>
+        </Card>
+      </View>
+
+      {nextLesson?.id && nextLessonWhen ? (
+        <Card
+          style={styles.lessonCard}
+          onPress={() => onNavigate(`/(student)/lesson/${nextLesson.id}`)}
+          accessibilityLabel={`Próxima aula: ${nextLesson.instrument ?? ""}, ${nextLessonWhen}`}
+          accessibilityHint="Abre os detalhes da aula"
+        >
+          <Image source={agendaIcon} style={styles.cardIcon} accessible={false} />
+          <View style={styles.flex}>
+            <Text style={styles.cardTitle}>Próxima aula</Text>
+            <Text style={styles.lessonWhen}>{nextLessonWhen}</Text>
+            {nextLesson.instrument ? <Text style={styles.caption}>{nextLesson.instrument}</Text> : null}
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.borderStrong} />
+        </Card>
+      ) : (
+        <Card style={styles.lessonCard}>
+          <Image source={agendaIcon} style={styles.cardIcon} accessible={false} />
+          <View style={styles.flex}>
+            <Text style={styles.cardTitle}>Próxima aula</Text>
+            <Text style={styles.caption}>Nenhuma aula agendada</Text>
+          </View>
+        </Card>
+      )}
+    </>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <View accessible accessibilityLabel="Carregando" style={styles.skeleton}>
+      <Card style={styles.xpCard}><Skeleton width="40%" /><Skeleton width="60%" height={28} /><Skeleton height={10} /></Card>
+      <Skeleton height={48} rounded={radius.md} />
+      <View style={styles.statRow}>
+        <Card style={styles.statCard}><Skeleton width="70%" /><Skeleton width="50%" height={22} /></Card>
+        <Card style={styles.statCard}><Skeleton width="70%" /><Skeleton width="50%" height={22} /></Card>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#F4F4F4" },
-  centered: { alignItems: "center", backgroundColor: colors.brand, flex: 1, gap: 16, justifyContent: "center", padding: 24 },
-  errorText: { color: colors.surface, fontSize: 15, textAlign: "center" },
-  retry: { backgroundColor: colors.surface, borderRadius: 8, paddingHorizontal: 20, paddingVertical: 12 },
-  retryText: { color: colors.brand, fontSize: 15, fontWeight: "600" },
-  header: { height: 195, paddingHorizontal: 24 },
-  greetingRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
-  greetingText: { flex: 1 },
-  helloRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  greeting: { color: colors.surface, fontSize: 27, fontWeight: "500" },
-  waveIcon: { width: 27, height: 27 },
-  greetingSubtitle: { color: colors.surface, fontSize: 15, marginTop: 3 },
-  notificationIcon: { width: 25, height: 25, marginTop: 4 },
-  content: { paddingBottom: 18, paddingHorizontal: 31, marginTop: -44 },
-  card: {
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    flexDirection: "row",
-    marginBottom: 21,
-    minHeight: 116,
-    paddingHorizontal: 19,
-    paddingVertical: 18,
-  },
-  xpCard: { alignItems: "stretch", flexDirection: "column", minHeight: 207, paddingHorizontal: 35, paddingTop: 21 },
-  cardEyebrow: { color: "#000000", fontSize: 14, textAlign: "center" },
-  xpValue: { color: "#000000", fontSize: 25, fontWeight: "700", marginTop: 14, textAlign: "center" },
-  label: { color: "#000000", fontSize: 14, marginBottom: 8, marginTop: 26 },
-  helpText: { color: "#000000", fontSize: 14, marginTop: 16, textAlign: "center" },
-  cardIcon: { width: 30, height: 30, marginRight: 18 },
-  cardTitle: { color: colors.text, fontSize: 14, fontWeight: "700" },
-  cardValue: { color: "#000000", fontSize: 18, fontWeight: "700", marginTop: 10 },
-  detail: { color: "#000000", fontSize: 14, marginTop: 11 },
-  fullWidth: { flex: 1 },
-  weeklyCard: { minHeight: 112, paddingHorizontal: 24 },
-  practiceValue: { color: "#6C45BE", fontSize: 16, fontWeight: "700", marginBottom: 15, marginTop: 13 },
-  progressTrack: { backgroundColor: "#CCCCCC", borderRadius: 10, height: 12, overflow: "hidden", width: "100%" },
-  progressFill: { backgroundColor: "#6C45BE", borderRadius: 10, height: "100%" },
+  screen: { flex: 1, backgroundColor: colors.screen },
+  hero: { paddingHorizontal: space.xxl, paddingBottom: 64 },
+  helloRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
+  greeting: { color: colors.onBrand, fontSize: 26, fontWeight: "600", flexShrink: 1 },
+  waveIcon: { width: 26, height: 26 },
+  greetingSubtitle: { color: colors.onBrandMuted, fontSize: 15, marginTop: space.xs },
+  content: { flexGrow: 1, gap: space.lg, paddingHorizontal: space.xl, paddingBottom: space.xxl, marginTop: -44 },
+  skeleton: { gap: space.lg },
+  xpCard: { gap: space.sm },
+  rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  eyebrow: { ...type.label, color: colors.muted },
+  levelBadge: { ...type.label, color: colors.primary, backgroundColor: colors.primarySoft, borderRadius: radius.pill, paddingHorizontal: space.md, paddingVertical: space.xs, overflow: "hidden" },
+  xpValue: { ...type.display },
+  caption: { ...type.caption },
+  statRow: { flexDirection: "row", gap: space.lg },
+  statCard: { flex: 1, gap: space.xs },
+  cardIcon: { width: 28, height: 28 },
+  cardTitle: { ...type.label },
+  statValue: { ...type.title },
+  link: { color: colors.link, fontSize: 13, fontWeight: "600", marginTop: space.xs },
+  lessonCard: { flexDirection: "row", alignItems: "center", gap: space.lg },
+  lessonWhen: { ...type.heading, marginTop: 2 },
+  flex: { flex: 1, gap: 2 },
 });
