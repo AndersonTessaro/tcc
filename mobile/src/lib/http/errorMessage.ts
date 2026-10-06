@@ -1,4 +1,5 @@
 import { ApiError } from "./apiError";
+import { RequestTimeoutError } from "./apiClient";
 
 const BY_CODE: Record<string, string> = {
   SCHEDULE_CONFLICT: "Conflito de horário com outra aula ou horário fixo",
@@ -34,6 +35,7 @@ export function apiErrorMessage(error: unknown, fallback: string): string {
     return fallback;
   }
   if (error instanceof Error && error.message === "UNAUTHENTICATED") return "Sessão expirada. Entre novamente.";
+  if (error instanceof RequestTimeoutError) return "O servidor demorou para responder. Tente novamente.";
   if (error instanceof TypeError) return "Sem conexão com o servidor";
   return fallback;
 }

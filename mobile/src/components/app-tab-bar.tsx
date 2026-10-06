@@ -39,7 +39,7 @@ export function AppTabBar({ state, navigation, tabs }: TabBarProps & { tabs: rea
             style={({ pressed }) => [styles.item, pressed && styles.pressed]}
           >
             <View style={[styles.indicator, focused && styles.indicatorActive]} />
-            <Image source={tab.icon} accessible={false} style={{ width: tab.size, height: tab.size, tintColor: tint }} />
+            <Image source={tab.icon} accessible={false} tintColor={tint} style={{ width: tab.size, height: tab.size }} />
             <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.label, { color: tint }, focused && styles.labelActive]}>{tab.label}</Text>
           </Pressable>
         );
