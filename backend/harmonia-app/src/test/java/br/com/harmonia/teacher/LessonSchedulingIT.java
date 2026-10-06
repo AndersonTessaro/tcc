@@ -345,4 +345,98 @@ class LessonSchedulingIT {
                 .contentType("application/json").content(lessonBody(enrollment, today, "14:00", "15:00")))
             .andExpect(status().isOk());
     }
+
+    /** One student enrolled with two teachers; returns both enrollment ids (first teacher, second teacher). */
+    private String[] studentSharedByTwoTeachers(String suffix) throws Exception {
+        String admin = login("admin", "Admin@123");
+        String instrument = postId(admin, "/admin/instruments", "{\"name\":\"Instrument " + suffix + "\"}");
+        String student = postId(admin, "/admin/students",
+            "{\"username\":\"student" + suffix + "\",\"email\":\"st" + suffix + "@h.local\","
+                + "\"password\":\"Student@123\",\"name\":\"Student " + suffix + "\"}");
+        String[] enrollments = new String[2];
+        for (int i = 0; i < 2; i++) {
+            String teacher = postId(admin, "/admin/teachers",
+                "{\"username\":\"teacher" + suffix + i + "\",\"email\":\"" + suffix + i + "@h.local\",\"password\":\""
+                    + TEACHER_PASSWORD + "\",\"name\":\"Teacher " + suffix + i + "\",\"instrumentIds\":[\""
+                    + instrument + "\"]}");
+            enrollments[i] = postId(admin, "/admin/enrollments",
+                "{\"studentId\":\"" + student + "\",\"teacherId\":\"" + teacher + "\",\"instrumentId\":\""
+                    + instrument + "\"}");
+        }
+        return enrollments;
+    }
+
+    private String availabilityUrl(String enrollment, String date, String start, String end) {
+        return "/teacher/lessons/availability?enrollmentId=" + enrollment + "&date=" + date
+            + (start == null ? "" : "&startTime=" + start + "&endTime=" + end);
+    }
+
+    @Test
+    void availability_listsEveryConflictWithoutPersisting() throws Exception {
+        String[] enrollments = enrollmentsSharingTeacher("Av1");
+        String t = login("teacherAv1", TEACHER_PASSWORD);
+        String tomorrow = LocalDate.now().plusDays(1).toString();
+        postId(t, "/teacher/lessons", lessonBody(enrollments[1], tomorrow, "09:00", "10:00"));
+        postId(t, "/teacher/lessons", lessonBody(enrollments[1], tomorrow, "10:30", "11:30"));
+
+        mvc.perform(get(availabilityUrl(enrollments[0], tomorrow, "09:30", "11:00"))
+                .header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.initialStatus", is("SCHEDULED")))
+            .andExpect(jsonPath("$.available", is(false)))
+            .andExpect(jsonPath("$.busy.length()", is(2)))
+            .andExpect(jsonPath("$.conflicts.length()", is(2)))
+            .andExpect(jsonPath("$.conflicts[0].party", is("TEACHER")))
+            .andExpect(jsonPath("$.conflicts[0].description", is("Student Av11 · Instrument Av1")));
+
+        mvc.perform(get(availabilityUrl(enrollments[0], tomorrow, "10:00", "10:30"))
+                .header("Authorization", "Bearer " + t))
+            .andExpect(jsonPath("$.available", is(true)))
+            .andExpect(jsonPath("$.conflicts.length()", is(0)));
+
+        mvc.perform(get("/teacher/schedule?date=" + tomorrow).header("Authorization", "Bearer " + t))
+            .andExpect(jsonPath("$.length()", is(2)));
+    }
+
+    @Test
+    void availability_hidesDetailsOfTheStudentsLessonWithAnotherTeacher() throws Exception {
+        String[] enrollments = studentSharedByTwoTeachers("Av2");
+        String other = login("teacherAv21", TEACHER_PASSWORD);
+        String t = login("teacherAv20", TEACHER_PASSWORD);
+        String today = LocalDate.now().toString();
+        postId(other, "/teacher/lessons", lessonBody(enrollments[1], today, "14:00", "15:00"));
+
+        mvc.perform(get(availabilityUrl(enrollments[0], today, "14:30", "15:30"))
+                .header("Authorization", "Bearer " + t))
+            .andExpect(jsonPath("$.initialStatus", is("DONE")))
+            .andExpect(jsonPath("$.conflicts.length()", is(1)))
+            .andExpect(jsonPath("$.conflicts[0].party", is("STUDENT")))
+            .andExpect(jsonPath("$.conflicts[0].description", is("Aula do aluno com outro professor")));
+    }
+
+    @Test
+    void availability_reportsTheRecurringScheduleTheLessonFulfills() throws Exception {
+        String enrollment = enrollmentFor("Av3");
+        String t = login("teacherAv3", TEACHER_PASSWORD);
+        LocalDate nextWeek = LocalDate.now().plusDays(7);
+        postId(t, "/teacher/schedules", scheduleBody(enrollment, nextWeek.getDayOfWeek().name(), "10:00", "11:00"));
+
+        mvc.perform(get(availabilityUrl(enrollment, nextWeek.toString(), "10:00", "11:00"))
+                .header("Authorization", "Bearer " + t))
+            .andExpect(jsonPath("$.available", is(true)))
+            .andExpect(jsonPath("$.busy.length()", is(0)))
+            .andExpect(jsonPath("$.fulfilledSchedule.kind", is("RECURRING")))
+            .andExpect(jsonPath("$.fulfilledSchedule.startTime", is("10:00:00")));
+    }
+
+    @Test
+    void availability_isDeniedForAnotherTeachersEnrollment() throws Exception {
+        String enrollment = enrollmentFor("Av4");
+        enrollmentFor("Av5");
+        String intruder = login("teacherAv5", TEACHER_PASSWORD);
+
+        mvc.perform(get(availabilityUrl(enrollment, LocalDate.now().toString(), null, null))
+                .header("Authorization", "Bearer " + intruder))
+            .andExpect(status().isForbidden());
+    }
 }

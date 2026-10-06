@@ -47,6 +47,23 @@ export type TeacherLesson = {
   attendance: AttendanceStatus | null;
 };
 
+export type AvailabilityBlock = {
+  referenceId: string;
+  kind: "LESSON" | "RECURRING";
+  party: "TEACHER" | "STUDENT" | "BOTH";
+  startTime: string;
+  endTime: string;
+  description: string;
+};
+
+export type LessonAvailability = {
+  initialStatus: "SCHEDULED" | "DONE";
+  available: boolean;
+  busy: AvailabilityBlock[];
+  conflicts: AvailabilityBlock[];
+  fulfilledSchedule: AvailabilityBlock | null;
+};
+
 export type TeacherDashboardData = {
   totalStudents: number;
   attendancePercent: number;
@@ -93,6 +110,10 @@ export const teacherService = {
     content?: string;
     homework?: string;
   }) => api.post<TeacherLesson>("/teacher/lessons", b),
+  availability: (enrollmentId: string, date: string, startTime?: string, endTime?: string) =>
+    api.get<LessonAvailability>(
+      `/teacher/lessons/availability?enrollmentId=${enrollmentId}&date=${date}${startTime && endTime ? `&startTime=${startTime}&endTime=${endTime}` : ""}`,
+    ),
   history: (start: string, end: string) =>
     api.get<TeacherLesson[]>(`/teacher/lessons?start=${start}&end=${end}`),
   attendance: (lessonId: string, status: AttendanceStatus, justification?: string) =>
