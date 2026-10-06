@@ -1,153 +1,175 @@
-import { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, TextInput, Pressable, View } from "react-native";
-import { useFocusEffect } from "expo-router";
-import {
-  teacherService,
-  type TeacherEnrollment,
-  type TeacherSchedule,
-  type Weekday,
-} from "@/features/teacher/teacherService";
+import { useState } from "react";
+import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { teacherService, type TeacherSchedule, type Weekday } from "@/features/teacher/teacherService";
+import { EnrollmentPicker } from "@/features/teacher/EnrollmentPicker";
 import { hhmm } from "@/features/teacher/agenda";
 import { oneHourAfter, validateTimeRange } from "@/features/teacher/lessonForm";
 import { WEEKDAYS, weekdayLabel } from "@/features/teacher/weeklySchedule";
-import { apiErrorMessage } from "@/lib/http/errorMessage";
+import { useResource } from "@/hooks/use-resource";
+import { confirm } from "@/lib/confirm";
+import { apiErrorKey, apiErrorMessage } from "@/lib/http/errorMessage";
+import { Button } from "@/ui/Button";
+import { Card } from "@/ui/Card";
+import { ChipGroup } from "@/ui/Chip";
+import { DateTimeField } from "@/ui/DateTimeField";
 import { ScreenHeader } from "@/ui/ScreenHeader";
+import { ScreenState } from "@/ui/ScreenState";
+import { StatusChip } from "@/ui/StatusChip";
+import { useToast } from "@/ui/Toast";
+import { colors, space, type } from "@/ui/theme";
 
 const DEFAULT_START = "14:00";
+const DEFAULT_WEEKDAY: Weekday = "MONDAY";
+
+type FormErrors = { enrollment?: string; time?: string; form?: string };
+
+const loadAll = async () => {
+  const [schedules, enrollments] = await Promise.all([teacherService.schedules(), teacherService.enrollments()]);
+  return { schedules, enrollments };
+};
 
 export default function Schedules() {
-  const [schedules, setSchedules] = useState<TeacherSchedule[]>([]);
-  const [enrollments, setEnrollments] = useState<TeacherEnrollment[]>([]);
+  const toast = useToast();
+  const resource = useResource(loadAll);
+  const { data, setData, reload } = resource;
   const [enrollmentId, setEnrollmentId] = useState("");
-  const [weekday, setWeekday] = useState<Weekday>("MONDAY");
+  const [weekday, setWeekday] = useState<Weekday>(DEFAULT_WEEKDAY);
   const [startTime, setStartTime] = useState(DEFAULT_START);
   const [endTime, setEndTime] = useState(oneHourAfter(DEFAULT_START));
-  const [msg, setMsg] = useState("");
-  const [busy, setBusy] = useState(false);
-  const pending = useRef(false);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
-  const request = useRef(0);
+  const [endEdited, setEndEdited] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [formKey, setFormKey] = useState(0);
+  const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
 
-  const load = useCallback(() => {
-    const current = ++request.current;
-    setLoading(true); setLoadError("");
-    Promise.all([teacherService.schedules(), teacherService.enrollments()])
-      .then(([nextSchedules, nextEnrollments]) => { if (current === request.current) { setSchedules(nextSchedules); setEnrollments(nextEnrollments); } })
-      .catch((error) => { if (current === request.current) setLoadError(apiErrorMessage(error, "Erro ao carregar horários e alunos")); })
-      .finally(() => { if (current === request.current) setLoading(false); });
-  }, []);
+  const replaceSchedule = (updated: TeacherSchedule) =>
+    setData((current) => current && { ...current, schedules: current.schedules.map((item) => (item.id === updated.id ? updated : item)) });
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  const resetForm = () => {
+    setEnrollmentId("");
+    setWeekday(DEFAULT_WEEKDAY);
+    setStartTime(DEFAULT_START);
+    setEndTime(oneHourAfter(DEFAULT_START));
+    setEndEdited(false);
+    setFormKey((value) => value + 1);
+  };
 
   const changeStart = (value: string) => {
     setStartTime(value);
+    setErrors(({ time: _time, ...rest }) => rest);
     const suggested = oneHourAfter(value);
-    if (suggested) setEndTime(suggested);
+    if (!endEdited && suggested) setEndTime(suggested);
   };
 
   const create = async () => {
-    if (pending.current) return;
-    const invalid = enrollmentId ? validateTimeRange(startTime, endTime) : "Selecione o aluno";
-    if (invalid) {
-      setMsg(invalid);
+    const found: FormErrors = {
+      enrollment: enrollmentId ? undefined : "Selecione o aluno",
+      time: validateTimeRange(startTime, endTime) ?? undefined,
+    };
+    if (found.enrollment || found.time) {
+      setErrors(found);
       return;
     }
-    setMsg("");
-    pending.current = true;
-    setBusy(true);
+    setErrors({});
     try {
-      await teacherService.createSchedule({ enrollmentId, weekday, startTime, endTime });
-      setMsg("Horário criado!");
-      load();
+      const created = await teacherService.createSchedule({ enrollmentId, weekday, startTime, endTime });
+      setData((current) => current && { ...current, schedules: [...current.schedules, created] });
+      toast.show("Horário criado", "success");
+      resetForm();
+      void reload();
     } catch (error) {
-      setMsg(apiErrorMessage(error, "Erro ao criar horário"));
-    } finally {
-      pending.current = false;
-      setBusy(false);
+      setErrors({ [apiErrorKey(error, ["enrollment", "time"])]: apiErrorMessage(error, "Erro ao criar horário") });
     }
   };
 
   const toggle = async (schedule: TeacherSchedule) => {
-    if (pending.current) return;
-    pending.current = true;
-    setBusy(true);
-    setMsg("");
+    if (busy[schedule.id]) return;
+    if (schedule.active && !(await confirm({ title: "Desativar horário?", message: `${weekdayLabel(schedule.weekday)} ${hhmm(schedule.startTime)} · ${schedule.studentName}`, confirmLabel: "Desativar", destructive: true }))) return;
+    setBusy((current) => ({ ...current, [schedule.id]: true }));
+    setRowErrors(({ [schedule.id]: _cleared, ...rest }) => rest);
     try {
-      await teacherService.setScheduleActive(schedule.id, !schedule.active);
-      load();
+      replaceSchedule(await teacherService.setScheduleActive(schedule.id, !schedule.active));
+      toast.show(schedule.active ? "Horário desativado" : "Horário reativado", "success");
     } catch (error) {
-      setMsg(apiErrorMessage(error, "Erro ao alterar horário"));
+      setRowErrors((current) => ({ ...current, [schedule.id]: apiErrorMessage(error, "Erro ao alterar horário") }));
     } finally {
-      pending.current = false;
-      setBusy(false);
+      setBusy(({ [schedule.id]: _done, ...rest }) => rest);
     }
   };
 
-  const chip = (label: string, selected: boolean, onPress: () => void) => (
-    <Pressable
-      key={label}
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
-      className={`rounded-lg border px-3 py-2 mb-2 ${selected ? "bg-[#7040C5] border-[#7040C5]" : "bg-white border-[#D5D5D5]"}`}
-      onPress={onPress}
-    >
-      <Text className={selected ? "text-white" : "text-[#17131A]"}>{label}</Text>
-    </Pressable>
-  );
+  const unavailable = resource.loading || !!resource.error;
 
   return (
-    <ScrollView className="flex-1 bg-[#F4F4F4]" contentContainerStyle={{ paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScreenHeader title="Horários fixos" back />
-      <View style={{ paddingHorizontal: 18 }}>
-        {loading ? <ActivityIndicator color="#7040C5" /> : loadError ? <View><Text className="text-[#B42318]">{loadError}</Text><Pressable accessibilityRole="button" onPress={load}><Text className="text-[#5930A9] py-3">Tentar novamente</Text></Pressable></View> : schedules.length === 0 ? <Text className="text-[#6A666B] mb-4">Nenhum horário cadastrado.</Text> : null}
-        {schedules.map((s) => (
-          <View key={s.id} className="bg-white border border-[#D5D5D5] rounded-lg p-4 mb-3">
-            <Text className="text-[#17131A] font-semibold">
-              {weekdayLabel(s.weekday)} {hhmm(s.startTime)}–{hhmm(s.endTime)} · {s.studentName}
-            </Text>
-            <Text className="text-[#6A666B] mb-2">
-              {s.instrument} · {s.active ? "Ativo" : "Inativo"}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              disabled={busy}
-              className="rounded-lg px-3 py-2 border border-[#7040C5] self-start"
-              onPress={() => toggle(s)}
-            >
-              <Text className="text-[#5930A9] font-semibold">{s.active ? "Desativar" : "Reativar"}</Text>
-            </Pressable>
-          </View>
-        ))}
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        refreshControl={<RefreshControl refreshing={resource.refreshing} onRefresh={resource.refresh} tintColor={colors.primary} colors={[colors.primary]} />}
+      >
+        {resource.loading ? (
+          <ScreenState loading skeleton />
+        ) : resource.error ? (
+          <ScreenState message={apiErrorMessage(resource.error, "Erro ao carregar horários e alunos")} retry={() => void reload()} />
+        ) : (
+          <>
+            <Card style={styles.form}>
+              <Text accessibilityRole="header" style={styles.section}>Novo horário</Text>
+              <Text style={styles.label}>Aluno</Text>
+              <EnrollmentPicker key={formKey} enrollments={data?.enrollments ?? []} value={enrollmentId} onChange={(id) => { setEnrollmentId(id); setErrors(({ enrollment: _e, ...rest }) => rest); }} error={errors.enrollment} />
+              {errors.enrollment && enrollmentId ? <Text accessibilityLiveRegion="polite" style={styles.error}>{errors.enrollment}</Text> : null}
+              <Text style={styles.label}>Dia da semana</Text>
+              <ChipGroup label="Dia da semana" options={WEEKDAYS} value={weekday} onChange={setWeekday} scroll />
+              <View style={styles.row}>
+                <DateTimeField mode="time" label="Início" value={startTime} onChange={changeStart} />
+                <DateTimeField mode="time" label="Fim" value={endTime} onChange={(value) => { setEndEdited(true); setEndTime(value); setErrors(({ time: _t, ...rest }) => rest); }} />
+              </View>
+              {errors.time ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{errors.time}</Text> : null}
+              {errors.form ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{errors.form}</Text> : null}
+              <Button label="Criar horário" icon="add" onPress={create} disabled={unavailable} />
+            </Card>
 
-        <Text className="text-lg font-bold text-[#17131A] mt-6 mb-2">Novo horário</Text>
-        <Text className="text-[#17131A] font-semibold mb-2">Aluno</Text>
-        <View className="flex-row flex-wrap gap-2">
-          {enrollments.map((e) => chip(`${e.studentName} · ${e.instrument}`, e.id === enrollmentId, () => setEnrollmentId(e.id)))}
-        </View>
-        <Text className="text-[#17131A] font-semibold mb-2 mt-2">Dia da semana</Text>
-        <View className="flex-row flex-wrap gap-2">
-          {WEEKDAYS.map((d) => chip(d.label, d.value === weekday, () => setWeekday(d.value)))}
-        </View>
-        <TextInput
-          className="bg-white border border-[#D5D5D5] text-[#17131A] rounded-lg p-4 my-3"
-          placeholder="Início (HH:MM)"
-          placeholderTextColor="#9A969B"
-          value={startTime}
-          onChangeText={changeStart}
-        />
-        <TextInput
-          className="bg-white border border-[#D5D5D5] text-[#17131A] rounded-lg p-4 mb-3"
-          placeholder="Fim (HH:MM)"
-          placeholderTextColor="#9A969B"
-          value={endTime}
-          onChangeText={setEndTime}
-        />
-        <Pressable accessibilityRole="button" disabled={busy || loading || !!loadError} className="bg-[#7040C5] rounded-lg p-4 items-center" onPress={create}>
-          <Text className="text-white font-semibold">Criar horário</Text>
-        </Pressable>
-        {msg ? <Text className="text-[#B42318] mt-4">{msg}</Text> : null}
-      </View>
-    </ScrollView>
+            <Text accessibilityRole="header" style={styles.section}>Horários cadastrados</Text>
+            {data?.schedules.length ? data.schedules.map((schedule) => (
+              <Card key={schedule.id} style={styles.item}>
+                <View style={styles.itemTop}>
+                  <View style={styles.itemText}>
+                    <Text style={styles.itemTitle}>{weekdayLabel(schedule.weekday)} {hhmm(schedule.startTime)}–{hhmm(schedule.endTime)} · {schedule.studentName}</Text>
+                    <Text style={styles.itemSubtitle}>{schedule.instrument}</Text>
+                  </View>
+                  <StatusChip label={schedule.active ? "Ativo" : "Inativo"} tone={schedule.active ? "success" : "neutral"} />
+                </View>
+                {rowErrors[schedule.id] ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{rowErrors[schedule.id]}</Text> : null}
+                <Button
+                  label={schedule.active ? "Desativar" : "Reativar"}
+                  variant={schedule.active ? "danger" : "secondary"}
+                  compact
+                  loading={!!busy[schedule.id]}
+                  onPress={() => toggle(schedule)}
+                  style={styles.itemAction}
+                />
+              </Card>
+            )) : <ScreenState icon="time-outline" title="Nenhum horário cadastrado" message="Crie um horário fixo semanal no formulário acima." />}
+          </>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.screen },
+  content: { paddingHorizontal: space.lg, paddingBottom: space.xxxl, gap: space.md, flexGrow: 1 },
+  form: { gap: space.md },
+  section: { ...type.heading },
+  label: { ...type.label },
+  row: { flexDirection: "row", gap: space.md },
+  error: { color: colors.danger, fontSize: 13 },
+  item: { gap: space.sm },
+  itemTop: { flexDirection: "row", alignItems: "flex-start", gap: space.sm },
+  itemText: { flex: 1, gap: 2 },
+  itemTitle: { ...type.bodyStrong },
+  itemSubtitle: { ...type.caption },
+  itemAction: { alignSelf: "flex-start" },
+});

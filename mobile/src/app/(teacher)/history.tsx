@@ -1,102 +1,133 @@
-import { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useState } from "react";
+import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import { teacherService, type TeacherLesson } from "@/features/teacher/teacherService";
-import { hhmm, lessonStatusLabel } from "@/features/teacher/agenda";
-import { localIsoDate, validateDate } from "@/features/teacher/lessonForm";
+import { hhmm, lessonStatusLabel, lessonStatusTone, scheduleHref } from "@/features/teacher/agenda";
+import { validateDate } from "@/features/teacher/lessonForm";
+import { useResource } from "@/hooks/use-resource";
+import { addDays, formatFullDate, todayIso } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
+import { Button } from "@/ui/Button";
+import { Card } from "@/ui/Card";
+import { ChipGroup } from "@/ui/Chip";
+import { DateTimeField } from "@/ui/DateTimeField";
 import { ScreenHeader } from "@/ui/ScreenHeader";
+import { ScreenState } from "@/ui/ScreenState";
+import { StatusChip } from "@/ui/StatusChip";
+import { colors, space, type } from "@/ui/theme";
 
-function initialStart() {
-  const date = new Date();
-  date.setDate(date.getDate() - 30);
-  return localIsoDate(date);
+type Preset = "week" | "month30" | "thisMonth" | "custom";
+type Range = { start: string; end: string };
+
+const PRESETS: { value: Preset; label: string }[] = [
+  { value: "week", label: "7 dias" },
+  { value: "month30", label: "30 dias" },
+  { value: "thisMonth", label: "Este mês" },
+  { value: "custom", label: "Personalizado" },
+];
+
+function presetRange(preset: Exclude<Preset, "custom">, today: string): Range {
+  if (preset === "week") return { start: addDays(today, -6), end: today };
+  if (preset === "thisMonth") return { start: `${today.slice(0, 8)}01`, end: today };
+  return { start: addDays(today, -30), end: today };
 }
 
 export default function History() {
   const router = useRouter();
-  const [start, setStart] = useState(initialStart);
-  const [end, setEnd] = useState(localIsoDate);
-  const [range, setRange] = useState({ start, end });
-  const [lessons, setLessons] = useState<TeacherLesson[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
-  const requestId = useRef(0);
+  const today = todayIso();
+  const [preset, setPreset] = useState<Preset>("month30");
+  const [range, setRange] = useState<Range>(() => presetRange("month30", today));
+  const [draft, setDraft] = useState<Range>(range);
+  const [rangeError, setRangeError] = useState("");
+  const lessons = useResource(() => teacherService.history(range.start, range.end), `${range.start}|${range.end}`);
 
-  const load = useCallback(() => {
-    const currentRequest = ++requestId.current;
-    setLoading(true);
-    setMessage("");
-    teacherService.history(range.start, range.end)
-      .then((result) => {
-        if (currentRequest === requestId.current) setLessons(result);
-      })
-      .catch((error) => {
-        if (currentRequest !== requestId.current) return;
-        setLessons([]);
-        setMessage(apiErrorMessage(error, "Erro ao carregar histórico"));
-      })
-      .finally(() => {
-        if (currentRequest === requestId.current) setLoading(false);
-      });
-  }, [range]);
-
-  useFocusEffect(useCallback(() => { load(); }, [load]));
-
-  const filter = () => {
-    if (validateDate(start) || validateDate(end) || start > end) {
-      setMessage("Informe um período válido, com início até o fim");
+  const choosePreset = (value: Preset) => {
+    setPreset(value);
+    setRangeError("");
+    if (value === "custom") {
+      setDraft(range);
       return;
     }
-    if (range.start === start && range.end === end) load();
-    else setRange({ start, end });
+    setRange(presetRange(value, today));
   };
 
-  return (
-    <View className="flex-1 bg-[#F4F4F4]">
-      <ScreenHeader title="Histórico de aulas" back />
-      <View className="flex-1 px-[18px]">
-        <Text className="text-[#17131A] font-semibold mb-2">Período</Text>
-        <View className="flex-row gap-2 mb-3">
-          <TextInput
-            accessibilityLabel="Data inicial"
-            className="flex-1 bg-white border border-[#D5D5D5] text-[#17131A] rounded-lg p-3"
-            placeholder="Início (AAAA-MM-DD)"
-            placeholderTextColor="#9A969B"
-            value={start}
-            onChangeText={setStart}
-          />
-          <TextInput
-            accessibilityLabel="Data final"
-            className="flex-1 bg-white border border-[#D5D5D5] text-[#17131A] rounded-lg p-3"
-            placeholder="Fim (AAAA-MM-DD)"
-            placeholderTextColor="#9A969B"
-            value={end}
-            onChangeText={setEnd}
-          />
+  const applyCustom = () => {
+    if (validateDate(draft.start) || validateDate(draft.end) || draft.start > draft.end) {
+      setRangeError("Informe um período válido, com início até o fim");
+      return;
+    }
+    setRangeError("");
+    if (draft.start === range.start && draft.end === range.end) void lessons.reload();
+    else setRange(draft);
+  };
+
+  const header = (
+    <View style={styles.filters}>
+      <ChipGroup label="Período" options={PRESETS} value={preset} onChange={choosePreset} scroll />
+      {preset === "custom" ? (
+        <View style={styles.custom}>
+          <View style={styles.row}>
+            <DateTimeField mode="date" label="Data inicial" value={draft.start} onChange={(start) => setDraft((current) => ({ ...current, start }))} />
+            <DateTimeField mode="date" label="Data final" value={draft.end} onChange={(end) => setDraft((current) => ({ ...current, end }))} />
+          </View>
+          {rangeError ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{rangeError}</Text> : null}
+          <Button label="Buscar aulas" icon="search" onPress={applyCustom} />
         </View>
-        <Pressable accessibilityRole="button" className="bg-[#7040C5] rounded-lg p-3 items-center mb-4" onPress={filter}>
-          <Text className="text-white font-semibold">Buscar aulas</Text>
-        </Pressable>
-        {message ? <Text className="text-[#B42318] mb-3">{message}</Text> : null}
-        {loading ? <ActivityIndicator color="#7040C5" /> : (
-          <FlatList
-            data={lessons}
-            keyExtractor={(lesson) => lesson.id}
-            ListEmptyComponent={<Text className="text-[#6A666B] text-center py-8">Nenhuma aula neste período.</Text>}
-            renderItem={({ item }) => (
-              <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/(teacher)/schedule", params: { date: item.date } })} className="bg-white border border-[#D5D5D5] rounded-lg p-4 mb-3">
-                <Text className="text-[#17131A] font-semibold">
-                  {item.date.split("-").reverse().join("/")} · {hhmm(item.startTime)}–{hhmm(item.endTime)}
-                </Text>
-                <Text className="text-[#17131A] mt-1">{item.studentName} · {item.instrument}</Text>
-                <Text className="text-[#6A666B] mt-1">{lessonStatusLabel(item.status)}</Text>
-                <Text className="text-[#5930A9] mt-2">Abrir na agenda</Text>
-              </Pressable>
-            )}
-          />
-        )}
+      ) : null}
+      <Text style={styles.rangeLabel}>{formatFullDate(range.start)} a {formatFullDate(range.end)}</Text>
+    </View>
+  );
+
+  const empty = lessons.loading ? (
+    <ScreenState loading skeleton />
+  ) : lessons.error ? (
+    <ScreenState message={apiErrorMessage(lessons.error, "Erro ao carregar histórico")} retry={() => void lessons.reload()} />
+  ) : (
+    <ScreenState icon="time-outline" title="Nenhuma aula neste período" message="Escolha outro período para ver mais aulas." />
+  );
+
+  const renderLesson = ({ item }: { item: TeacherLesson }) => (
+    <Card
+      onPress={() => router.push(scheduleHref(item.date))}
+      accessibilityLabel={`${formatFullDate(item.date)}, ${hhmm(item.startTime)}, ${item.studentName}, ${lessonStatusLabel(item.status)}`}
+      accessibilityHint="Abre o dia na agenda"
+      style={styles.card}
+    >
+      <View style={styles.cardTop}>
+        <Text style={styles.cardTitle}>{formatFullDate(item.date)} · {hhmm(item.startTime)}–{hhmm(item.endTime)}</Text>
+        <StatusChip label={lessonStatusLabel(item.status)} tone={lessonStatusTone(item.status)} />
       </View>
+      <Text style={styles.cardText}>{item.studentName} · {item.instrument}</Text>
+    </Card>
+  );
+
+  return (
+    <View style={styles.screen}>
+      <ScreenHeader title="Histórico de aulas" back />
+      <FlatList
+        data={lessons.data ?? []}
+        keyExtractor={(lesson) => lesson.id}
+        contentContainerStyle={styles.content}
+        ListHeaderComponent={header}
+        ListEmptyComponent={empty}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={lessons.refreshing} onRefresh={lessons.refresh} tintColor={colors.primary} colors={[colors.primary]} />}
+        renderItem={renderLesson}
+      />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.screen },
+  content: { paddingHorizontal: space.lg, paddingBottom: space.xxxl, gap: space.md, flexGrow: 1 },
+  filters: { gap: space.md },
+  custom: { gap: space.md },
+  row: { flexDirection: "row", gap: space.md },
+  error: { color: colors.danger, fontSize: 13 },
+  rangeLabel: { ...type.caption },
+  card: { gap: space.xs },
+  cardTop: { flexDirection: "row", alignItems: "flex-start", gap: space.sm },
+  cardTitle: { ...type.bodyStrong, flex: 1 },
+  cardText: { ...type.body, color: colors.muted },
+});

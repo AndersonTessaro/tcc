@@ -125,6 +125,6 @@ export const teacherService = {
     } as unknown as Blob);
     form.append("title", title);
     if (description) form.append("description", description);
-    return api.postForm<any>(`/teacher/students/${studentId}/materials`, form);
+    return api.postForm<TeacherStudentMaterial>(`/teacher/students/${studentId}/materials`, form);
   },
 };
