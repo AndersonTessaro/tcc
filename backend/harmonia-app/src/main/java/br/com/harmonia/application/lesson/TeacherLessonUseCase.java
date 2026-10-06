@@ -64,6 +64,13 @@ public class TeacherLessonUseCase {
         return lessons.save(l);
     }
 
+    @Transactional(readOnly = true)
+    public SlotAvailability availability(UUID enrollmentId, LocalDate date, LocalTime start, LocalTime end) {
+        Enrollment enrollment = teacherEnrollment(enrollmentId);
+        SessionStatus initialStatus = lifecyclePolicy.initialStatus(date, LocalDate.now());
+        return schedulingGuard.availability(enrollment, date, start, end, initialStatus);
+    }
+
     @Transactional
     public Lesson changeStatus(UUID lessonId, LessonStatus next) {
         Lesson lesson = lessons.findById(lessonId).orElseThrow(() -> new ResourceNotFoundException("Lesson"));

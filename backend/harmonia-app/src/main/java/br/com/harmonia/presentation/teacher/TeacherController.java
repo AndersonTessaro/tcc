@@ -6,6 +6,7 @@ import br.com.harmonia.application.material.TeacherMaterialUseCase;
 import br.com.harmonia.application.teacher.TeacherUseCase;
 import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
 import br.com.harmonia.presentation.response.AttendanceResponse;
+import br.com.harmonia.presentation.response.AvailabilityResponse;
 import br.com.harmonia.presentation.response.LessonResponse;
 import br.com.harmonia.presentation.response.MaterialResponse;
 import br.com.harmonia.presentation.response.PersonSummary;
@@ -97,6 +98,15 @@ public class TeacherController {
     public LessonResponse newLesson(@Valid @RequestBody NewLesson r) {
         return LessonResponse.of(lesson.register(r.enrollmentId(), r.date(), r.startTime(), r.endTime(),
             r.content(), r.homework()));
+    }
+
+    @GetMapping("/lessons/availability")
+    @PreAuthorize("hasAuthority('lesson.manage')")
+    public AvailabilityResponse availability(@RequestParam UUID enrollmentId,
+                                             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+                                             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime startTime,
+                                             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime endTime) {
+        return AvailabilityResponse.of(lesson.availability(enrollmentId, date, startTime, endTime));
     }
 
     @GetMapping("/lessons")
