@@ -1,112 +1,109 @@
-import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
+import { useCallback, type ReactNode } from "react";
+import { Image, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { studentService, type StudentLessonDetail } from "@/features/student/studentService";
-import { colors } from "@/ui/theme";
+import { StatusBar } from "expo-status-bar";
+import { formatLessonDateLong, formatTimeRange, lessonBadge } from "@/features/student/lessonStatus";
+import { studentService, type LessonAttachment } from "@/features/student/studentService";
+import { useResource } from "@/hooks/use-resource";
+import { formatFileSize } from "@/lib/format";
+import { apiErrorMessage } from "@/lib/http/errorMessage";
+import { Card } from "@/ui/Card";
 import { ScreenHeader } from "@/ui/ScreenHeader";
-import { lessonStatusLabel } from "@/features/teacher/agenda";
+import { ScreenState } from "@/ui/ScreenState";
+import { StatusChip } from "@/ui/StatusChip";
+import { colors, radius, space, type } from "@/ui/theme";
+
 const fileIcon = require("@/assets/images/figma-student/file.png");
-
-function formatSchedule(date: string, time: string) {
-  const [year, month, day] = date.split("-");
-  return `${day && month && year ? `${day}/${month}/${year}` : date} - ${time.slice(0, 5)}`;
-}
-
-function formatSize(bytes: number | null) {
-  if (bytes == null) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1).replace(".", ",")} MB`;
-}
 
 export default function LessonDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [detail, setDetail] = useState<StudentLessonDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  const load = useCallback(() => {
-    if (!id) return;
-    setLoading(true);
-    setError(false);
-    studentService.lesson(id)
-      .then(setDetail)
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, [id]);
-
-  useEffect(load, [load]);
-
-  const lesson = detail?.lesson;
-  const contentLines = lesson?.content?.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) ?? [];
+  const fetchLesson = useCallback(() => studentService.lesson(id), [id]);
+  const detail = useResource(fetchLesson, id);
+  const lesson = detail.data?.lesson;
 
   return (
     <View style={styles.screen}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F4F4F4" />
-      <ScreenHeader title="Detalhes da Aula" back />
-      {loading ? (
-        <ActivityIndicator color={colors.accent} style={styles.center} />
-      ) : error || !lesson ? (
-        <View style={styles.center}>
-          <Text style={styles.message}>Não foi possível carregar os detalhes da aula.</Text>
-          <Pressable accessibilityRole="button" onPress={load} style={styles.retry}>
-            <Text style={styles.retryText}>Tentar novamente</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={[styles.card, styles.lessonCard]}>
-            <Text style={styles.body}>{formatSchedule(lesson.date, lesson.startTime)}</Text>
+      <StatusBar style="dark" />
+      <ScreenHeader title="Detalhes da aula" back />
+      {detail.data && lesson ? (
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={detail.refreshing} onRefresh={detail.refresh} tintColor={colors.primary} />}
+        >
+          <Card style={styles.summary}>
+            <StatusChip {...lessonBadge(lesson)} />
             <Text style={styles.instrument}>{lesson.instrument}</Text>
-            <Text style={styles.teacher}>Professor: {lesson.teacherName}</Text>
-            <Text style={styles.body}>{lessonStatusLabel(lesson.status)}{lesson.endTime ? ` · Até ${lesson.endTime.slice(0, 5)}` : ""}</Text>
-          </View>
+            <Text style={styles.body}>{formatLessonDateLong(lesson.date)}</Text>
+            <Text style={styles.body}>{formatTimeRange(lesson.startTime, lesson.endTime)}</Text>
+            <Text style={styles.caption}>Professor: {lesson.teacherName}</Text>
+          </Card>
 
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Conteúdo trabalhado</Text>
-            {contentLines.length ? contentLines.map((line, index) => (
-              <Text key={`${index}-${line}`} style={styles.bullet}>•  {line}</Text>
-            )) : <Text style={styles.body}>Nenhum conteúdo informado.</Text>}
-          </View>
+          <Section title="Conteúdo trabalhado">
+            <ContentLines text={lesson.content} empty="Nenhum conteúdo informado." />
+          </Section>
 
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Tarefa para casa</Text>
+          <Section title="Tarefa para casa">
             <Text style={styles.body}>{lesson.homework?.trim() || "Nenhuma tarefa informada."}</Text>
-          </View>
+          </Section>
 
-          <View style={[styles.card, styles.attachmentsCard]}>
-            <Text style={styles.cardTitle}>Anexos</Text>
-            {detail.attachments.length ? detail.attachments.map((attachment) => (
-              <View key={attachment.id} style={styles.attachment}>
-                <Image source={fileIcon} style={styles.fileIcon} />
-                <Text numberOfLines={1} style={styles.fileName}>{attachment.fileName}</Text>
-                <Text style={styles.fileSize}>{formatSize(attachment.sizeBytes)}</Text>
-              </View>
-            )) : <Text style={styles.body}>Nenhum anexo.</Text>}
-          </View>
+          <Section title="Anexos">
+            {detail.data.attachments.length ? (
+              <>
+                {detail.data.attachments.map((attachment) => <AttachmentRow key={attachment.id} attachment={attachment} />)}
+                <Text style={styles.caption}>Disponível com o professor</Text>
+              </>
+            ) : (
+              <Text style={styles.body}>Nenhum anexo.</Text>
+            )}
+          </Section>
         </ScrollView>
+      ) : detail.error ? (
+        <ScreenState message={apiErrorMessage(detail.error, "Não foi possível carregar os detalhes da aula.")} retry={detail.reload} />
+      ) : (
+        <ScreenState loading skeleton />
       )}
     </View>
   );
 }
 
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <Card style={styles.section}>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>{title}</Text>
+      {children}
+    </Card>
+  );
+}
+
+function ContentLines({ text, empty }: { text: string | null; empty: string }) {
+  const lines = text?.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) ?? [];
+  if (!lines.length) return <Text style={styles.body}>{empty}</Text>;
+  return <>{lines.map((line, index) => <Text key={`${index}-${line}`} style={styles.bullet}>•  {line}</Text>)}</>;
+}
+
+function AttachmentRow({ attachment }: { attachment: LessonAttachment }) {
+  const size = formatFileSize(attachment.sizeBytes);
+  return (
+    <View accessible accessibilityLabel={`Anexo ${attachment.fileName}${size ? `, ${size}` : ""}`} style={styles.attachment}>
+      <Image source={fileIcon} style={styles.fileIcon} accessible={false} />
+      <Text numberOfLines={2} style={styles.fileName}>{attachment.fileName}</Text>
+      {size ? <Text style={styles.caption}>{size}</Text> : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#F4F4F4" },
-  content: { paddingHorizontal: 29, paddingTop: 24, paddingBottom: 36, gap: 31 },
-  card: { minHeight: 116, backgroundColor: colors.surface, borderColor: "#D3D3D3", borderWidth: 1, borderRadius: 15, paddingHorizontal: 19, paddingVertical: 15, justifyContent: "flex-start" },
-  attachmentsCard: { minHeight: 97 },
-  lessonCard: { gap: 8 },
-  body: { color: colors.text, fontSize: 14, lineHeight: 19 },
-  instrument: { color: colors.text, fontSize: 14, fontWeight: "700" },
-  teacher: { color: colors.text, fontSize: 14 },
-  cardTitle: { color: colors.text, fontSize: 14, fontWeight: "700", marginBottom: 10 },
-  bullet: { color: colors.text, fontSize: 14, lineHeight: 21 },
-  attachment: { minHeight: 40, maxWidth: "100%", width: 275, borderColor: "#CAC0C0", borderWidth: 1, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, gap: 8 },
+  screen: { flex: 1, backgroundColor: colors.screen },
+  content: { paddingHorizontal: space.xl, paddingBottom: space.xxl, gap: space.lg },
+  summary: { gap: space.xs },
+  instrument: { ...type.title, marginTop: space.xs },
+  section: { gap: space.sm },
+  sectionTitle: { ...type.heading },
+  body: { ...type.body, lineHeight: 21 },
+  bullet: { ...type.body, lineHeight: 22 },
+  caption: { ...type.caption },
+  attachment: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.field },
   fileIcon: { width: 20, height: 20 },
-  fileName: { color: colors.text, fontSize: 14, flex: 1 },
-  fileSize: { color: colors.text, fontSize: 14 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24, gap: 16 },
-  message: { color: colors.muted, fontSize: 15, textAlign: "center" },
-  retry: { backgroundColor: colors.accent, borderRadius: 8, paddingHorizontal: 20, paddingVertical: 12 },
-  retryText: { color: colors.surface, fontWeight: "600" },
+  fileName: { ...type.body, flex: 1 },
 });
