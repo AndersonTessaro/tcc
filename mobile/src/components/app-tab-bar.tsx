@@ -11,31 +11,40 @@ type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["tabBar"]>
 export type TabConfig = { name: string; label: string; icon: ImageSourcePropType; size: number };
 
 export function AppTabBar({ state, navigation, tabs }: TabBarProps & { tabs: readonly TabConfig[] }) {
+  const activeName = state.routes[state.index]?.name;
+  const onSelect = (name: string) => {
+    const route = state.routes.find((entry) => entry.name === name);
+    if (!route) return;
+    const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+    if (activeName === name || event.defaultPrevented) return;
+    haptics.select();
+    navigation.navigate(route.name);
+  };
+
+  return <AppTabBarView tabs={tabs.filter((tab) => state.routes.some((route) => route.name === tab.name))} activeName={activeName} onSelect={onSelect} />;
+}
+
+export function AppTabBarView({ tabs, activeName, onSelect }: {
+  tabs: readonly TabConfig[];
+  activeName: string | undefined;
+  onSelect: (name: string) => void;
+}) {
   const insets = useSafeAreaInsets();
   const keyboardVisible = useKeyboardVisible();
-  const activeName = state.routes[state.index]?.name;
 
   if (keyboardVisible) return null;
   return (
     <View accessibilityRole="tablist" style={[styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }]}>
       {tabs.map((tab) => {
-        const route = state.routes.find((entry) => entry.name === tab.name);
-        if (!route) return null;
         const focused = activeName === tab.name;
         const tint = focused ? colors.primary : colors.muted;
-        const onPress = () => {
-          const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
-          if (focused || event.defaultPrevented) return;
-          haptics.select();
-          navigation.navigate(route.name);
-        };
         return (
           <Pressable
             key={tab.name}
             accessibilityRole="tab"
             accessibilityLabel={tab.label}
             aria-selected={focused}
-            onPress={onPress}
+            onPress={() => onSelect(tab.name)}
             style={({ pressed }) => [styles.item, pressed && styles.pressed]}
           >
             <View style={[styles.indicator, focused && styles.indicatorActive]} />

@@ -16,7 +16,7 @@ Fluxo por lote: Codex revisa (read-only) → **Gate 1** verificação de cada ac
 | F-005 | fundação | ACEITO | Seta completa no voltar; cabeçalho mais espaçado |
 | F-006 | fundação | ACEITO | Campos brancos, borda 1 |
 | F-007 | fundação | ACEITO parcial | Indicador da aba na largura da aba; label ativo continua destacado (estado não só por barra) |
-| F-008 | 04/07/09 | ADIADO | Tab bar nas telas de detalhe muda a estrutura de navegação — decisão do dono |
+| F-008 | 04/07/09 | ACEITO (dono) | Tab bar também nas telas do Stack; troca de aba via `dismissTo` passa pela guarda de alterações |
 | F-009 | fundação | REJEITADO | `href`/links reais: app mobile-first (decisão anterior) |
 | F-010 | fundação | REJEITADO | Formatadores pt-BR fixos atendem; "1 h 30 min" diverge do Figma |
 | F-011 | fundação | ACEITO | Safe area inferior em telas sem tab bar |
@@ -35,9 +35,10 @@ Fluxo por lote: Codex revisa (read-only) → **Gate 1** verificação de cada ac
 | F-035–036 | 11 mais | ACEITO | Lista sem blocos, com divisórias; ícones coerentes |
 | F-037 | 12 materiais | ACEITO | "Buscar material…" |
 | F-038 | 12 materiais | REJEITADO | Busca na URL: mobile-first |
+| F-040 | backend prática | ACEITO (BUG) | `POST /me/practices` devolvia a entidade JPA `Progress`; agora `ProgressResponse` |
 | F-039 | backend metas | ACEITO (BUG) | `GET /me/goals` devolve entidade JPA (aluno → usuário → papéis/permissões); trocar por DTO |
-| ADD-06 | práticas | ADIADO | Histórico completo de práticas (Figma 06) — decisão do dono |
-| ADD-07 | registrar | ADIADO | Anexo de prática exige backend novo |
+| ADD-06 | práticas | ACEITO (dono) | Tela `practice/history` com todas as práticas + link "Ver histórico" |
+| ADD-07 | registrar | ACEITO (dono) | Plano do architect: `docs/superpowers/plans/2026-10-12-practice-recording.md` |
 
 ## Lotes
 
@@ -48,6 +49,8 @@ Fluxo por lote: Codex revisa (read-only) → **Gate 1** verificação de cada ac
 | B2 | abas do aluno | ✅ gates 1-3 ok — Gate 3 pegou F-017 não resolvido (margem negativa só mudou de lugar) → gradiente movido para dentro do scroll | `dd08bdc` |
 | B3 | telas do Stack do aluno + F-039 | ✅ gates 1-3 ok — `StudentFlowIT` verde; Gate 3 pegou data ISO crua no web → `<input type="date">` nativo (vale p/ 5 telas) | ver git log |
 
+| B4 | tab bar no Stack, histórico completo, `ProgressResponse` | ✅ gates 1-3 ok — `StudentFlowIT` verde; 173 testes | ver git log |
+
 ## Métricas do Codex (este ciclo)
 
 - Revisão: 38 achados → 30 aceitos, 6 rejeitados (16%), 2 adiados + 1 achado novo da verificação manual (F-039).
@@ -55,7 +58,4 @@ Fluxo por lote: Codex revisa (read-only) → **Gate 1** verificação de cada ac
 
 ## Pendências para decisão do dono
 
-- F-008 tab bar visível nas telas de detalhe (estrutura de navegação).
-- ADD-06 histórico completo de práticas (Figma 06).
-- ADD-07 anexo na prática (backend novo).
 - Telas do professor: aguardam as imagens do protótipo (MCP do Figma no limite do plano Starter).

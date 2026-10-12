@@ -12,5 +12,6 @@ public interface PracticeRepository extends JpaRepository<Practice, UUID> {
     List<Practice> findByStudentIdAndDateBetween(UUID studentId, LocalDate start, LocalDate end);
 
     List<Practice> findTop100ByStudentIdOrderByDateDescCreatedAtDesc(UUID studentId);
+    List<Practice> findByStudentIdOrderByDateDescCreatedAtDesc(UUID studentId);
     List<Practice> findByStudentIdInAndDateBetween(Collection<UUID> studentIds, LocalDate start, LocalDate end);
 }

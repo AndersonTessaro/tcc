@@ -65,6 +65,7 @@ public class PracticeUseCase {
 
     @Transactional(readOnly = true)
     public List<Practice> myPractices() {
-        return practices.findTop100ByStudentIdOrderByDateDescCreatedAtDesc(current.currentStudent().getId());
+        // ponytail: full history, unpaginated; add Pageable when a student passes a few thousand practices.
+        return practices.findByStudentIdOrderByDateDescCreatedAtDesc(current.currentStudent().getId());
     }
 }
