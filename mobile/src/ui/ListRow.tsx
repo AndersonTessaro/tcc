@@ -10,10 +10,11 @@ type ListRowProps = {
   trailing?: ReactNode;
   onPress?: () => void;
   tone?: "default" | "danger";
+  variant?: "default" | "plain";
   accessibilityLabel?: string;
 };
 
-export function ListRow({ title, subtitle, leading, trailing, onPress, tone = "default", accessibilityLabel }: ListRowProps) {
+export function ListRow({ title, subtitle, leading, trailing, onPress, tone = "default", variant = "default", accessibilityLabel }: ListRowProps) {
   const content = (
     <>
       {leading ? <View style={styles.leading}>{leading}</View> : null}
@@ -24,14 +25,14 @@ export function ListRow({ title, subtitle, leading, trailing, onPress, tone = "d
       {trailing ?? (onPress ? <Ionicons name="chevron-forward" size={20} color={colors.borderStrong} /> : null)}
     </>
   );
-  if (!onPress) return <View style={styles.row}>{content}</View>;
+  if (!onPress) return <View style={[styles.row, variant === "plain" && styles.plain]}>{content}</View>;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
       android_ripple={{ color: colors.primarySoft }}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.row, variant === "plain" && styles.plain, pressed && styles.pressed]}
     >
       {content}
     </Pressable>
@@ -40,6 +41,7 @@ export function ListRow({ title, subtitle, leading, trailing, onPress, tone = "d
 
 const styles = StyleSheet.create({
   row: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingVertical: space.md, backgroundColor: colors.surface },
+  plain: { minHeight: 64, backgroundColor: "transparent", borderBottomWidth: 1, borderBottomColor: colors.cardBorder },
   pressed: { backgroundColor: colors.primarySoft },
   leading: { width: 32, alignItems: "center" },
   text: { flex: 1, gap: 2 },

@@ -79,8 +79,8 @@ function PracticeChart({ series }: { series: number[] }) {
   const fill = `${line} L${points.at(-1)?.x ?? 18} 130 L18 130 Z`;
   return (
     <Svg width="100%" height={144} viewBox="0 0 310 144" aria-hidden>
-      <Path d={fill} fill={colors.primarySoft} />
-      <Path d={line} fill="none" stroke={colors.primary} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      <Path d={fill} fill={colors.chartArea} />
+      <Path d={line} fill="none" stroke={colors.action} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
       <Line x1={18} y1={137} x2={304} y2={137} stroke={colors.borderStrong} strokeWidth={1} />
     </Svg>
   );
@@ -103,7 +103,7 @@ export default function ProgressOverview() {
           refreshControl={<RefreshControl refreshing={resource.refreshing} onRefresh={resource.refresh} tintColor={colors.primary} />}
         >
           <ProgressCards data={resource.data} />
-          <Button label="Ver minhas metas" icon="flag-outline" variant="secondary" onPress={() => router.push("/(student)/goals")} />
+          <Button label="Ver minhas metas" icon="flag-outline" style={styles.goalsButton} onPress={() => router.push("/(student)/goals")} />
         </ScrollView>
       ) : resource.error ? (
         <ScreenState message={apiErrorMessage(resource.error, "Não foi possível carregar seu progresso.")} retry={resource.reload} />
@@ -126,16 +126,6 @@ function ProgressCards({ data }: { data: ProgressData }) {
   return (
     <>
       <Card style={styles.card}>
-        <View style={styles.rowBetween}>
-          <Text accessibilityRole="header" style={styles.cardTitle}>Evolução de XP</Text>
-          <Text style={styles.levelBadge}>Nível {progress.level}</Text>
-        </View>
-        <Text style={styles.value}>{progress.xpTotal} XP</Text>
-        <ProgressBar value={level.earned} max={level.span} label={`Progresso para o nível ${level.nextLevel}`} />
-        <Text style={styles.caption}>{remainingXpLabel(level)}</Text>
-      </Card>
-
-      <Card style={styles.card}>
         <Text accessibilityRole="header" style={styles.cardTitle}>Tempo de prática (30 dias)</Text>
         <Text style={styles.value}>{formatMinutes(recentPractice)}</Text>
         <View accessible accessibilityLabel={`Gráfico de prática: ${formatMinutes(recentPractice)} em ${practicedDays} dias nos últimos 30 dias`}>
@@ -148,7 +138,7 @@ function ProgressCards({ data }: { data: ProgressData }) {
       </Card>
 
       <Card style={styles.card}>
-        <Text accessibilityRole="header" style={styles.cardTitle}>Frequência nas aulas</Text>
+        <Text accessibilityRole="header" style={styles.cardTitle}>Frequência</Text>
         <Text style={styles.value}>{attendancePercent}</Text>
         {attendance.length ? (
           <Text style={styles.caption}>{presences} presenças em {attendance.length} aulas registradas</Text>
@@ -156,6 +146,16 @@ function ProgressCards({ data }: { data: ProgressData }) {
           <Text style={styles.caption}>Ainda não há presença registrada pelo professor.</Text>
         )}
         <AttendanceBars weeks={attendanceWeeks(attendance)} />
+      </Card>
+
+      <Card style={styles.card}>
+        <View style={styles.rowBetween}>
+          <Text accessibilityRole="header" style={styles.cardTitle}>Evolução de XP</Text>
+          <Text style={styles.level}>Nível {progress.level}</Text>
+        </View>
+        <Text style={styles.xpValue}>{progress.xpTotal} XP</Text>
+        <ProgressBar value={level.earned} max={level.span} label={`Progresso para o nível ${level.nextLevel}`} />
+        <Text style={styles.caption}>{remainingXpLabel(level)}</Text>
       </Card>
     </>
   );
@@ -182,12 +182,14 @@ function AttendanceBars({ weeks }: { weeks: WeekAttendance[] }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.screen },
-  content: { flexGrow: 1, gap: space.lg, paddingHorizontal: space.xl, paddingBottom: space.xxl },
-  card: { gap: space.sm },
+  content: { flexGrow: 1, gap: space.xxl, paddingHorizontal: space.screenGutter, paddingBottom: space.xxl },
+  card: { gap: space.sm, padding: space.lg },
+  goalsButton: { borderRadius: radius.lg },
   rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  cardTitle: { ...type.label, color: colors.muted },
-  levelBadge: { ...type.label, color: colors.primary, backgroundColor: colors.primarySoft, borderRadius: radius.pill, paddingHorizontal: space.md, paddingVertical: space.xs, overflow: "hidden" },
-  value: { ...type.display },
+  cardTitle: { ...type.label, fontWeight: "700" },
+  level: { ...type.body, fontSize: 14 },
+  value: { ...type.display, fontSize: 22 },
+  xpValue: { ...type.display, fontSize: 20 },
   caption: { ...type.caption },
   axis: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: space.sm },
   bars: { flexDirection: "row", justifyContent: "space-between", marginTop: space.sm },
