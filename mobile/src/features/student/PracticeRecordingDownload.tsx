@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { StyleSheet } from "react-native";
 import { formatFileSize } from "@/lib/format";
 import { saveDownload } from "@/lib/files/saveDownload";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
@@ -43,6 +44,11 @@ export function PracticeRecordingDownload({ practice, download, prefix = "" }: P
       compact
       loading={downloading}
       onPress={handleDownload}
+      style={styles.download}
     />
   );
 }
+
+const styles = StyleSheet.create({
+  download: { alignSelf: "flex-start" },
+});
