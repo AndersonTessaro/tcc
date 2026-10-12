@@ -1,6 +1,14 @@
 const WEEKDAYS_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const DAY_MS = 86_400_000;
 
+export function isValidIsoDate(iso: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
+  const [year, month, day] = iso.split("-").map(Number);
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day);
+  return date.getUTCFullYear() === year && date.getUTCMonth() + 1 === month && date.getUTCDate() === day;
+}
+
 export function parseIsoDate(iso: string): Date {
   const [year, month, day] = iso.split("-").map(Number);
   return new Date(year, (month ?? 1) - 1, day ?? 1);

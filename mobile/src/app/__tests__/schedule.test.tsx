@@ -50,7 +50,7 @@ describe("Schedule screen", () => {
     await render(<Schedule />);
 
     expect(await screen.findByText("09:00–10:00 · Ana Souza")).toBeVisible();
-    expect(screen.getByRole("radio", { name: "Presente" })).toBeSelected();
+    expect(screen.getByRole("radio", { name: "Presente" })).toBeChecked();
   });
 
   it("hides attendance buttons for a canceled lesson", async () => {
@@ -69,14 +69,14 @@ describe("Schedule screen", () => {
     await fireEvent.press(await screen.findByRole("radio", { name: "Falta" }));
 
     expect(screen.getByText("09:00–10:00 · Ana Souza")).toBeVisible();
-    expect(screen.getByRole("radio", { name: "Falta" })).toBeSelected();
+    expect(screen.getByRole("radio", { name: "Falta" })).toBeChecked();
     expect(service.attendance).toHaveBeenCalledWith("l1", "ABSENT");
     expect(screen.queryByLabelText("Carregando")).toBeNull();
 
     await act(async () => finish({}));
     await waitFor(() => expect(service.schedule).toHaveBeenCalledTimes(2));
     expect(screen.getByText("09:00–10:00 · Ana Souza")).toBeVisible();
-    expect(screen.getByRole("radio", { name: "Falta" })).toBeSelected();
+    expect(screen.getByRole("radio", { name: "Falta" })).toBeChecked();
   });
 
   it("asks for a justification only after choosing Justificada and sends it with EXCUSED", async () => {
@@ -135,7 +135,7 @@ describe("Schedule screen", () => {
     await fireEvent.press(await screen.findByRole("radio", { name: "Presente" }));
 
     expect(await screen.findByText("Aula cancelada não recebe frequência")).toBeVisible();
-    expect(screen.getByRole("radio", { name: "Presente" })).not.toBeSelected();
+    expect(screen.getByRole("radio", { name: "Presente" })).not.toBeChecked();
     expect(screen.getByText("09:00–10:00 · Ana Souza")).toBeVisible();
   });
 

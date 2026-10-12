@@ -1,4 +1,4 @@
-import { createApiClient } from "../apiClient";
+import { createApiClient, RequestTimeoutError } from "../apiClient";
 
 function jsonResponse(status: number, body: any) {
   return Promise.resolve({
@@ -53,6 +53,35 @@ describe("apiClient", () => {
     expect(init.credentials).toBe("include");
   });
 
+  it.each([null, "new-login"])("preserves a changed session during refresh (%s)", async (nextAccess) => {
+    let resolveRefresh!: (response: Response) => void;
+    let refreshStarted!: () => void;
+    const started = new Promise<void>((resolve) => { refreshStarted = resolve; });
+    const fetchMock = jest.fn()
+      .mockReturnValueOnce(jsonResponse(401, {}))
+      .mockImplementationOnce(() => {
+        refreshStarted();
+        return new Promise<Response>((resolve) => { resolveRefresh = resolve; });
+      })
+      .mockReturnValueOnce(jsonResponse(200, { ok: true }));
+    const api = createApiClient({ ...deps, fetchFn: fetchMock as any });
+    const request = api.get("/me/dashboard");
+    const outcome = request.catch((error: unknown) => error);
+    await started;
+    store.access = nextAccess;
+    resolveRefresh(await jsonResponse(200, { accessToken: "stale-refresh" }));
+    const result = await outcome;
+    expect(store.access).toBe(nextAccess);
+    expect(deps.onAuthFailure).not.toHaveBeenCalled();
+    if (nextAccess) {
+      expect(result).toEqual({ ok: true });
+      expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe("Bearer new-login");
+    } else {
+      expect(result).toEqual(new Error("UNAUTHENTICATED"));
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    }
+  });
+
   it("emits auth failure when refresh fails", async () => {
     const fetchMock = jest
       .fn()
@@ -104,5 +133,23 @@ describe("apiClient timeout", () => {
     });
 
     await expect(api.get("/auth/me")).rejects.toBeInstanceOf(RequestTimeoutError);
+  });
+});
+
+
+describe("apiClient body timeout", () => {
+  it.each(["json", "arrayBuffer"])("times out while reading %s after headers arrive", async (method) => {
+    let signal: AbortSignal | undefined;
+    const fetchMock = jest.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      signal = init?.signal ?? undefined;
+      return Promise.resolve({ status: 200, [method]: () => new Promise(() => {}) } as unknown as Response);
+    });
+    const api = createApiClient({
+      baseUrl: "http://x", getAccessToken: async () => null,
+      setAccessToken: async () => undefined, clearAccessToken: async () => undefined,
+      onAuthFailure: jest.fn(), fetchFn: fetchMock as typeof fetch, timeoutMs: 10,
+    });
+    await expect(method === "json" ? api.get("/data") : api.getBytes("/data")).rejects.toBeInstanceOf(RequestTimeoutError);
+    expect(signal?.aborted).toBe(true);
   });
 });

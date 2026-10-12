@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { AccessibilityInfo, StyleSheet, Text, View } from "react-native";
+import { AccessibilityInfo, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { haptics } from "@/lib/haptics";
 import { Button } from "@/ui/Button";
@@ -24,7 +24,7 @@ export function PracticeRewardView({ reward, onDone }: PracticeRewardViewProps) 
   }, [reward]);
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.badge}>
         <Ionicons name={reward.leveledUp ? "trophy" : "checkmark-circle"} size={56} color={colors.primary} />
       </View>
@@ -36,7 +36,7 @@ export function PracticeRewardView({ reward, onDone }: PracticeRewardViewProps) 
         <Text style={styles.streakText}>Sequência: {dayCount(reward.streakDays)}</Text>
       </View>
       <Button label="Concluir" onPress={onDone} style={styles.done} />
-    </View>
+    </ScrollView>
   );
 }
 

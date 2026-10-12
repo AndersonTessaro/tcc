@@ -1,5 +1,6 @@
+import { isValidIsoDate } from "@/lib/format";
+
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export function localIsoDate(now: Date = new Date()): string {
   const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -28,12 +29,7 @@ export function validateTimeRange(startTime: string, endTime: string): string | 
 }
 
 export function validateDate(date: string): string | null {
-  if (!DATE_PATTERN.test(date)) return "Data inválida (AAAA-MM-DD)";
-  const [year, month, day] = date.split("-").map(Number);
-  const parsed = new Date(Date.UTC(year, month - 1, day));
-  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() + 1 === month && parsed.getUTCDate() === day
-    ? null
-    : "Data inválida (AAAA-MM-DD)";
+  return isValidIsoDate(date) ? null : "Data inválida (AAAA-MM-DD)";
 }
 
 export function validateLessonForm(input: LessonFormInput): string | null {

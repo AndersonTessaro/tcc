@@ -18,7 +18,9 @@ export function Chip({ label, selected = false, onPress, role = "radio", accessi
     <Pressable
       accessibilityRole={role}
       accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ selected, checked: role === "radio" ? selected : undefined, disabled: !!disabled }}
+      aria-selected={role === "tab" ? selected : undefined}
+      aria-checked={role === "radio" ? selected : undefined}
+      aria-disabled={!!disabled}
       disabled={disabled}
       onPress={() => {
         haptics.select();

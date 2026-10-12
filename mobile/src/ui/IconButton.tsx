@@ -18,7 +18,7 @@ export function IconButton({ icon, label, onPress, color = colors.text, size = 2
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled: !!disabled }}
+      aria-disabled={!!disabled}
       disabled={disabled}
       hitSlop={4}
       onPress={onPress}

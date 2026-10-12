@@ -11,7 +11,7 @@ export function toMinutes(time: string): number {
 }
 
 export function fromMinutes(total: number): string {
-  const clamped = Math.max(0, Math.min(total, 23 * 60 + 59));
+  const clamped = Math.max(0, total);
   return `${String(Math.floor(clamped / 60)).padStart(2, "0")}:${String(clamped % 60).padStart(2, "0")}`;
 }
 

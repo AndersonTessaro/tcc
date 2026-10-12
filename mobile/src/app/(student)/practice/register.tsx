@@ -5,7 +5,8 @@ import { StatusBar } from "expo-status-bar";
 import { PracticeRewardView } from "@/features/student/PracticeReward";
 import { practiceReward, type PracticeReward } from "@/features/student/reward";
 import { studentService, type StudentProgress } from "@/features/student/studentService";
-import { addDays, parseIsoDate, todayIso } from "@/lib/format";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
+import { addDays, isValidIsoDate, parseIsoDate, todayIso } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
 import { ChipGroup, type ChipOption } from "@/ui/Chip";
@@ -70,6 +71,7 @@ export default function RegisterPractice() {
   const [errors, setErrors] = useState<{ date?: string; minutes?: string; notes?: string }>({});
   const [requestError, setRequestError] = useState("");
   const [reward, setReward] = useState<PracticeReward | null>(null);
+  const markSaved = useUnsavedChangesGuard(dateChoice !== "today" || durationChoice !== "30" || !!customMinutes || !!what || !!difficulty || mood !== null);
   const progressBefore = useRef<StudentProgress | null>(null);
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export default function RegisterPractice() {
     const minutes = practiceMinutes(durationChoice, customMinutes);
     const notes = buildNotes(what, difficulty, mood);
     const nextErrors = {
-      date: !date || date > todayIso() ? "Escolha uma data até hoje." : undefined,
+      date: !isValidIsoDate(date) || date > todayIso() ? "Escolha uma data até hoje." : undefined,
       minutes: minutes < 1 || minutes > MAX_MINUTES ? "Informe os minutos praticados (1 a 1440)." : undefined,
       notes: notes.length > MAX_NOTES_LENGTH ? `Resuma a descrição para até ${MAX_NOTES_LENGTH} caracteres.` : undefined,
     };
@@ -95,6 +97,7 @@ export default function RegisterPractice() {
     try {
       const before = progressBefore.current ?? await studentService.progress().catch(() => null);
       const progress = await studentService.registerPractice(minutes, notes || undefined, date);
+      markSaved();
       setReward(practiceReward(before, progress));
     } catch (cause) {
       setRequestError(apiErrorMessage(cause, "Não foi possível salvar a prática. Tente novamente."));
@@ -158,7 +161,7 @@ export default function RegisterPractice() {
                 key={index}
                 accessibilityRole="radio"
                 accessibilityLabel={`Avaliação ${index + 1} de 5`}
-                accessibilityState={{ selected: mood === index, checked: mood === index }}
+                aria-checked={mood === index}
                 onPress={() => setMood((current) => (current === index ? null : index))}
                 style={({ pressed }) => [styles.mood, mood === index && styles.selectedMood, pressed && styles.pressed]}
               >

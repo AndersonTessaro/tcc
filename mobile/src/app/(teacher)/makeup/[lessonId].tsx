@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { teacherService, type MakeupLink } from "@/features/teacher/teacherService";
 import { hhmm, scheduleHref } from "@/features/teacher/agenda";
 import { oneHourAfter, validateDate, validateTimeRange } from "@/features/teacher/lessonForm";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { useResource } from "@/hooks/use-resource";
 import { formatFullDate, todayIso } from "@/lib/format";
 import { apiErrorKey, apiErrorMessage } from "@/lib/http/errorMessage";
@@ -44,6 +45,8 @@ export default function Makeup() {
   const contextDate = original?.date ?? originalDate;
   const locked = !!link || existing.loading || !!existing.error;
 
+  const markSaved = useUnsavedChangesGuard(!link && (date !== todayIso() || startTime !== DEFAULT_START || endTime !== oneHourAfter(DEFAULT_START) || !!reason));
+
   const changeStart = (value: string) => {
     setStartTime(value);
     setErrors(({ time: _time, ...rest }) => rest);
@@ -65,6 +68,7 @@ export default function Makeup() {
     setErrors({});
     try {
       const result = await teacherService.makeup(lessonId, { date, startTime, endTime, reason: reason.trim() || undefined });
+      markSaved();
       setCreated(result);
       toast.show("Reposição agendada", "success");
     } catch (error) {

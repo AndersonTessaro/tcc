@@ -1,5 +1,13 @@
 import { Alert, Platform } from "react-native";
 
+export function alert(title: string, message?: string): void {
+  if (Platform.OS === "web") {
+    globalThis.alert?.(message ? `${title}\n\n${message}` : title);
+  } else {
+    Alert.alert(title, message);
+  }
+}
+
 type ConfirmOptions = { title: string; message?: string; confirmLabel: string; destructive?: boolean };
 
 export function confirm({ title, message, confirmLabel, destructive }: ConfirmOptions): Promise<boolean> {

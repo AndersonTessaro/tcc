@@ -1,10 +1,10 @@
-import { Alert, Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useAuth } from "@/features/auth/useAuth";
 import { authService } from "@/features/auth/authService";
 import { fullName } from "@/features/student/dashboard";
-import { confirm } from "@/lib/confirm";
+import { alert, confirm } from "@/lib/confirm";
 import { ListRow } from "@/ui/ListRow";
 import { ScreenHeader } from "@/ui/ScreenHeader";
 import { colors, radius, shadow, space, type } from "@/ui/theme";
@@ -49,7 +49,7 @@ export default function More() {
         <View style={styles.menu}>
           <ListRow title="Materiais" subtitle="Arquivos enviados pelo professor" leading={<MenuIcon source={icons.instrument} />} onPress={() => router.push("/(student)/materials")} />
           <ListRow title="Minhas metas" subtitle="Acompanhe e crie metas" leading={<MenuIcon source={icons.goals} />} onPress={() => router.push("/(student)/goals")} />
-          <ListRow title="Ajuda" leading={<MenuIcon source={icons.help} />} onPress={() => Alert.alert("Ajuda", "Para dúvidas sobre aulas ou acesso, procure a secretaria da escola.")} />
+          <ListRow title="Ajuda" leading={<MenuIcon source={icons.help} />} onPress={() => alert("Ajuda", "Para dúvidas sobre aulas ou acesso, procure a secretaria da escola.")} />
         </View>
 
         <View style={styles.menu}>

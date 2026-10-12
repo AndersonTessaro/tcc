@@ -13,7 +13,8 @@ describe("scheduling", () => {
 
   it("does minute arithmetic on HH:MM values", () => {
     expect(addMinutes("09:30", 45)).toBe("10:15");
-    expect(addMinutes("23:30", 60)).toBe("23:59");
+    expect(addMinutes("23:30", 60)).toBe("24:30");
+    expect(addMinutes("23:00", 60)).toBe("24:00");
     expect(durationBetween("09:00", "10:30")).toBe(90);
   });
 

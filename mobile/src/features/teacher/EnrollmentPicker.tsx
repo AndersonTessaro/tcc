@@ -77,7 +77,8 @@ function Option({ label, selected, onPress, disabled }: { label: string; selecte
     <Pressable
       accessibilityRole="radio"
       accessibilityLabel={label}
-      accessibilityState={{ selected, checked: selected, disabled: !!disabled }}
+      aria-checked={selected}
+      aria-disabled={!!disabled}
       disabled={disabled}
       onPress={() => {
         haptics.select();

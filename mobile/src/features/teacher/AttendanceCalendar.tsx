@@ -24,12 +24,22 @@ export function attendanceSummary(history: AttendanceRecord[], month: Date) {
   return { present, total: inMonth.length, rate: inMonth.length ? Math.round((100 * present) / inMonth.length) : 0 };
 }
 
+export function attendanceByDate(history: AttendanceRecord[]): Map<string, AttendanceStatus> {
+  const priority: Record<AttendanceStatus, number> = { PRESENT: 0, EXCUSED: 1, ABSENT: 2 };
+  const statuses = new Map<string, AttendanceStatus>();
+  for (const { date, status } of history) {
+    const current = statuses.get(date);
+    if (current === undefined || priority[status] > priority[current]) statuses.set(date, status);
+  }
+  return statuses;
+}
+
 type AttendanceCalendarProps = { month: Date; onChangeMonth: (month: Date) => void; history: AttendanceRecord[] };
 
 export function AttendanceCalendar({ month, onChangeMonth, history }: AttendanceCalendarProps) {
   const year = month.getFullYear();
   const monthIndex = month.getMonth();
-  const statuses = new Map(history.map((item) => [item.date, item.status]));
+  const statuses = attendanceByDate(history);
   const leading = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
   const count = new Date(year, monthIndex + 1, 0).getDate();
   const cells = Array.from({ length: Math.ceil((leading + count) / 7) * 7 }, (_, index) => index - leading + 1);

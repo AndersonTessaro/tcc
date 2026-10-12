@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { confirm } from "@/lib/confirm";
 import { useResource } from "@/hooks/use-resource";
 import { formatMinutes } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
@@ -124,6 +126,9 @@ type GoalEditorProps = {
 };
 
 function GoalEditor({ goal, onClose, onSaved }: GoalEditorProps) {
+  const reducedMotion = useReducedMotion();
+  const pending = useRef(false);
+  const closing = useRef(false);
   const isNew = goal === "new";
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -133,11 +138,22 @@ function GoalEditor({ goal, onClose, onSaved }: GoalEditorProps) {
   const [requestError, setRequestError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const close = () => {
-    if (!saving) onClose();
+  const dirty = isNew
+    ? !!title || !!description || goalType !== "PRACTICE_TIME" || !!amount
+    : amount !== String(goal.currentProgress);
+
+  const close = async () => {
+    if (pending.current || closing.current) return;
+    closing.current = true;
+    try {
+      if (!dirty || await confirm({ title: "Descartar alterações?", message: "Os dados preenchidos serão perdidos.", confirmLabel: "Descartar", destructive: true })) onClose();
+    } finally {
+      closing.current = false;
+    }
   };
 
   const save = async () => {
+    if (pending.current || closing.current) return;
     const value = parseAmount(amount);
     const nextErrors = {
       title: isNew && !title.trim() ? "Informe um título." : undefined,
@@ -145,6 +161,7 @@ function GoalEditor({ goal, onClose, onSaved }: GoalEditorProps) {
     };
     setErrors(nextErrors);
     if (nextErrors.title || nextErrors.amount || value == null) return;
+    pending.current = true;
     setSaving(true);
     setRequestError("");
     try {
@@ -157,11 +174,13 @@ function GoalEditor({ goal, onClose, onSaved }: GoalEditorProps) {
     } catch (cause) {
       setRequestError(apiErrorMessage(cause, "Não foi possível salvar a meta. Tente novamente."));
       setSaving(false);
+    } finally {
+      pending.current = false;
     }
   };
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={close}>
+    <Modal visible transparent animationType={reducedMotion ? "none" : "fade"} onRequestClose={close}>
       <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <Pressable accessibilityRole="button" accessibilityLabel="Fechar" style={StyleSheet.absoluteFill} onPress={close} />
         <View accessibilityViewIsModal style={styles.editor}>

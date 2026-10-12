@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { addDays, formatFullDate, formatMonthYear, parseIsoDate } from "@/lib/format";
 import { haptics } from "@/lib/haptics";
 import { Chip } from "@/ui/Chip";
@@ -20,7 +20,7 @@ export function WeekStrip({ value, today, onChange }: WeekStripProps) {
         <Text accessibilityRole="header" style={styles.month}>{formatMonthYear(parseIsoDate(value))}</Text>
         <IconButton icon="chevron-forward" label="Próxima semana" color={colors.primary} onPress={() => onChange(addDays(value, 7))} />
       </View>
-      <View style={styles.days}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.days}>
         {days.map((day) => {
           const date = parseIsoDate(day);
           const selected = day === value;
@@ -30,7 +30,7 @@ export function WeekStrip({ value, today, onChange }: WeekStripProps) {
               key={day}
               accessibilityRole="button"
               accessibilityLabel={`${WEEKDAY_SHORT[date.getDay()]}, ${formatFullDate(day)}${isToday ? ", hoje" : ""}`}
-              accessibilityState={{ selected }}
+              aria-selected={selected}
               onPress={() => {
                 haptics.select();
                 onChange(day);
@@ -42,7 +42,7 @@ export function WeekStrip({ value, today, onChange }: WeekStripProps) {
             </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
       {value !== today ? (
         <View style={styles.todayRow}>
           <Chip label="Hoje" role="button" onPress={() => onChange(today)} accessibilityLabel="Ir para hoje" />
@@ -56,8 +56,8 @@ const styles = StyleSheet.create({
   wrapper: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.sm, gap: space.sm },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   month: { ...type.bodyStrong },
-  days: { flexDirection: "row", justifyContent: "space-between", gap: space.xs },
-  day: { flex: 1, minHeight: MIN_TOUCH + 12, borderRadius: radius.md, alignItems: "center", justifyContent: "center", gap: 2, borderWidth: 1.5, borderColor: "transparent" },
+  days: { flexGrow: 1, flexDirection: "row", justifyContent: "space-between", gap: space.xs },
+  day: { flex: 1, minWidth: MIN_TOUCH, minHeight: MIN_TOUCH + 12, borderRadius: radius.md, alignItems: "center", justifyContent: "center", gap: 2, borderWidth: 1.5, borderColor: "transparent" },
   daySelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   dayToday: { borderColor: colors.primary },
   pressed: { opacity: 0.8 },
