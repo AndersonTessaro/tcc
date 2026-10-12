@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { brandGradient, colors, space, type } from "@/ui/theme";
 
 const logoImage = require("@/assets/images/figma-student/login-logo.png");
@@ -10,6 +10,7 @@ const logoImage = require("@/assets/images/figma-student/login-logo.png");
 type AuthSheetProps = { title: string; subtitle?: string; children: ReactNode };
 
 export function AuthSheet({ title, subtitle, children }: AuthSheetProps) {
+  const insets = useSafeAreaInsets();
   return (
     <LinearGradient colors={brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.screen}>
       <StatusBar style="light" />
@@ -20,7 +21,7 @@ export function AuthSheet({ title, subtitle, children }: AuthSheetProps) {
               <Image source={logoImage} style={styles.logo} accessible={false} />
               <Text style={styles.brandName}>SONETTO</Text>
             </View>
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, space.xxxl) }]}>
               <Text accessibilityRole="header" style={styles.title}>{title}</Text>
               {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
               {children}

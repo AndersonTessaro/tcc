@@ -1,5 +1,5 @@
-import { forwardRef, useState, type ReactNode } from "react";
-import { StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
+import { forwardRef, useId, useState, type ReactNode } from "react";
+import { Platform, StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
 import { colors, radius, space, type } from "./theme";
 
 type TextFieldProps = TextInputProps & {
@@ -11,10 +11,12 @@ type TextFieldProps = TextInputProps & {
 };
 
 export const TextField = forwardRef<TextInput, TextFieldProps>(function TextField(
-  { label, error, hint, leading, trailing, style, multiline, accessibilityLabel, onFocus, onBlur, ...input },
+  { label, error, hint, leading, trailing, style, multiline, accessibilityLabel, accessibilityHint, onFocus, onBlur, ...input },
   ref,
 ) {
   const [focused, setFocused] = useState(false);
+  const descriptionId = useId();
+  const description = error || hint;
   return (
     <View style={styles.wrapper}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
@@ -36,13 +38,16 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
           }}
           style={[styles.input, multiline && styles.multilineInput, style]}
           {...input}
+          aria-invalid={!!error}
+          aria-describedby={Platform.OS === "web" && description ? descriptionId : undefined}
+          accessibilityHint={Platform.OS === "web" ? accessibilityHint : [accessibilityHint, description].filter(Boolean).join(". ") || undefined}
         />
         {trailing}
       </View>
       {error ? (
-        <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text>
+        <Text nativeID={descriptionId} accessibilityLiveRegion="polite" style={styles.error}>{error}</Text>
       ) : hint ? (
-        <Text style={styles.hint}>{hint}</Text>
+        <Text nativeID={descriptionId} style={styles.hint}>{hint}</Text>
       ) : null}
     </View>
   );
@@ -51,7 +56,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
 const styles = StyleSheet.create({
   wrapper: { gap: 6 },
   label: { ...type.label },
-  field: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.field },
+  field: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.surface },
   multiline: { alignItems: "flex-start", paddingVertical: space.sm },
   focused: { borderColor: colors.primary, backgroundColor: colors.surface },
   invalid: { borderColor: colors.danger },
