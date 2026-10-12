@@ -52,6 +52,11 @@ Fluxo por lote: Codex revisa (read-only) → **Gate 1** verificação de cada ac
 | B4 | tab bar no Stack, histórico completo, `ProgressResponse` | ✅ gates 1-3 ok — `StudentFlowIT` verde; 173 testes | ver git log |
 | B5 | anexo de prática (áudio/vídeo até 50 MB) — plano do architect | ✅ `verify` completo (41 + 35 unit, 57 IT); 211 testes mobile; captura do bloco de anexo. Gate do Claude: teto de 1000 no histórico (alerta de segurança) e nome de arquivo nulo/longo | ver git log |
 
+## Smoke manual do anexo (2026-10-12, backend reiniciado com V12)
+
+API (`joao.figma` / `prof.figma`): 10/10 — registro devolve `practiceId`; upload 40 MB → 200 e XP inalterado; listagem e download do aluno idênticos; 60 MB → 413 `FILE_TOO_LARGE`; `malware.mp4` com bytes "MZ" e `aula.exe` declarado `video/mp4` → 422; professor vinculado lista e baixa os mesmos bytes.
+Tela web: escolher arquivo → "Prática.mp4 · 2,0 MB" com Trocar/Remover → salvar → recompensa (+30 XP) → gravação aparece no histórico; sem erros no console. Gate 3 pegou a linha de download centralizada no card → alinhada à esquerda.
+
 ## Métricas do Codex (este ciclo)
 
 - Revisão: 38 achados → 30 aceitos, 6 rejeitados (16%), 2 adiados + 1 achado novo da verificação manual (F-039).
