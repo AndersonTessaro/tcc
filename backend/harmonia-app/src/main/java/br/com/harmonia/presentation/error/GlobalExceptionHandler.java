@@ -17,6 +17,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.Instant;
 import java.util.List;
@@ -87,6 +88,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DomainValidationException.class)
     public ResponseEntity<ApiError> domainValidation(DomainValidationException e) {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, "DOMAIN_VALIDATION", e.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> fileTooLarge(MaxUploadSizeExceededException e) {
+        return build(HttpStatus.PAYLOAD_TOO_LARGE, "FILE_TOO_LARGE", "File exceeds the upload limit", List.of());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

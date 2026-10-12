@@ -153,3 +153,30 @@ describe("apiClient body timeout", () => {
     expect(signal?.aborted).toBe(true);
   });
 });
+
+describe("media timeout override", () => {
+  it.each(["postForm", "getBytes"] as const)("keeps %s alive beyond the default and aborts at the override", async (method) => {
+    jest.useFakeTimers();
+    try {
+      let signal: AbortSignal | undefined;
+      const fetchMock = jest.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+        signal = init?.signal ?? undefined;
+        return new Promise<Response>(() => {});
+      });
+      const api = createApiClient({
+        baseUrl: "http://x", getAccessToken: async () => "token",
+        setAccessToken: async () => undefined, clearAccessToken: async () => undefined,
+        onAuthFailure: jest.fn(), fetchFn: fetchMock as typeof fetch, timeoutMs: 20_000,
+      });
+      const request = method === "postForm"
+        ? api.postForm("/recording", new FormData(), { timeoutMs: 300_000 })
+        : api.getBytes("/recording", { timeoutMs: 300_000 });
+      const outcome = request.catch((error: unknown) => error);
+      await jest.advanceTimersByTimeAsync(20_000);
+      expect(signal?.aborted).toBe(false);
+      await jest.advanceTimersByTimeAsync(280_000);
+      expect(await outcome).toBeInstanceOf(RequestTimeoutError);
+      expect(signal?.aborted).toBe(true);
+    } finally { jest.useRealTimers(); }
+  });
+});

@@ -38,7 +38,7 @@ Fluxo por lote: Codex revisa (read-only) → **Gate 1** verificação de cada ac
 | F-040 | backend prática | ACEITO (BUG) | `POST /me/practices` devolvia a entidade JPA `Progress`; agora `ProgressResponse` |
 | F-039 | backend metas | ACEITO (BUG) | `GET /me/goals` devolve entidade JPA (aluno → usuário → papéis/permissões); trocar por DTO |
 | ADD-06 | práticas | ACEITO (dono) | Tela `practice/history` com todas as práticas + link "Ver histórico" |
-| ADD-07 | registrar | ACEITO (dono) | Plano do architect: `docs/superpowers/plans/2026-10-12-practice-recording.md` |
+| ADD-07 | registrar | ACEITO (dono) — implementado no B5 | Plano do architect: `docs/superpowers/plans/2026-10-12-practice-recording.md` |
 
 ## Lotes
 
@@ -50,6 +50,7 @@ Fluxo por lote: Codex revisa (read-only) → **Gate 1** verificação de cada ac
 | B3 | telas do Stack do aluno + F-039 | ✅ gates 1-3 ok — `StudentFlowIT` verde; Gate 3 pegou data ISO crua no web → `<input type="date">` nativo (vale p/ 5 telas) | ver git log |
 
 | B4 | tab bar no Stack, histórico completo, `ProgressResponse` | ✅ gates 1-3 ok — `StudentFlowIT` verde; 173 testes | ver git log |
+| B5 | anexo de prática (áudio/vídeo até 50 MB) — plano do architect | ✅ `verify` completo (41 + 35 unit, 57 IT); 211 testes mobile; captura do bloco de anexo. Gate do Claude: teto de 1000 no histórico (alerta de segurança) e nome de arquivo nulo/longo | ver git log |
 
 ## Métricas do Codex (este ciclo)
 

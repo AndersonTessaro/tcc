@@ -1,5 +1,6 @@
 import { FlatList, Image, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { PracticeRecordingDownload } from "@/features/student/PracticeRecordingDownload";
 import { practiceMoods, practiceRating } from "@/features/student/practiceMood";
 import { studentService, type StudentPractice } from "@/features/student/studentService";
 import { useResource } from "@/hooks/use-resource";
@@ -44,6 +45,7 @@ function PracticeRow({ practice }: { practice: StudentPractice }) {
       <View style={styles.details}>
         <Text style={styles.date}>{relativeDayLabel(practice.date)} · {formatMinutes(practice.durationMin)}</Text>
         {practice.notes ? <Text numberOfLines={2} style={styles.notes}>{practice.notes}</Text> : null}
+        <PracticeRecordingDownload practice={practice} download={studentService.downloadPracticeRecording} />
       </View>
       {rating ? <Image accessible source={practiceMoods[rating - 1]} accessibilityRole="image" accessibilityLabel={`Avaliação ${rating} de 5`} style={styles.mood} /> : null}
     </Card>

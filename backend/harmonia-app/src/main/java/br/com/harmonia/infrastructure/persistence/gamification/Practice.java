@@ -33,6 +33,9 @@ public class Practice {
 
     private String notes;
 
+    @Embedded
+    private PracticeRecording recording;
+
     @Column(name = "xp_earned", nullable = false)
     private Integer xpEarned = 0;
 

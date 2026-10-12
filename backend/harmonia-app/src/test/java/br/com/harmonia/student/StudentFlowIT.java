@@ -57,13 +57,15 @@ class StudentFlowIT {
             .andExpect(jsonPath("$.level", is(1)))
             .andExpect(jsonPath("$.streakDays", is(1)))
             .andExpect(jsonPath("$.totalPracticeMin", is(60)))
-            .andExpect(jsonPath("$.length()", is(4)))
+            .andExpect(jsonPath("$.practiceId").isString())
+            .andExpect(jsonPath("$.length()", is(5)))
             .andExpect(jsonPath("$.student").doesNotHaveJsonPath());
 
         // 2nd practice 120 min same day -> xp 180, level 2
         mvc.perform(post("/me/practices").header("Authorization", "Bearer " + t)
                 .contentType("application/json").content("{\"durationMin\":120}"))
             .andExpect(status().isOk())
+            .andExpect(jsonPath("$.practiceId").isString())
             .andExpect(jsonPath("$.xpTotal", is(180)))
             .andExpect(jsonPath("$.level", is(2)))
             .andExpect(jsonPath("$.totalPracticeMin", is(180)))

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { PracticeRecordingDownload } from "@/features/student/PracticeRecordingDownload";
 import { useResource } from "@/hooks/use-resource";
 import { addDays, formatFullDate, formatMinutes, todayIso } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
@@ -31,12 +32,13 @@ const TABS: { value: Tab; label: string }[] = [
 const RECENT_DAYS = 29;
 
 async function loadStudent(id: string) {
-  const [detail, students, enrollments, lessons, materials] = await Promise.all([
+  const [detail, students, enrollments, lessons, materials, practices] = await Promise.all([
     teacherService.student(id),
     teacherService.students(),
     teacherService.enrollments(),
     teacherService.studentLessons(id),
     teacherService.studentMaterials(id),
+    teacherService.studentPractices(id),
   ]);
   return {
     detail,
@@ -44,6 +46,7 @@ async function loadStudent(id: string) {
     instruments: [...new Set(enrollments.filter((item) => item.studentId === id).map((item) => item.instrument))],
     lessons,
     materials,
+    practices,
   };
 }
 
@@ -68,7 +71,7 @@ export default function TeacherStudentDetail() {
 
   const renderTab = () => {
     if (!data) return null;
-    const { detail, lessons, materials } = data;
+    const { detail, lessons, materials, practices } = data;
     switch (tab) {
       case "summary":
         return (
@@ -127,10 +130,13 @@ export default function TeacherStudentDetail() {
               <Text style={styles.summaryValue}>{formatMinutes(detail.weeklyPracticeMin)}</Text>
             </Card>
             <Text accessibilityRole="header" style={styles.sectionTitle}>Registros recentes</Text>
-            {detail.recentPractices.length ? (
+            {practices.length ? (
               <Card style={styles.listCard}>
-                {detail.recentPractices.map((item, index) => (
-                  <ListRow key={`${item.date}-${index}`} title={`${formatFullDate(item.date)} · ${formatMinutes(item.durationMin)}`} subtitle={item.notes || "Sem observações"} />
+                {practices.slice(0, 10).map((item) => (
+                  <View key={item.id}>
+                    <ListRow title={`${formatFullDate(item.date)} · ${formatMinutes(item.durationMin)}`} subtitle={item.notes || "Sem observações"} />
+                    <PracticeRecordingDownload practice={item} download={teacherService.downloadPracticeRecording} prefix="Gravação: " />
+                  </View>
                 ))}
               </Card>
             ) : (

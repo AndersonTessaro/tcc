@@ -10,6 +10,7 @@ import { Card } from "@/ui/Card";
 import { ScreenHeader } from "@/ui/ScreenHeader";
 import { ScreenState } from "@/ui/ScreenState";
 import { colors, MIN_TOUCH, space, type } from "@/ui/theme";
+import { PracticeRecordingDownload } from "./PracticeRecordingDownload";
 import { dayCount } from "./reward";
 import { studentService, type StudentPractice } from "./studentService";
 import { useTabScrollToTop } from "@/hooks/use-tab-scroll-to-top";
@@ -122,6 +123,7 @@ function PracticeRow({ practice }: { practice: StudentPractice }) {
     <Card style={styles.row}>
       <Text style={styles.rowTitle}>{relativeDayLabel(practice.date)} · {formatMinutes(practice.durationMin)}</Text>
       {practice.notes ? <Text style={styles.notes}>{practice.notes}</Text> : null}
+      <PracticeRecordingDownload practice={practice} download={studentService.downloadPracticeRecording} />
     </Card>
   );
 }

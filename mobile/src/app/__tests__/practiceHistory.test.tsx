@@ -18,7 +18,7 @@ beforeEach(() => jest.clearAllMocks());
 it("loads the complete history with dates, duration, truncated notes, optional mood and back navigation", async () => {
   const today = todayIso();
   const practices: StudentPractice[] = Array.from({ length: 3 }, (_, index) => ({
-    id: String(index), date: addDays(today, -index), durationMin: 30,
+    id: String(index), date: addDays(today, -index), durationMin: 30, recording: null,
     notes: index === 0 ? "Escalas; Dificuldade: Acordes; Avaliação: 5/5" : index === 1 ? null : `Arpejos ${index}`,
   }));
   service.practices.mockResolvedValue(practices);
@@ -50,14 +50,14 @@ it("shows loading, retries an error and refreshes the history", async () => {
   await act(() => rejectRequest(new Error("offline")));
   await fireEvent.press(await screen.findByRole("button", { name: "Tentar novamente" }));
   expect(await screen.findByText("Nenhuma prática registrada.")).toBeVisible();
-  service.practices.mockResolvedValue([{ id: "new", date: todayIso(), durationMin: 90, notes: null }]);
+  service.practices.mockResolvedValue([{ id: "new", date: todayIso(), durationMin: 90, notes: null, recording: null }]);
   await act(() => screen.getByLabelText("Histórico de práticas").props.refreshControl.props.onRefresh());
   expect(await screen.findByText("Hoje · 1h 30min")).toBeVisible();
   expect(service.practices).toHaveBeenCalledTimes(3);
 });
 
 it("opens the history from the recent records heading", async () => {
-  service.practices.mockResolvedValue([{ id: "1", date: todayIso(), durationMin: 30, notes: null }]);
+  service.practices.mockResolvedValue([{ id: "1", date: todayIso(), durationMin: 30, notes: null, recording: null }]);
   await render(<PracticeOverview />);
   await fireEvent.press(await screen.findByRole("link", { name: "Ver histórico de práticas" }));
   expect(mockPush).toHaveBeenCalledWith("/(student)/practice/history");

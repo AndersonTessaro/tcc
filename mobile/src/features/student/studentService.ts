@@ -1,4 +1,7 @@
-import { api } from "../../lib/http";
+import { api, MEDIA_TIMEOUT_MS } from "../../lib/http";
+
+import { appendFile, type PickedFile } from "../../lib/http/formFile";
+import { recordingMimeType } from "./recording";
 
 export type StudentLesson = {
   id: string;
@@ -40,11 +43,14 @@ export type StudentProgress = {
   totalPracticeMin: number;
 };
 
+export type PracticeRegistration = StudentProgress & { practiceId: string };
+
 export type StudentPractice = {
   id: string;
   date: string;
   durationMin: number;
   notes: string | null;
+  recording: { fileName: string; contentType: string; sizeBytes: number; uploadedAt: string } | null;
 };
 
 export type StudentAttendance = {
@@ -87,7 +93,13 @@ export const studentService = {
   goals: (status?: "ACTIVE" | "COMPLETED") =>
     api.get<StudentGoal[]>(`/me/goals${status ? `?status=${status}` : ""}`),
   registerPractice: (durationMin: number, notes?: string, date?: string) =>
-    api.post<StudentProgress>("/me/practices", { durationMin, notes, date }),
+    api.post<PracticeRegistration>("/me/practices", { durationMin, notes, date }),
+  uploadPracticeRecording: (practiceId: string, file: PickedFile) => {
+    const form = new FormData();
+    appendFile(form, "file", { ...file, mimeType: recordingMimeType(file.name, file.mimeType) ?? undefined });
+    return api.postForm<StudentPractice>(`/me/practices/${practiceId}/recording`, form, { timeoutMs: MEDIA_TIMEOUT_MS });
+  },
+  downloadPracticeRecording: (id: string) => api.getBytes(`/me/practices/${id}/recording`, { timeoutMs: MEDIA_TIMEOUT_MS }),
   createGoal: (title: string, type: StudentGoal["type"], target: number, description?: string) =>
     api.post<StudentGoal>("/me/goals", { title, type, target, description }),
   updateGoal: (id: string, progress: number) => api.put<StudentGoal>(`/me/goals/${id}?progress=${progress}`),

@@ -1,4 +1,8 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 51MB
   application:
     name: harmonia
   datasource:
@@ -15,6 +19,10 @@ spring:
     compose:
       # Resolved against the working dir, which is harmonia-app/ under spring-boot:run and the IDE.
       file: ../../docker-compose.yml
+
+server:
+  tomcat:
+    max-swallow-size: 60MB
 
 app:
   rsa:

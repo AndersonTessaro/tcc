@@ -2,6 +2,7 @@ import { ApiError } from "./apiError";
 import { RequestTimeoutError } from "./apiClient";
 
 const BY_CODE: Record<string, string> = {
+  FILE_TOO_LARGE: "Arquivo maior que 50 MB",
   SCHEDULE_CONFLICT: "Conflito de horário com outra aula ou horário fixo",
   DUPLICATE_RESOURCE: "Já existe um cadastro com esses dados",
   VALIDATION: "Dados inválidos. Revise os campos.",
@@ -15,6 +16,9 @@ const BY_CODE: Record<string, string> = {
 
 // Backend domain messages are in English; only the ones a user can trigger are translated.
 const BY_DETAIL: [RegExp, string][] = [
+  [/Recording must be an audio or video file/i, "Escolha um arquivo de áudio ou vídeo."],
+  [/Recording is empty/i, "O arquivo está vazio."],
+  [/Recording exceeds 50 MB/i, "O arquivo passa de 50 MB. Grave um vídeo mais curto ou envie só o áudio."],
   [/Lesson already has a makeup linked/i, "Esta aula já tem uma reposição"],
   [/Only a completed or canceled lesson can receive a makeup/i, "Conclua ou cancele a aula antes de agendar reposição"],
   [/canceled lesson/i, "Aula cancelada não recebe frequência"],

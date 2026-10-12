@@ -3,6 +3,7 @@ package br.com.harmonia.presentation.student;
 import br.com.harmonia.application.lesson.StudentLessonUseCase;
 import br.com.harmonia.application.gamification.GoalUseCase;
 import br.com.harmonia.application.gamification.PracticeUseCase;
+import br.com.harmonia.application.gamification.PracticeRecordingUseCase;
 import br.com.harmonia.application.gamification.ProgressUseCase;
 import br.com.harmonia.application.material.StudentMaterialUseCase;
 import br.com.harmonia.domain.gamification.GamificationService;
@@ -17,6 +18,7 @@ import br.com.harmonia.presentation.response.GoalResponse;
 import br.com.harmonia.presentation.response.LessonResponse;
 import br.com.harmonia.presentation.response.MaterialResponse;
 import br.com.harmonia.presentation.response.ProgressResponse;
+import br.com.harmonia.presentation.response.PracticeResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -25,6 +27,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -39,27 +42,24 @@ import java.util.UUID;
 public class StudentController {
     private final ProgressUseCase progress;
     private final PracticeUseCase practice;
+    private final PracticeRecordingUseCase recording;
     private final GoalUseCase goal;
     private final StudentLessonUseCase lesson;
     private final StudentMaterialUseCase material;
     private final GamificationService gamification = new GamificationService();
 
     public StudentController(ProgressUseCase progress, PracticeUseCase practice, GoalUseCase goal,
-                            StudentLessonUseCase lesson, StudentMaterialUseCase material) {
+                            StudentLessonUseCase lesson, StudentMaterialUseCase material,
+                            PracticeRecordingUseCase recording) {
         this.progress = progress;
         this.practice = practice;
         this.goal = goal;
         this.lesson = lesson;
         this.material = material;
+        this.recording = recording;
     }
 
     public record RegisterPractice(@Min(1) int durationMin, LocalDate date, String notes) {}
-    public record PracticeResponse(UUID id, LocalDate date, int durationMin, String notes) {
-        public static PracticeResponse of(br.com.harmonia.infrastructure.persistence.gamification.Practice practice) {
-            return new PracticeResponse(practice.getId(), practice.getDate(),
-                practice.getDurationMin(), practice.getNotes());
-        }
-    }
     public record AttendanceResponse(LocalDate date, AttendanceStatus status) {}
     public record NewGoal(@NotBlank String title, String description, @NotNull GoalType type, @Min(1) int target) {}
 
@@ -111,6 +111,18 @@ public class StudentController {
     @PreAuthorize("hasAuthority('practice.register')")
     public ProgressResponse registerPractice(@Valid @RequestBody RegisterPractice r) {
         return ProgressResponse.of(practice.register(r.durationMin(), r.date() == null ? LocalDate.now() : r.date(), r.notes()));
+    }
+
+    @PostMapping(value = "/practices/{id}/recording", consumes = "multipart/form-data")
+    @PreAuthorize("hasAuthority('practice.register')")
+    public PracticeResponse uploadRecording(@PathVariable UUID id, @RequestParam MultipartFile file) {
+        return PracticeResponse.of(recording.attach(id, file));
+    }
+
+    @GetMapping("/practices/{id}/recording")
+    @PreAuthorize("hasAuthority('progress.read')")
+    public ResponseEntity<byte[]> downloadRecording(@PathVariable UUID id) {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM).body(recording.downloadMine(id));
     }
 
     @GetMapping("/practices")
