@@ -9,7 +9,7 @@ jest.mock("expo-router", () => ({
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
 jest.mock("@/features/teacher/teacherService", () => ({
-  teacherService: { student: jest.fn(), students: jest.fn(), enrollments: jest.fn(), studentLessons: jest.fn(), studentMaterials: jest.fn() },
+  teacherService: { student: jest.fn(), students: jest.fn(), enrollments: jest.fn(), studentLessons: jest.fn(), studentMaterials: jest.fn(), studentPractices: jest.fn() },
 }));
 
 it("uses attendance records from the selected calendar month for the summary", async () => {
@@ -34,6 +34,7 @@ it("uses attendance records from the selected calendar month for the summary", a
   service.enrollments.mockResolvedValue([]);
   service.studentLessons.mockResolvedValue([]);
   service.studentMaterials.mockResolvedValue([]);
+  service.studentPractices.mockResolvedValue([]);
 
   await render(<TeacherStudentDetail />);
   await screen.findByText("Nenhuma meta ativa");

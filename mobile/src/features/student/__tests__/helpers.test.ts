@@ -46,9 +46,9 @@ describe("practiceReward", () => {
 describe("currentWeek", () => {
   it("sums minutes per day from Monday and flags today", () => {
     const week = currentWeek([
-      { id: "a", date: "2026-10-05", durationMin: 20, notes: null },
-      { id: "b", date: "2026-10-05", durationMin: 10, notes: null },
-      { id: "c", date: "2026-10-04", durationMin: 99, notes: null },
+      { id: "a", date: "2026-10-05", durationMin: 20, notes: null, recording: null },
+      { id: "b", date: "2026-10-05", durationMin: 10, notes: null, recording: null },
+      { id: "c", date: "2026-10-04", durationMin: 99, notes: null, recording: null },
     ], "2026-10-07");
     expect(week.map((day) => day.label)).toEqual(["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]);
     expect(week[0]).toMatchObject({ date: "2026-10-05", minutes: 30, isToday: false });

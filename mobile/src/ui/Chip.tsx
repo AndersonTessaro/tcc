@@ -42,11 +42,12 @@ type ChipGroupProps<T extends string> = {
   label?: string;
   scroll?: boolean;
   role?: "radio" | "tab";
+  disabled?: boolean;
 };
 
-export function ChipGroup<T extends string>({ options, value, onChange, label, scroll, role = "radio" }: ChipGroupProps<T>) {
+export function ChipGroup<T extends string>({ options, value, onChange, label, scroll, role = "radio", disabled }: ChipGroupProps<T>) {
   const chips = options.map((option) => (
-    <Chip key={option.value} label={option.label} accessibilityLabel={option.accessibilityLabel} role={role} selected={option.value === value} onPress={() => onChange(option.value)} />
+    <Chip disabled={disabled} key={option.value} label={option.label} accessibilityLabel={option.accessibilityLabel} role={role} selected={option.value === value} onPress={() => onChange(option.value)} />
   ));
   const groupRole = role === "tab" ? "tablist" : "radiogroup";
   if (scroll) {

@@ -38,4 +38,13 @@ public class LocalStorageAdapter implements FileStoragePort {
             throw new UncheckedIOException(e);
         }
     }
+
+    @Override
+    public void delete(String storagePath) {
+        try {
+            Files.deleteIfExists(root.resolve(storagePath));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
 }

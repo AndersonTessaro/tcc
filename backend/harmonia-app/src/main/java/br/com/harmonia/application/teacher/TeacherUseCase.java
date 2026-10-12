@@ -109,6 +109,12 @@ public class TeacherUseCase {
             .limit(100).toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<Practice> studentPractices(UUID studentId) {
+        assertLinked(studentId);
+        return practices.findTop100ByStudentIdOrderByDateDescCreatedAtDesc(studentId);
+    }
+
     private void assertLinked(UUID studentId) {
         if (!current.isAdmin()
                 && enrollments.findByTeacherIdAndStudentId(current.currentTeacher().getId(), studentId).isEmpty())

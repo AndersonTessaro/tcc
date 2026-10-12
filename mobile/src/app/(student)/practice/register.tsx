@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { PracticeRecordingPicker } from "@/features/student/PracticeRecordingPicker";
+import type { PickedFile } from "@/lib/http/formFile";
 import { PracticeRewardView } from "@/features/student/PracticeReward";
 import { practiceMoods } from "@/features/student/practiceMood";
 import { practiceReward, type PracticeReward } from "@/features/student/reward";
-import { studentService, type StudentProgress } from "@/features/student/studentService";
+import { studentService, type StudentProgress, type PracticeRegistration } from "@/features/student/studentService";
 import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { addDays, isValidIsoDate, parseIsoDate, todayIso } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
@@ -68,7 +70,16 @@ export default function RegisterPractice() {
   const [errors, setErrors] = useState<{ date?: string; minutes?: string; notes?: string }>({});
   const [requestError, setRequestError] = useState("");
   const [reward, setReward] = useState<PracticeReward | null>(null);
-  const markSaved = useUnsavedChangesGuard(dateChoice !== "today" || durationChoice !== "30" || customMinutes !== "30" || !!what || !!difficulty || mood !== null);
+  const [file, setFile] = useState<PickedFile | null>(null);
+  const [recordingSelectionError, setRecordingSelectionError] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [savedRegistration, setSavedRegistration] = useState<PracticeRegistration | null>(null);
+  const savedRef = useRef<PracticeRegistration | null>(null);
+  const savingRef = useRef(false);
+  const fieldsDisabled = saving || !!savedRegistration;
+  const markSaved = useUnsavedChangesGuard(dateChoice !== "today" || durationChoice !== "30" || customMinutes !== "30" || !!what || !!difficulty || mood !== null || !!file);
   const progressBefore = useRef<StudentProgress | null>(null);
 
   useEffect(() => {
@@ -79,7 +90,12 @@ export default function RegisterPractice() {
     return () => { active = false; };
   }, []);
 
+  const showReward = () => {
+    if (savedRef.current) setReward(practiceReward(progressBefore.current, savedRef.current));
+  };
+
   const save = async () => {
+    if (savingRef.current || picking || recordingSelectionError) return;
     const date = practiceDate(dateChoice, otherDate);
     const minutes = practiceMinutes(customMinutes);
     const notes = buildNotes(what, difficulty, mood);
@@ -96,14 +112,30 @@ export default function RegisterPractice() {
       scrollRef.current?.scrollTo({ y: Math.max(0, fieldPositions.current[field] - space.sm), animated: true });
       return;
     }
+    savingRef.current = true;
+    setSaving(true);
     setRequestError("");
     try {
-      const before = progressBefore.current ?? await studentService.progress().catch(() => null);
-      const progress = await studentService.registerPractice(minutes, notes || undefined, date);
-      markSaved();
-      setReward(practiceReward(before, progress));
+      if (!savedRef.current) {
+        progressBefore.current ??= await studentService.progress().catch(() => null);
+        const progress = await studentService.registerPractice(minutes, notes || undefined, date);
+        savedRef.current = progress;
+        setSavedRegistration(progress);
+        markSaved();
+      }
+      if (file) {
+        setUploading(true);
+        await studentService.uploadPracticeRecording(savedRef.current.practiceId, file);
+      }
+      showReward();
     } catch (cause) {
-      setRequestError(apiErrorMessage(cause, "Não foi possível salvar a prática. Tente novamente."));
+      setRequestError(apiErrorMessage(cause, savedRef.current
+        ? "A prática foi salva, mas o arquivo não foi enviado."
+        : "Não foi possível salvar a prática. Tente novamente."));
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+      setUploading(false);
     }
   };
 
@@ -131,6 +163,7 @@ export default function RegisterPractice() {
         <View style={styles.block} onLayout={(event) => { fieldPositions.current.date = event.nativeEvent.layout.y; }}>
           <DateTimeField
             ref={dateRef}
+            disabled={fieldsDisabled}
             mode="date"
             label="Data"
             labelStyle={styles.label}
@@ -140,11 +173,12 @@ export default function RegisterPractice() {
             maximumDate={parseIsoDate(todayIso())}
             error={errors.date}
           />
-          <ChipGroup label="Data da prática" options={DATE_OPTIONS} value={dateChoice} onChange={setDateChoice} />
+          <ChipGroup disabled={fieldsDisabled} label="Data da prática" options={DATE_OPTIONS} value={dateChoice} onChange={setDateChoice} />
         </View>
 
         <View style={styles.block} onLayout={(event) => { fieldPositions.current.minutes = event.nativeEvent.layout.y; }}>
           <TextField
+            editable={!fieldsDisabled}
             ref={minutesRef}
             label="Tempo de prática"
             labelStyle={styles.label}
@@ -159,7 +193,7 @@ export default function RegisterPractice() {
             maxLength={4}
             error={errors.minutes}
           />
-          <ChipGroup label="Duração rápida" options={DURATION_OPTIONS} value={durationChoice} onChange={(value) => {
+          <ChipGroup disabled={fieldsDisabled} label="Duração rápida" options={DURATION_OPTIONS} value={durationChoice} onChange={(value) => {
             setDurationChoice(value);
             if (value !== "custom") setCustomMinutes(value);
             else { setCustomMinutes(""); minutesRef.current?.focus(); }
@@ -168,12 +202,14 @@ export default function RegisterPractice() {
 
         <View style={styles.block} onLayout={(event) => { fieldPositions.current.what = event.nativeEvent.layout.y; }}>
           <Text style={styles.label}>O que praticou? <Text style={styles.optional}>(opcional)</Text></Text>
-          <TextField ref={whatRef} accessibilityLabel="O que praticou? (opcional)" fieldStyle={styles.field} style={styles.notesInput} placeholder="Ex.: escalas, música nova…" autoComplete="off" value={what} onChangeText={setWhat} multiline maxLength={MAX_NOTES_LENGTH} error={errors.notes} />
+          <TextField editable={!fieldsDisabled} ref={whatRef} accessibilityLabel="O que praticou? (opcional)" fieldStyle={styles.field} style={styles.notesInput} placeholder="Ex.: escalas, música nova…" autoComplete="off" value={what} onChangeText={setWhat} multiline maxLength={MAX_NOTES_LENGTH} error={errors.notes} />
         </View>
         <View style={styles.block}>
           <Text style={styles.label}>Dificuldade encontrada <Text style={styles.optional}>(opcional)</Text></Text>
-          <TextField accessibilityLabel="Dificuldade encontrada (opcional)" fieldStyle={styles.field} autoComplete="off" value={difficulty} onChangeText={setDifficulty} maxLength={120} returnKeyType="done" />
+          <TextField editable={!fieldsDisabled} accessibilityLabel="Dificuldade encontrada (opcional)" fieldStyle={styles.field} autoComplete="off" value={difficulty} onChangeText={setDifficulty} maxLength={120} returnKeyType="done" />
         </View>
+
+        <PracticeRecordingPicker file={file} onChange={setFile} error={recordingSelectionError} onError={setRecordingSelectionError} disabled={saving} onPickingChange={setPicking} />
 
         <View style={styles.block}>
           <Text style={styles.label}>Como foi a prática?</Text>
@@ -181,6 +217,8 @@ export default function RegisterPractice() {
             {practiceMoods.map((source, index) => (
               <Pressable
                 key={index}
+                disabled={fieldsDisabled}
+                aria-disabled={fieldsDisabled}
                 accessibilityRole="radio"
                 accessibilityLabel={`Avaliação ${index + 1} de 5`}
                 aria-checked={mood === index}
@@ -194,7 +232,15 @@ export default function RegisterPractice() {
         </View>
 
         {requestError ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{requestError}</Text> : null}
-        <Button label="Salvar registro" icon="checkmark" onPress={save} style={styles.save} />
+        {savedRegistration && requestError ? (
+          <View style={styles.block}>
+            <Button label={uploading ? "Enviando arquivo…" : "Tentar enviar de novo"} onPress={save} loading={saving} disabled={picking} />
+            <Button label="Continuar sem arquivo" variant="secondary" onPress={showReward} disabled={saving || picking} />
+          </View>
+        ) : (
+          <Button label={uploading ? "Enviando arquivo…" : "Salvar registro"} icon="checkmark" onPress={save} loading={saving} disabled={picking} style={styles.save} />
+        )}
+        {file ? <Text style={styles.hint}>Arquivos grandes podem levar alguns minutos.</Text> : null}
       </ScrollView>
     </View>
   );
@@ -213,6 +259,7 @@ const styles = StyleSheet.create({
   selectedMood: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   pressed: { opacity: 0.7 },
   moodIcon: { width: 32, height: 32 },
+  hint: { ...type.caption },
   error: { color: colors.danger, fontSize: 13 },
   save: { marginTop: -space.sm, borderRadius: radius.lg },
 });

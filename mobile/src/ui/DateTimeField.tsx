@@ -20,6 +20,7 @@ type DateTimeFieldProps = {
   error?: string | null;
   minimumDate?: Date;
   maximumDate?: Date;
+  disabled?: boolean;
 };
 
 function toDate(mode: Mode, value: string): Date {
@@ -36,9 +37,10 @@ function fromDate(mode: Mode, date: Date): string {
 }
 
 // The community picker has no web build; a native <input type="date|time"> keeps ISO values with a locale display.
-export const DateTimeField = forwardRef<DateTimeFieldHandle, DateTimeFieldProps>(function DateTimeField({ mode, label, labelStyle, fieldStyle, value, onChange, placeholder, error, minimumDate, maximumDate }, ref) {
+export const DateTimeField = forwardRef<DateTimeFieldHandle, DateTimeFieldProps>(function DateTimeField({ mode, label, labelStyle, fieldStyle, value, onChange, placeholder, error, minimumDate, maximumDate, disabled }, ref) {
   const webInputRef = useRef<HTMLInputElement>(null);
   useImperativeHandle(ref, () => ({ focus: () => {
+    if (disabled) return;
     if (Platform.OS === "web") webInputRef.current?.focus?.();
     else setOpen(true);
   } }));
@@ -53,6 +55,7 @@ export const DateTimeField = forwardRef<DateTimeFieldHandle, DateTimeFieldProps>
         <input
           ref={webInputRef}
           type={mode}
+          disabled={disabled}
           aria-label={label}
           aria-invalid={!!error}
           value={value}
@@ -88,13 +91,15 @@ export const DateTimeField = forwardRef<DateTimeFieldHandle, DateTimeFieldProps>
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${display || "não definido"}`}
         accessibilityHint="Abre o seletor"
+        disabled={disabled}
+        aria-disabled={!!disabled}
         onPress={() => setOpen((current) => !current)}
         style={({ pressed }) => [styles.field, open && styles.focused, !!error && styles.invalid, pressed && styles.pressed, fieldStyle]}
       >
         <Ionicons name={mode === "date" ? "calendar-outline" : "time-outline"} size={18} color={colors.primary} />
         <Text style={[styles.value, !display && styles.placeholder]}>{display || placeholder || (mode === "date" ? "Escolher data" : "Escolher horário")}</Text>
       </Pressable>
-      {open ? (
+      {open && !disabled ? (
         <DateTimePicker
           value={toDate(mode, value)}
           mode={mode}

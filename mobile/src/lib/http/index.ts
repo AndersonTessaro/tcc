@@ -9,3 +9,5 @@ export const api = createApiClient({
   clearAccessToken: () => tokenStorage.clear(),
   onAuthFailure: () => authEvents.emitLogout(),
 });
+
+export const MEDIA_TIMEOUT_MS = 300_000;

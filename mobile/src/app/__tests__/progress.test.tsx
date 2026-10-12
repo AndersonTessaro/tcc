@@ -28,7 +28,7 @@ it("shows XP and practice values from the API", async () => {
   service.progress.mockResolvedValue({ xpTotal: 20, level: 1, streakDays: 2, totalPracticeMin: 45 });
   const today = new Date();
   const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  service.practices.mockResolvedValue([{ id: "practice-1", date, durationMin: 45, notes: null }]);
+  service.practices.mockResolvedValue([{ id: "practice-1", date, durationMin: 45, notes: null, recording: null }]);
 
   await render(<Progress />);
 

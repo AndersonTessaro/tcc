@@ -1,5 +1,6 @@
 package br.com.harmonia.presentation.teacher;
 
+import br.com.harmonia.application.gamification.PracticeRecordingUseCase;
 import br.com.harmonia.application.lesson.AttendanceUseCase;
 import br.com.harmonia.application.lesson.TeacherLessonUseCase;
 import br.com.harmonia.application.material.TeacherMaterialUseCase;
@@ -10,11 +11,14 @@ import br.com.harmonia.presentation.response.AvailabilityResponse;
 import br.com.harmonia.presentation.response.LessonResponse;
 import br.com.harmonia.presentation.response.MaterialResponse;
 import br.com.harmonia.presentation.response.PersonSummary;
+import br.com.harmonia.presentation.response.PracticeResponse;
 import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
 import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -32,13 +36,16 @@ public class TeacherController {
     private final TeacherLessonUseCase lesson;
     private final AttendanceUseCase attendance;
     private final TeacherMaterialUseCase material;
+    private final PracticeRecordingUseCase recording;
 
     public TeacherController(TeacherUseCase teacher, TeacherLessonUseCase lesson,
-                             AttendanceUseCase attendance, TeacherMaterialUseCase material) {
+                             AttendanceUseCase attendance, TeacherMaterialUseCase material,
+                             PracticeRecordingUseCase recording) {
         this.teacher = teacher;
         this.lesson = lesson;
         this.attendance = attendance;
         this.material = material;
+        this.recording = recording;
     }
 
     public record NewLesson(@NotNull UUID enrollmentId, @NotNull LocalDate date,
@@ -83,6 +90,18 @@ public class TeacherController {
     @PreAuthorize("hasAuthority('student.read')")
     public Object studentDetail(@PathVariable UUID id) {
         return teacher.studentDetail(id);
+    }
+
+    @GetMapping("/students/{id}/practices")
+    @PreAuthorize("hasAuthority('student.read')")
+    public List<PracticeResponse> studentPractices(@PathVariable UUID id) {
+        return teacher.studentPractices(id).stream().map(PracticeResponse::of).toList();
+    }
+
+    @GetMapping("/practices/{id}/recording")
+    @PreAuthorize("hasAuthority('student.read')")
+    public ResponseEntity<byte[]> downloadPracticeRecording(@PathVariable UUID id) {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM).body(recording.downloadAsTeacher(id));
     }
 
     @GetMapping("/students/{id}/lessons")

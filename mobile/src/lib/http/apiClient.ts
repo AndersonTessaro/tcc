@@ -1,6 +1,6 @@
 import { toApiError } from "./apiError";
 
-type RequestOptions = { auth?: boolean };
+type RequestOptions = { auth?: boolean; timeoutMs?: number };
 
 type Deps = {
   baseUrl: string;
@@ -69,6 +69,7 @@ export function createApiClient(deps: Deps) {
     send: (access: string | null, signal: AbortSignal) => Promise<Response>,
     auth: boolean,
     read: (response: Response) => Promise<T> = (response) => response.json(),
+    requestTimeoutMs = timeoutMs,
   ): Promise<T> {
     return withTimeout(async (signal) => {
       const initialAccess = auth ? await deps.getAccessToken() : null;
@@ -96,7 +97,7 @@ export function createApiClient(deps: Deps) {
       if (res.status >= 400) throw await toApiError(res);
       if (res.status === 204) return undefined as T;
       return read(res);
-    }, timeoutMs);
+    }, requestTimeoutMs);
   }
 
   function request<T>(
@@ -118,11 +119,13 @@ export function createApiClient(deps: Deps) {
           body: body === undefined ? undefined : JSON.stringify(body),
         }),
       opts?.auth ?? true,
+      undefined,
+      opts?.timeoutMs,
     );
   }
 
   // Multipart upload. Content-Type is left unset so fetch adds the boundary.
-  function requestForm<T>(path: string, form: FormData): Promise<T> {
+  function requestForm<T>(path: string, form: FormData, opts?: RequestOptions): Promise<T> {
     return dispatch<T>(
       (access, signal) =>
         doFetch(`${deps.baseUrl}${path}`, {
@@ -132,20 +135,22 @@ export function createApiClient(deps: Deps) {
           headers: access ? { Authorization: `Bearer ${access}` } : {},
           body: form,
         }),
-      true,
+      opts?.auth ?? true,
+      undefined,
+      opts?.timeoutMs,
     );
   }
 
   return {
     get: <T>(p: string) => request<T>("GET", p),
-    getBytes: (p: string) => dispatch<ArrayBuffer>((access, signal) => doFetch(`${deps.baseUrl}${p}`, {
+    getBytes: (p: string, opts?: RequestOptions) => dispatch<ArrayBuffer>((access, signal) => doFetch(`${deps.baseUrl}${p}`, {
       credentials: "include",
       signal,
       headers: access ? { Authorization: `Bearer ${access}` } : {},
-    }), true, (response) => response.arrayBuffer()),
+    }), opts?.auth ?? true, (response) => response.arrayBuffer(), opts?.timeoutMs),
     post: <T>(p: string, b?: unknown, opts?: RequestOptions) => request<T>("POST", p, b, opts),
     put: <T>(p: string, b?: unknown) => request<T>("PUT", p, b),
     patch: <T>(p: string, b?: unknown) => request<T>("PATCH", p, b),
-    postForm: <T>(p: string, form: FormData) => requestForm<T>(p, form),
+    postForm: <T>(p: string, form: FormData, opts?: RequestOptions) => requestForm<T>(p, form, opts),
   };
 }

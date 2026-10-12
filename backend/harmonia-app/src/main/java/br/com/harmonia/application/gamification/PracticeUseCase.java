@@ -29,8 +29,10 @@ public class PracticeUseCase {
         this.current = current;
     }
 
+    public record PracticeRegistration(Practice practice, Progress progress) {}
+
     @Transactional
-    public Progress register(int durationMin, LocalDate date, String notes) {
+    public PracticeRegistration register(int durationMin, LocalDate date, String notes) {
         Student student = current.currentStudent();
         int xp = gamification.xpFromPractice(durationMin);
 
@@ -40,7 +42,7 @@ public class PracticeUseCase {
         practice.setDurationMin(durationMin);
         practice.setNotes(notes);
         practice.setXpEarned(xp);
-        practices.save(practice);
+        Practice savedPractice = practices.save(practice);
 
         Progress prog = progresses.findByStudentId(student.getId()).orElseGet(() -> {
             Progress np = new Progress();
@@ -53,7 +55,7 @@ public class PracticeUseCase {
         prog.setTotalPracticeMin(prog.getTotalPracticeMin() + durationMin);
         prog.setLastPractice(date);
         prog.setUpdatedAt(LocalDateTime.now());
-        return progresses.save(prog);
+        return new PracticeRegistration(savedPractice, progresses.save(prog));
     }
 
     public int weeklyPracticeMin(UUID studentId) {
@@ -65,7 +67,7 @@ public class PracticeUseCase {
 
     @Transactional(readOnly = true)
     public List<Practice> myPractices() {
-        // ponytail: full history, unpaginated; add Pageable when a student passes a few thousand practices.
-        return practices.findByStudentIdOrderByDateDescCreatedAtDesc(current.currentStudent().getId());
+        // ponytail: capped at the 1000 most recent (years of history); add Pageable if the screen needs more.
+        return practices.findTop1000ByStudentIdOrderByDateDescCreatedAtDesc(current.currentStudent().getId());
     }
 }

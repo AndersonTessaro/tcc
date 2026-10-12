@@ -1,7 +1,8 @@
-import { api } from "../../lib/http";
-import { Platform } from "react-native";
+import { api, MEDIA_TIMEOUT_MS } from "../../lib/http";
+import { appendFile, type PickedFile } from "../../lib/http/formFile";
+import type { StudentPractice } from "../student/studentService";
 
-export type MaterialFile = { uri: string; name: string; mimeType?: string; file?: Blob };
+export type MaterialFile = PickedFile;
 
 export type TeacherEnrollment = {
   id: string;
@@ -99,6 +100,8 @@ export const teacherService = {
   dashboard: (className?: string) => api.get<TeacherDashboardData>(`/teacher/dashboard${className ? `?className=${encodeURIComponent(className)}` : ""}`),
   students: () => api.get<StudentSummary[]>("/teacher/students"),
   student: (id: string) => api.get<TeacherStudentDetailData>(`/teacher/students/${id}`),
+  studentPractices: (id: string) => api.get<StudentPractice[]>(`/teacher/students/${id}/practices`),
+  downloadPracticeRecording: (id: string) => api.getBytes(`/teacher/practices/${id}/recording`, { timeoutMs: MEDIA_TIMEOUT_MS }),
   studentLessons: (id: string) => api.get<TeacherLesson[]>(`/teacher/students/${id}/lessons`),
   studentMaterials: (id: string) => api.get<TeacherStudentMaterial[]>(`/teacher/students/${id}/materials`),
   enrollments: () => api.get<TeacherEnrollment[]>("/teacher/enrollments"),
@@ -135,17 +138,9 @@ export const teacherService = {
     description?: string,
   ) => {
     const form = new FormData();
-    // React Native FormData accepts a {uri,name,type} object for files.
-    if (Platform.OS === "web") {
-      if (!file.file) throw new Error("Escolha novamente o arquivo para enviar.");
-      form.append("file", file.file, file.name);
-    } else form.append("file", {
-      uri: file.uri,
-      name: file.name,
-      type: file.mimeType ?? "application/octet-stream",
-    } as unknown as Blob);
+    appendFile(form, "file", file);
     form.append("title", title);
     if (description) form.append("description", description);
-    return api.postForm<TeacherStudentMaterial>(`/teacher/students/${studentId}/materials`, form);
+    return api.postForm<TeacherStudentMaterial>(`/teacher/students/${studentId}/materials`, form, { timeoutMs: MEDIA_TIMEOUT_MS });
   },
 };
