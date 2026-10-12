@@ -16,6 +16,7 @@ import br.com.harmonia.presentation.response.AttachmentResponse;
 import br.com.harmonia.presentation.response.GoalResponse;
 import br.com.harmonia.presentation.response.LessonResponse;
 import br.com.harmonia.presentation.response.MaterialResponse;
+import br.com.harmonia.presentation.response.ProgressResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -108,8 +109,8 @@ public class StudentController {
 
     @PostMapping("/practices")
     @PreAuthorize("hasAuthority('practice.register')")
-    public Progress registerPractice(@Valid @RequestBody RegisterPractice r) {
-        return practice.register(r.durationMin(), r.date() == null ? LocalDate.now() : r.date(), r.notes());
+    public ProgressResponse registerPractice(@Valid @RequestBody RegisterPractice r) {
+        return ProgressResponse.of(practice.register(r.durationMin(), r.date() == null ? LocalDate.now() : r.date(), r.notes()));
     }
 
     @GetMapping("/practices")

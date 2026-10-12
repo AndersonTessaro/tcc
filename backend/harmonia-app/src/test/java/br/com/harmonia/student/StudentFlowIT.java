@@ -54,14 +54,20 @@ class StudentFlowIT {
                 .contentType("application/json").content("{\"durationMin\":60}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.xpTotal", is(60)))
-            .andExpect(jsonPath("$.level", is(1)));
+            .andExpect(jsonPath("$.level", is(1)))
+            .andExpect(jsonPath("$.streakDays", is(1)))
+            .andExpect(jsonPath("$.totalPracticeMin", is(60)))
+            .andExpect(jsonPath("$.length()", is(4)))
+            .andExpect(jsonPath("$.student").doesNotHaveJsonPath());
 
         // 2nd practice 120 min same day -> xp 180, level 2
         mvc.perform(post("/me/practices").header("Authorization", "Bearer " + t)
                 .contentType("application/json").content("{\"durationMin\":120}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.xpTotal", is(180)))
-            .andExpect(jsonPath("$.level", is(2)));
+            .andExpect(jsonPath("$.level", is(2)))
+            .andExpect(jsonPath("$.totalPracticeMin", is(180)))
+            .andExpect(jsonPath("$.student").doesNotHaveJsonPath());
 
         // dashboard reflects
         mvc.perform(get("/me/dashboard").header("Authorization", "Bearer " + t))
@@ -124,5 +130,14 @@ class StudentFlowIT {
             .andExpect(status().isOk());
         mvc.perform(get("/me/dashboard").header("Authorization", "Bearer " + t))
             .andExpect(status().isOk()).andExpect(jsonPath("$.nextLesson.id", is(earliest)));
+
+        for (int i = 0; i < 101; i++) {
+            mvc.perform(post("/me/practices").header("Authorization", "Bearer " + t)
+                    .contentType("application/json").content("{\"durationMin\":1}"))
+                .andExpect(status().isOk());
+        }
+        mvc.perform(get("/me/practices").header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()", is(103)));
     }
 }

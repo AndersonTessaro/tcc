@@ -1,8 +1,7 @@
 import { useRef } from "react";
-import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useResource } from "@/hooks/use-resource";
 import { addDays, formatFullDate, formatMinutes, parseIsoDate, relativeDayLabel, todayIso } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
@@ -10,7 +9,7 @@ import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { ScreenHeader } from "@/ui/ScreenHeader";
 import { ScreenState } from "@/ui/ScreenState";
-import { colors, space, type } from "@/ui/theme";
+import { colors, MIN_TOUCH, space, type } from "@/ui/theme";
 import { dayCount } from "./reward";
 import { studentService, type StudentPractice } from "./studentService";
 import { useTabScrollToTop } from "@/hooks/use-tab-scroll-to-top";
@@ -37,7 +36,6 @@ export default function PracticeOverview() {
   const listRef = useRef<FlatList>(null);
   useTabScrollToTop(listRef);
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const practices = useResource(studentService.practices);
   const items = practices.data ?? [];
   const latestPractice = items.reduce<StudentPractice | undefined>((latest, practice) =>
@@ -65,7 +63,14 @@ export default function PracticeOverview() {
                   </Card>
                 ) : null}
                 <WeekCard week={currentWeek(items)} />
-                <Text accessibilityRole="header" style={styles.sectionTitle}>Registros recentes</Text>
+                <View style={styles.sectionHeading}>
+                  <Text accessibilityRole="header" style={styles.sectionTitle}>Registros recentes</Text>
+                  {items.length ? (
+                    <Pressable accessibilityRole="link" accessibilityLabel="Ver histórico de práticas" onPress={() => router.push("/(student)/practice/history")} style={({ pressed }) => [styles.historyLink, pressed && styles.pressed]}>
+                      <Text style={styles.historyLabel}>Ver histórico</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
               </View>
             }
             renderItem={({ item }) => <PracticeRow practice={item} />}
@@ -79,7 +84,7 @@ export default function PracticeOverview() {
           <ScreenState loading skeleton />
         )}
       </View>
-      <View style={[styles.footer, { paddingBottom: space.xxl + insets.bottom }]}>
+      <View style={styles.footer}>
         <Button label="Registrar prática" icon="add-circle-outline" onPress={openRegister} />
       </View>
     </View>
@@ -126,11 +131,15 @@ const styles = StyleSheet.create({
   body: { flex: 1, overflow: "hidden" },
   list: { flex: 1 },
   content: { flexGrow: 1, paddingHorizontal: space.screenGutter, paddingBottom: space.xxl, gap: space.md },
-  footer: { paddingHorizontal: space.screenGutter, paddingTop: space.md },
+  footer: { paddingHorizontal: space.screenGutter, paddingTop: space.md, paddingBottom: space.xxl },
   header: { gap: space.screenGutter },
   summaryCard: { gap: space.md, padding: space.xl },
   summaryValue: { ...type.body },
-  sectionTitle: { ...type.heading, marginTop: space.sm },
+  sectionHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm, flexWrap: "wrap", marginTop: space.sm },
+  sectionTitle: { ...type.heading },
+  historyLink: { minHeight: MIN_TOUCH, minWidth: MIN_TOUCH, justifyContent: "center", paddingHorizontal: space.xs },
+  historyLabel: { ...type.label, color: colors.link },
+  pressed: { opacity: 0.7 },
   weekCard: { gap: space.sm, padding: space.xl },
   cardTitle: { ...type.label, fontWeight: "700" },
   weekValue: { ...type.title },

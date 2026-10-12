@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { PracticeRewardView } from "@/features/student/PracticeReward";
+import { practiceMoods } from "@/features/student/practiceMood";
 import { practiceReward, type PracticeReward } from "@/features/student/reward";
 import { studentService, type StudentProgress } from "@/features/student/studentService";
 import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
@@ -15,14 +15,6 @@ import { DateTimeField, type DateTimeFieldHandle } from "@/ui/DateTimeField";
 import { ScreenHeader } from "@/ui/ScreenHeader";
 import { TextField } from "@/ui/TextField";
 import { colors, MIN_TOUCH, radius, space, type } from "@/ui/theme";
-
-const moods = [
-  require("@/assets/images/figma-student/mood-1.png"),
-  require("@/assets/images/figma-student/mood-2.png"),
-  require("@/assets/images/figma-student/mood-3.png"),
-  require("@/assets/images/figma-student/mood-4.png"),
-  require("@/assets/images/figma-student/mood-5.png"),
-];
 
 type DateChoice = "today" | "yesterday" | "other";
 type DurationChoice = "15" | "30" | "45" | "60" | "custom";
@@ -61,7 +53,6 @@ function buildNotes(what: string, difficulty: string, mood: number | null): stri
 
 export default function RegisterPractice() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const dateRef = useRef<DateTimeFieldHandle>(null);
   const minutesRef = useRef<TextInput>(null);
@@ -131,7 +122,7 @@ export default function RegisterPractice() {
       <ScreenHeader title="Registrar prática" back />
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={[styles.form, { paddingBottom: Math.max(insets.bottom, space.xxl) }]}
+        contentContainerStyle={styles.form}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
@@ -187,7 +178,7 @@ export default function RegisterPractice() {
         <View style={styles.block}>
           <Text style={styles.label}>Como foi a prática?</Text>
           <View accessibilityRole="radiogroup" accessibilityLabel="Avaliação da prática" style={styles.moods}>
-            {moods.map((source, index) => (
+            {practiceMoods.map((source, index) => (
               <Pressable
                 key={index}
                 accessibilityRole="radio"
@@ -211,7 +202,7 @@ export default function RegisterPractice() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.screen },
-  form: { flexGrow: 1, gap: space.xxl, paddingHorizontal: space.screenGutter },
+  form: { flexGrow: 1, gap: space.xxl, paddingHorizontal: space.screenGutter, paddingBottom: space.xxl },
   block: { gap: space.sm },
   label: { ...type.formLabel },
   optional: { ...type.caption },
