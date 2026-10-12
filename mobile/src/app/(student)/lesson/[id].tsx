@@ -2,10 +2,10 @@ import { useCallback, type ReactNode } from "react";
 import { Image, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { formatLessonDateLong, formatTimeRange, lessonBadge } from "@/features/student/lessonStatus";
+import { formatTimeRange, lessonBadge } from "@/features/student/lessonStatus";
 import { studentService, type LessonAttachment } from "@/features/student/studentService";
 import { useResource } from "@/hooks/use-resource";
-import { formatFileSize } from "@/lib/format";
+import { formatFileSize, formatFullDate } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Card } from "@/ui/Card";
 import { ScreenHeader } from "@/ui/ScreenHeader";
@@ -31,12 +31,11 @@ export default function LessonDetail() {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={detail.refreshing} onRefresh={detail.refresh} tintColor={colors.primary} />}
         >
-          <Card style={styles.summary}>
-            <StatusChip {...lessonBadge(lesson)} />
+          <Card variant="outlined" style={styles.summary}>
+            <Text style={styles.body}>{formatFullDate(lesson.date)} · {formatTimeRange(lesson.startTime, lesson.endTime)}</Text>
             <Text style={styles.instrument}>{lesson.instrument}</Text>
-            <Text style={styles.body}>{formatLessonDateLong(lesson.date)}</Text>
-            <Text style={styles.body}>{formatTimeRange(lesson.startTime, lesson.endTime)}</Text>
-            <Text style={styles.caption}>Professor: {lesson.teacherName}</Text>
+            <Text style={styles.body}>Professor: {lesson.teacherName}</Text>
+            <StatusChip {...lessonBadge(lesson)} />
           </Card>
 
           <Section title="Conteúdo trabalhado">
@@ -69,7 +68,7 @@ export default function LessonDetail() {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <Card style={styles.section}>
+    <Card variant="outlined" style={styles.section}>
       <Text accessibilityRole="header" style={styles.sectionTitle}>{title}</Text>
       {children}
     </Card>
@@ -95,11 +94,11 @@ function AttachmentRow({ attachment }: { attachment: LessonAttachment }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.screen },
-  content: { paddingHorizontal: space.xl, paddingBottom: space.xxl, gap: space.lg },
+  content: { paddingHorizontal: space.screenGutter, paddingBottom: space.xxl, gap: space.xxl },
   summary: { gap: space.xs },
-  instrument: { ...type.title, marginTop: space.xs },
+  instrument: { ...type.cardTitle },
   section: { gap: space.sm },
-  sectionTitle: { ...type.heading },
+  sectionTitle: { ...type.cardTitle },
   body: { ...type.body, lineHeight: 21 },
   bullet: { ...type.body, lineHeight: 22 },
   caption: { ...type.caption },

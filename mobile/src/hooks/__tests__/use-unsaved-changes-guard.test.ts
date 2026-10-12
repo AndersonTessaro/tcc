@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { act, renderHook } from "@testing-library/react-native";
 import { useUnsavedChangesGuard } from "../use-unsaved-changes-guard";
 import { confirm } from "@/lib/confirm";
@@ -53,4 +54,54 @@ it("guards a new draft after the previous schedule draft was reset", async () =>
   await act(() => { mockListener(event); });
   expect(event.preventDefault).toHaveBeenCalled();
   expect(confirmation).toHaveBeenCalledTimes(1);
+});
+
+
+it("protects browser unload only while dirty and removes the listener after save", async () => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const browser = { addEventListener: jest.fn(), removeEventListener: jest.fn() };
+  const platform = jest.replaceProperty(Platform, "OS", "web");
+  Object.defineProperty(globalThis, "window", { configurable: true, value: browser });
+  try {
+    const { result, rerender, unmount } = await renderHook(({ dirty }) => useUnsavedChangesGuard(dirty), { initialProps: { dirty: false } });
+    expect(browser.addEventListener).not.toHaveBeenCalled();
+    await rerender({ dirty: true });
+    const listener = browser.addEventListener.mock.calls[0][1] as (event: { preventDefault: () => void; returnValue: string | undefined }) => void;
+    expect(browser.addEventListener).toHaveBeenCalledWith("beforeunload", listener);
+    const dirtyEvent = { preventDefault: jest.fn(), returnValue: undefined as string | undefined };
+    listener(dirtyEvent);
+    expect(dirtyEvent.preventDefault).toHaveBeenCalled();
+    expect(dirtyEvent.returnValue).toBe("");
+    await rerender({ dirty: false });
+    expect(browser.removeEventListener).toHaveBeenCalledWith("beforeunload", listener);
+    await rerender({ dirty: true });
+    const nextListener = browser.addEventListener.mock.calls[1][1] as typeof listener;
+    result.current();
+    expect(browser.removeEventListener).toHaveBeenLastCalledWith("beforeunload", nextListener);
+    const savedEvent = { preventDefault: jest.fn(), returnValue: undefined };
+    nextListener(savedEvent);
+    expect(savedEvent.preventDefault).not.toHaveBeenCalled();
+    await unmount();
+  } finally {
+    platform.restore();
+    if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow);
+    else Reflect.deleteProperty(globalThis, "window");
+  }
+});
+
+it("removes the browser unload listener when an unsaved form unmounts", async () => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const browser = { addEventListener: jest.fn(), removeEventListener: jest.fn() };
+  const platform = jest.replaceProperty(Platform, "OS", "web");
+  Object.defineProperty(globalThis, "window", { configurable: true, value: browser });
+  try {
+    const { unmount } = await renderHook(() => useUnsavedChangesGuard(true));
+    const listener = browser.addEventListener.mock.calls[0][1];
+    await unmount();
+    expect(browser.removeEventListener).toHaveBeenCalledWith("beforeunload", listener);
+  } finally {
+    platform.restore();
+    if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow);
+    else Reflect.deleteProperty(globalThis, "window");
+  }
 });

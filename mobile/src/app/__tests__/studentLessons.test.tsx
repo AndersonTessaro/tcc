@@ -69,7 +69,7 @@ it("explains the empty state when the student has no lessons", async () => {
   expect(screen.queryByText("Próximas")).toBeNull();
 });
 
-it("shows lesson fields with weekday and attachment metadata from the detail endpoint", async () => {
+it("shows lesson date and time together with attachment metadata from the detail endpoint", async () => {
   service.lesson.mockResolvedValue({
     lesson,
     attachments: [{ id: "attachment-1", fileName: "Exercícios.pdf", sizeBytes: 1258291 }],
@@ -78,8 +78,7 @@ it("shows lesson fields with weekday and attachment metadata from the detail end
   await render(<LessonDetail />);
 
   expect(await screen.findByText("Professor: Maria Santos")).toBeVisible();
-  expect(screen.getByText("Quarta-feira, 01/07/2026")).toBeVisible();
-  expect(screen.getByText("08:00 – 09:00")).toBeVisible();
+  expect(screen.getByText("01/07/2026 · 08:00 – 09:00")).toBeVisible();
   expect(screen.getByText("Concluída")).toBeVisible();
   expect(screen.getByText("•  Campo harmônico")).toBeVisible();
   expect(screen.getByText("Praticar 15 minutos")).toBeVisible();
