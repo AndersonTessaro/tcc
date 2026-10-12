@@ -22,19 +22,26 @@ function loginErrorMessage(cause: unknown): string {
 
 export default function Login() {
   const { login, loading } = useAuth();
+  const loginRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const [loginValue, setLoginValue] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   const onSubmit = async () => {
     if (loading) return;
-    if (!loginValue.trim() || !password) {
-      setError("Informe seu e-mail ou usuário e a senha.");
+    const nextLoginError = loginValue.trim() ? "" : "Informe seu e-mail ou usuário.";
+    const nextPasswordError = password ? "" : "Informe sua senha.";
+    setLoginError(nextLoginError);
+    setPasswordError(nextPasswordError);
+    setError("");
+    if (nextLoginError || nextPasswordError) {
+      (nextLoginError ? loginRef : passwordRef).current?.focus();
       return;
     }
-    setError("");
     try {
       await login(loginValue.trim(), password);
     } catch (cause) {
@@ -46,8 +53,10 @@ export default function Login() {
 
   return (
     <AuthSheet title="Bem-vindo(a)!" subtitle="Faça login para continuar">
-      <View style={authStyles.form}>
+      <View style={authStyles.loginForm}>
         <TextField
+          ref={loginRef}
+          error={loginError}
           accessibilityLabel="E-mail ou usuário"
           placeholder="seu@email.com"
           leading={<Image source={emailIcon} style={authStyles.fieldIcon} accessible={false} />}
@@ -60,10 +69,11 @@ export default function Login() {
           submitBehavior="submit"
           onSubmitEditing={() => passwordRef.current?.focus()}
           value={loginValue}
-          onChangeText={setLoginValue}
+          onChangeText={(value) => { setLoginValue(value); setLoginError(""); }}
         />
         <TextField
           ref={passwordRef}
+          error={passwordError}
           accessibilityLabel="Senha"
           placeholder="Sua senha"
           leading={<Image source={lockIcon} style={authStyles.fieldIcon} accessible={false} />}
@@ -82,24 +92,27 @@ export default function Login() {
           returnKeyType="done"
           onSubmitEditing={onSubmit}
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(value) => { setPassword(value); setPasswordError(""); }}
         />
       </View>
 
-      <Link href="/(auth)/forgot-password" asChild>
-        <Pressable
-          accessibilityRole="link"
-          style={({ pressed }) => [styles.forgotPassword, pressed && styles.pressed]}
-        >
-          <Text style={styles.link}>Esqueci minha senha</Text>
-        </Pressable>
-      </Link>
+      {/* Link asChild drops the Pressable's function style on web, so alignment lives on a wrapper. */}
+      <View style={styles.forgotRow}>
+        <Link href="/(auth)/forgot-password" asChild>
+          <Pressable
+            accessibilityRole="link"
+            style={({ pressed }) => [styles.forgotPassword, pressed && styles.pressed]}
+          >
+            <Text style={styles.link}>Esqueci minha senha</Text>
+          </Pressable>
+        </Link>
+      </View>
 
       {error ? (
         <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={[authStyles.error, styles.error]}>{error}</Text>
       ) : null}
 
-      <Button label="Entrar" onPress={onSubmit} loading={loading} />
+      <Button label="Entrar" onPress={onSubmit} loading={loading} style={styles.submit} />
 
       <Text style={styles.registerText}>Não tem conta? Procure a secretaria da escola.</Text>
     </AuthSheet>
@@ -107,9 +120,11 @@ export default function Login() {
 }
 
 const styles = StyleSheet.create({
-  forgotPassword: { alignSelf: "flex-end", minHeight: MIN_TOUCH, justifyContent: "center", paddingHorizontal: space.xs, borderRadius: radius.sm },
+  forgotRow: { alignItems: "flex-end" },
+  forgotPassword: { minHeight: MIN_TOUCH, justifyContent: "center", paddingHorizontal: space.xs, borderRadius: radius.sm },
   pressed: { opacity: 0.6 },
-  link: { color: colors.link, fontSize: 14, fontWeight: "500" },
-  error: { marginBottom: space.md },
+  link: { color: colors.link, fontSize: 13, fontWeight: "500" },
+  error: { marginTop: space.md },
+  submit: { marginTop: space.xxl + space.lg },
   registerText: { ...type.caption, textAlign: "center", marginTop: space.xxl },
 });
