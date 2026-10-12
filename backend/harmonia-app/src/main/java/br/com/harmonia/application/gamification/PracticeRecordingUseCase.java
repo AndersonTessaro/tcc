@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.UUID;
 
 @Service
@@ -39,11 +40,13 @@ public class PracticeRecordingUseCase {
     public Practice attach(UUID practiceId, MultipartFile file) {
         Practice practice = findPractice(practiceId);
         current.assertOwnedByCurrentStudent(practice.getStudent());
-        PracticeRecordingRule.validate(file.getContentType(), file.getSize());
         String fileName = displayName(file.getOriginalFilename());
         try {
             // ponytail: whole file in memory; switch to InputStream if uploads grow.
-            String newPath = storage.save(fileName, file.getBytes());
+            byte[] content = file.getBytes();
+            PracticeRecordingRule.validate(fileName, file.getContentType(), file.getSize(),
+                Arrays.copyOf(content, Math.min(content.length, PracticeRecordingRule.HEAD_BYTES)));
+            String newPath = storage.save(fileName, content);
             String oldPath = practice.getRecording() == null ? null : practice.getRecording().getStoragePath();
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
