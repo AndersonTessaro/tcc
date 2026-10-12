@@ -25,6 +25,11 @@ describe("lessonForm", () => {
     expect(validateLessonForm({ ...valid, endTime: "10:00" })).toBe("O fim deve ser depois do início");
   });
 
+  it("rejects lesson ends at or beyond midnight", () => {
+    expect(validateLessonForm({ ...valid, startTime: "23:00", endTime: "24:00" })).toBe("Horário inválido (HH:MM)");
+    expect(validateLessonForm({ ...valid, startTime: "23:30", endTime: "24:30" })).toBe("Horário inválido (HH:MM)");
+  });
+
   it("rejects malformed times", () => {
     expect(validateLessonForm({ ...valid, startTime: "9h" })).toBe("Horário inválido (HH:MM)");
   });

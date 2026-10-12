@@ -21,38 +21,42 @@ export class RequestTimeoutError extends Error {
   }
 }
 
-// fetch never times out on its own; a server that accepts the connection but never answers
-// would leave the app waiting forever (e.g. the session restore spinner on startup).
-function withTimeout(fetchFn: typeof fetch, timeoutMs: number): typeof fetch {
-  return (input, init) => {
-    const controller = new AbortController();
-    let timedOut = false;
-    const timer = setTimeout(() => {
-      timedOut = true;
+async function withTimeout<T>(operation: (signal: AbortSignal) => Promise<T>, timeoutMs: number): Promise<T> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      reject(new RequestTimeoutError());
       controller.abort();
     }, timeoutMs);
-    return fetchFn(input, { ...init, signal: controller.signal })
-      .catch((error: unknown) => {
-        throw timedOut ? new RequestTimeoutError() : error;
-      })
-      .finally(() => clearTimeout(timer));
-  };
+  });
+  try {
+    return await Promise.race([operation(controller.signal), timeout]);
+  } finally {
+    clearTimeout(timer!);
+  }
 }
 
 export function createApiClient(deps: Deps) {
-  const doFetch = withTimeout(deps.fetchFn ?? fetch, deps.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  const doFetch = deps.fetchFn ?? fetch;
+  const timeoutMs = deps.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   let refreshing: Promise<boolean> | null = null;
 
   // The refresh token travels as an httpOnly cookie, so this carries no body.
   async function refresh(): Promise<boolean> {
-    const res = await doFetch(`${deps.baseUrl}/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-    });
-    if (res.status >= 400) return false;
-    const body = await res.json();
-    await deps.setAccessToken(body.accessToken);
-    return true;
+    const capturedAccess = await deps.getAccessToken();
+    return withTimeout(async (signal) => {
+      const res = await doFetch(`${deps.baseUrl}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+        signal,
+      });
+      if (res.status >= 400) return false;
+      const body = await res.json();
+      if (signal.aborted || await deps.getAccessToken() !== capturedAccess) return false;
+      await deps.setAccessToken(body.accessToken);
+      return true;
+    }, timeoutMs);
   }
 
   function refreshOnce() {
@@ -62,31 +66,37 @@ export function createApiClient(deps: Deps) {
 
   // Sends a request, retrying once after refreshing the token on 401.
   async function dispatch<T>(
-    send: (access: string | null) => Promise<Response>,
+    send: (access: string | null, signal: AbortSignal) => Promise<Response>,
     auth: boolean,
     read: (response: Response) => Promise<T> = (response) => response.json(),
   ): Promise<T> {
-    const initialAccess = auth ? await deps.getAccessToken() : null;
-    const run = async () => send(auth ? await deps.getAccessToken() : null);
-    let res = await send(initialAccess);
-    if (auth && res.status === 401) {
-      const currentAccess = await deps.getAccessToken();
-      if ((currentAccess && currentAccess !== initialAccess) || await refreshOnce()) {
-        res = await run();
-      } else {
-        await deps.clearAccessToken();
-        deps.onAuthFailure();
-        throw new Error("UNAUTHENTICATED");
+    return withTimeout(async (signal) => {
+      const initialAccess = auth ? await deps.getAccessToken() : null;
+      let sentAccess = initialAccess;
+      let res = await send(sentAccess, signal);
+      if (auth && res.status === 401) {
+        let refreshed = false;
+        let currentAccess = await deps.getAccessToken();
+        if (currentAccess === initialAccess) {
+          refreshed = await refreshOnce();
+          currentAccess = await deps.getAccessToken();
+        }
+        if (currentAccess && (refreshed || currentAccess !== initialAccess)) {
+          sentAccess = currentAccess;
+          res = await send(sentAccess, signal);
+        }
+        if (res.status === 401) {
+          if (await deps.getAccessToken() === sentAccess) {
+            await deps.clearAccessToken();
+            deps.onAuthFailure();
+          }
+          throw new Error("UNAUTHENTICATED");
+        }
       }
-      if (res.status === 401) {
-        await deps.clearAccessToken();
-        deps.onAuthFailure();
-        throw new Error("UNAUTHENTICATED");
-      }
-    }
-    if (res.status >= 400) throw await toApiError(res);
-    if (res.status === 204) return undefined as T;
-    return read(res);
+      if (res.status >= 400) throw await toApiError(res);
+      if (res.status === 204) return undefined as T;
+      return read(res);
+    }, timeoutMs);
   }
 
   function request<T>(
@@ -96,10 +106,11 @@ export function createApiClient(deps: Deps) {
     opts?: RequestOptions,
   ): Promise<T> {
     return dispatch<T>(
-      (access) =>
+      (access, signal) =>
         doFetch(`${deps.baseUrl}${path}`, {
           method,
           credentials: "include",
+          signal,
           headers: {
             "Content-Type": "application/json",
             ...(access ? { Authorization: `Bearer ${access}` } : {}),
@@ -113,10 +124,11 @@ export function createApiClient(deps: Deps) {
   // Multipart upload. Content-Type is left unset so fetch adds the boundary.
   function requestForm<T>(path: string, form: FormData): Promise<T> {
     return dispatch<T>(
-      (access) =>
+      (access, signal) =>
         doFetch(`${deps.baseUrl}${path}`, {
           method: "POST",
           credentials: "include",
+          signal,
           headers: access ? { Authorization: `Bearer ${access}` } : {},
           body: form,
         }),
@@ -126,8 +138,9 @@ export function createApiClient(deps: Deps) {
 
   return {
     get: <T>(p: string) => request<T>("GET", p),
-    getBytes: (p: string) => dispatch<ArrayBuffer>((access) => doFetch(`${deps.baseUrl}${p}`, {
+    getBytes: (p: string) => dispatch<ArrayBuffer>((access, signal) => doFetch(`${deps.baseUrl}${p}`, {
       credentials: "include",
+      signal,
       headers: access ? { Authorization: `Bearer ${access}` } : {},
     }), true, (response) => response.arrayBuffer()),
     post: <T>(p: string, b?: unknown, opts?: RequestOptions) => request<T>("POST", p, b, opts),

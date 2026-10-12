@@ -25,20 +25,22 @@ beforeEach(() => {
   service.attendance.mockResolvedValue({});
 });
 
-it("records attendance for today's lessons and keeps it after the silent refetch", async () => {
+it("uses fresh attendance from the silent refetch instead of a local override", async () => {
+  service.dashboard.mockResolvedValueOnce(dashboard).mockResolvedValueOnce({ ...dashboard, todayLessons: [{ ...lesson, attendance: "ABSENT" }] });
   await render(<TeacherDashboard />);
   await fireEvent.press(await screen.findByRole("radio", { name: "Presente" }));
 
   await waitFor(() => expect(service.attendance).toHaveBeenCalledWith("l1", "PRESENT"));
   await waitFor(() => expect(service.dashboard).toHaveBeenCalledTimes(2));
-  expect(screen.getByRole("radio", { name: "Presente" })).toBeSelected();
+  await waitFor(() => expect(screen.getByRole("radio", { name: "Falta" })).toBeChecked());
+  expect(screen.getByRole("radio", { name: "Presente" })).not.toBeChecked();
   expect(screen.getByText("09:00–10:00 · Ana Souza")).toBeVisible();
 });
 
 it("switches class from the picker", async () => {
   await render(<TeacherDashboard />);
   await fireEvent.press(await screen.findByRole("button", { name: "Turma atual: Piano. Trocar turma" }));
-  expect(screen.getByRole("radio", { name: "Piano" })).toBeSelected();
+  expect(screen.getByRole("radio", { name: "Piano" })).toBeChecked();
   await fireEvent.press(screen.getByRole("radio", { name: "Violão" }));
 
   await waitFor(() => expect(service.dashboard).toHaveBeenLastCalledWith("Violão"));

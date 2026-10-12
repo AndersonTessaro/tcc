@@ -6,6 +6,7 @@ import { todayIso } from "@/lib/format";
 
 const mockBack = jest.fn();
 jest.mock("expo-router", () => ({
+  useNavigation: () => ({ addListener: jest.fn(() => jest.fn()), setOptions: jest.fn(), dispatch: jest.fn() }),
   useRouter: () => ({ push: jest.fn(), back: mockBack }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));

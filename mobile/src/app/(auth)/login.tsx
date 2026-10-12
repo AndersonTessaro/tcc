@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { Link } from "expo-router";
 import { useAuth } from "@/features/auth/useAuth";
 import { AuthSheet, authStyles } from "@/features/auth/AuthSheet";
 import { Button } from "@/ui/Button";
@@ -21,7 +21,6 @@ function loginErrorMessage(cause: unknown): string {
 }
 
 export default function Login() {
-  const router = useRouter();
   const { login, loading } = useAuth();
   const passwordRef = useRef<TextInput>(null);
   const [loginValue, setLoginValue] = useState("");
@@ -87,13 +86,14 @@ export default function Login() {
         />
       </View>
 
-      <Pressable
-        accessibilityRole="link"
-        onPress={() => router.push("/(auth)/forgot-password")}
-        style={({ pressed }) => [styles.forgotPassword, pressed && styles.pressed]}
-      >
-        <Text style={styles.link}>Esqueci minha senha</Text>
-      </Pressable>
+      <Link href="/(auth)/forgot-password" asChild>
+        <Pressable
+          accessibilityRole="link"
+          style={({ pressed }) => [styles.forgotPassword, pressed && styles.pressed]}
+        >
+          <Text style={styles.link}>Esqueci minha senha</Text>
+        </Pressable>
+      </Link>
 
       {error ? (
         <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={[authStyles.error, styles.error]}>{error}</Text>

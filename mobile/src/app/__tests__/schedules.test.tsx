@@ -6,6 +6,7 @@ import { ApiError } from "@/lib/http/apiError";
 
 const mockShow = jest.fn();
 jest.mock("expo-router", () => ({
+  useNavigation: () => ({ addListener: jest.fn(() => jest.fn()), setOptions: jest.fn(), dispatch: jest.fn() }),
   useRouter: () => ({ back: jest.fn() }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
@@ -71,8 +72,8 @@ describe("Schedules screen", () => {
     );
     expect(mockShow).toHaveBeenCalledWith("Horário criado", "success");
     expect(await screen.findByText("Qua 14:00–15:00 · Ana Souza")).toBeVisible();
-    expect(screen.getByRole("radio", { name: "Ana Souza · Piano" })).not.toBeSelected();
-    expect(screen.getByRole("radio", { name: "Seg" })).toBeSelected();
+    expect(screen.getByRole("radio", { name: "Ana Souza · Piano" })).not.toBeChecked();
+    expect(screen.getByRole("radio", { name: "Seg" })).toBeChecked();
   });
 
   it("requires a student before creating", async () => {

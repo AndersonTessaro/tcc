@@ -10,7 +10,10 @@ export function ProgressBar({ value, max, label, color = colors.primary, height 
       accessible
       accessibilityRole="progressbar"
       accessibilityLabel={label}
-      accessibilityValue={{ min: 0, max: 100, now: percent, text: `${percent}%` }}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={percent}
+      aria-valuetext={`${percent}%`}
       style={[styles.track, { height }]}
     >
       <View style={[styles.fill, { width: `${percent}%`, backgroundColor: color }]} />

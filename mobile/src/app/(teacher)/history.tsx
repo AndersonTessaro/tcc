@@ -29,7 +29,7 @@ const PRESETS: { value: Preset; label: string }[] = [
 function presetRange(preset: Exclude<Preset, "custom">, today: string): Range {
   if (preset === "week") return { start: addDays(today, -6), end: today };
   if (preset === "thisMonth") return { start: `${today.slice(0, 8)}01`, end: today };
-  return { start: addDays(today, -30), end: today };
+  return { start: addDays(today, -29), end: today };
 }
 
 export default function History() {

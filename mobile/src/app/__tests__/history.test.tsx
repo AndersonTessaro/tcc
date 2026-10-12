@@ -42,7 +42,7 @@ it("shows lessons from the last 30 days and opens one in the agenda", async () =
   expect(await screen.findByText("22/09/2026 · 09:00–10:00")).toBeVisible();
   expect(screen.getByText("Ana Souza · Piano")).toBeVisible();
   expect(screen.getByText("Realizada")).toBeVisible();
-  expect(service.history).toHaveBeenCalledWith(addDays(today, -30), today);
+  expect(service.history).toHaveBeenCalledWith(addDays(today, -29), today);
 
   await fireEvent.press(screen.getByText("Ana Souza · Piano"));
   expect(mockPush).toHaveBeenCalledWith({ pathname: "/(teacher)/schedule", params: expect.objectContaining({ date: "2026-09-22" }) });

@@ -5,6 +5,7 @@ import { EnrollmentPicker } from "@/features/teacher/EnrollmentPicker";
 import { hhmm } from "@/features/teacher/agenda";
 import { oneHourAfter, validateTimeRange } from "@/features/teacher/lessonForm";
 import { WEEKDAYS, weekdayLabel } from "@/features/teacher/weeklySchedule";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { useResource } from "@/hooks/use-resource";
 import { confirm } from "@/lib/confirm";
 import { apiErrorKey, apiErrorMessage } from "@/lib/http/errorMessage";
@@ -41,6 +42,8 @@ export default function Schedules() {
   const [formKey, setFormKey] = useState(0);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
+
+  useUnsavedChangesGuard(!!enrollmentId || weekday !== DEFAULT_WEEKDAY || startTime !== DEFAULT_START || endTime !== oneHourAfter(DEFAULT_START));
 
   const replaceSchedule = (updated: TeacherSchedule) =>
     setData((current) => current && { ...current, schedules: current.schedules.map((item) => (item.id === updated.id ? updated : item)) });

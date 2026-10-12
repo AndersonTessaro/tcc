@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { AccessibilityInfo, Animated, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { haptics } from "@/lib/haptics";
 import { colors, radius, shadow, space } from "./theme";
 
@@ -39,9 +40,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 function ToastView({ toast, onHide }: { toast: ToastMessage; onHide: (id: number) => void }) {
   const insets = useSafeAreaInsets();
+  const reducedMotion = useReducedMotion();
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (reducedMotion) {
+      progress.setValue(1);
+      const timer = setTimeout(() => onHide(toast.id), VISIBLE_MS);
+      return () => clearTimeout(timer);
+    }
     const enter = Animated.timing(progress, { toValue: 1, duration: 180, useNativeDriver: true });
     const exit = Animated.timing(progress, { toValue: 0, duration: 160, useNativeDriver: true });
     enter.start();
@@ -51,13 +58,13 @@ function ToastView({ toast, onHide }: { toast: ToastMessage; onHide: (id: number
       enter.stop();
       exit.stop();
     };
-  }, [progress, onHide, toast.id]);
+  }, [progress, onHide, toast.id, reducedMotion]);
 
   const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [-24, 0] });
 
   return (
     <View pointerEvents="none" style={[styles.host, { top: insets.top + space.sm }]}>
-      <Animated.View accessibilityLiveRegion="polite" style={[styles.toast, { opacity: progress, transform: [{ translateY }] }]}>
+      <Animated.View accessibilityLiveRegion="polite" style={[styles.toast, !reducedMotion && { opacity: progress, transform: [{ translateY }] }]}>
         <Ionicons name={icons[toast.tone]} size={20} color={iconColors[toast.tone]} />
         <Text style={styles.text}>{toast.message}</Text>
       </Animated.View>

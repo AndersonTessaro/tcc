@@ -50,7 +50,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await authService.logout().catch(() => {});
         throw new Error("MOBILE_PROFILE_REQUIRED");
       }
-      const profile = await authService.me().catch(() => null);
+      const profile = await authService.me().catch((error: unknown) => {
+        if (error instanceof Error && error.message === "UNAUTHENTICATED") throw error;
+        return null;
+      });
       setUser({ ...authenticated, ...profile });
     } finally {
       setLoading(false);

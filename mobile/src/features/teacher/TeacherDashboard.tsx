@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -33,6 +33,8 @@ export default function TeacherDashboard() {
   const [recorded, setRecorded] = useState<Record<string, AttendanceStatus | null>>({});
   const dashboard = useResource(() => teacherService.dashboard(selectedClass || undefined), selectedClass);
   const { reload } = dashboard;
+
+  useEffect(() => { setRecorded({}); }, [dashboard.data]);
 
   const applyLesson = useCallback((lessonId: string, patch: Partial<TeacherLesson>) => {
     if (patch.attendance !== undefined) setRecorded((current) => ({ ...current, [lessonId]: patch.attendance ?? null }));
@@ -143,7 +145,7 @@ export default function TeacherDashboard() {
                       key={name}
                       accessibilityRole="radio"
                       accessibilityLabel={name}
-                      accessibilityState={{ selected, checked: selected }}
+                      aria-checked={selected}
                       onPress={() => {
                         setPickerOpen(false);
                         setSelectedClass(name);

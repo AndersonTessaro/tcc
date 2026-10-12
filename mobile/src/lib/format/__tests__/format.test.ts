@@ -1,8 +1,15 @@
-import { addDays, formatFileSize, formatLessonWhen, formatMinutes, normalizeSearch, relativeDayLabel } from "@/lib/format";
+import { isValidIsoDate, addDays, formatFileSize, formatLessonWhen, formatMinutes, normalizeSearch, relativeDayLabel } from "@/lib/format";
 
 const now = new Date(2026, 9, 5, 10, 0);
 
 describe("format", () => {
+  it("validates real calendar dates", () => {
+    expect(isValidIsoDate("2026-02-31")).toBe(false);
+    expect(isValidIsoDate("2026-02-29")).toBe(false);
+    expect(isValidIsoDate("2028-02-29")).toBe(true);
+    expect(isValidIsoDate("2026-13-01")).toBe(false);
+    expect(isValidIsoDate("2026-2-01")).toBe(false);
+  });
   it("labels days relative to today", () => {
     expect(relativeDayLabel("2026-10-05", now)).toBe("Hoje");
     expect(relativeDayLabel("2026-10-06", now)).toBe("Amanhã");

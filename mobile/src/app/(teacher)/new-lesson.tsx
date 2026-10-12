@@ -10,7 +10,7 @@ import { addMinutes, DURATION_OPTIONS, durationBetween } from "@/features/teache
 import { slotKey, useSlotAvailability } from "@/features/teacher/useSlotAvailability";
 import { useResource } from "@/hooks/use-resource";
 import { formatFullDate, relativeDayLabel, shortTime, todayIso } from "@/lib/format";
-import { confirm } from "@/lib/confirm";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { apiErrorKey, apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
@@ -76,14 +76,10 @@ export default function NewLesson() {
     if (!completed) setAttendance(null);
   }, [completed]);
 
-  const dirty = enrollmentId !== preselectedId || date !== initialDate || startTime !== DEFAULT_START || duration !== DEFAULT_DURATION || !!content.trim() || !!homework.trim();
+  const dirty = enrollmentId !== preselectedId || date !== initialDate || startTime !== DEFAULT_START || duration !== DEFAULT_DURATION || !!content.trim() || !!homework.trim() || customEnd !== addMinutes(DEFAULT_START, 60) || attendance !== null || !!justification;
+  const markSaved = useUnsavedChangesGuard(dirty);
 
   const clearError = (field: keyof FieldErrors) => setErrors((current) => ({ ...current, [field]: undefined, form: undefined }));
-
-  const goBack = async () => {
-    if (dirty && !(await confirm({ title: "Descartar aula?", message: "Os dados preenchidos serão perdidos.", confirmLabel: "Descartar", destructive: true }))) return;
-    router.back();
-  };
 
   const changeStart = (value: string) => {
     if (duration === CUSTOM) setCustomEnd(addMinutes(value, durationBetween(startTime, customEnd)));
@@ -116,6 +112,7 @@ export default function NewLesson() {
   });
 
   const save = async () => {
+    if (slot.checking || hasConflict) return;
     const found = validate();
     if (found.enrollment || found.date || found.time) {
       setErrors(found);
@@ -133,6 +130,7 @@ export default function NewLesson() {
         homework: homework.trim() || undefined,
       });
       lessonId = lesson.id;
+      markSaved();
     } catch (error) {
       setErrors({ [apiErrorKey(error, ["enrollment", "date", "time"])]: apiErrorMessage(error, "Erro ao registrar aula") });
       return;
@@ -152,7 +150,7 @@ export default function NewLesson() {
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScreenHeader title="Nova aula" back onBack={goBack} />
+      <ScreenHeader title="Nova aula" back />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         <Text accessibilityRole="header" style={styles.section}>1. Aluno e instrumento</Text>
         {enrollments.loading ? (
@@ -193,7 +191,7 @@ export default function NewLesson() {
 
         <Text accessibilityRole="header" style={styles.section}>3. Disponibilidade</Text>
         <SlotPlanner
-          availability={slot.data}
+          availability={slot.data ?? null}
           checking={slot.checking}
           error={slot.error}
           verified={verified}
@@ -241,7 +239,7 @@ export default function NewLesson() {
           label={completed ? "Registrar aula" : "Agendar aula"}
           icon="checkmark"
           onPress={save}
-          disabled={enrollments.loading || !!enrollments.error || hasConflict}
+          disabled={enrollments.loading || !!enrollments.error || hasConflict || slot.checking}
           accessibilityHint={hasConflict ? "Escolha um horário sem conflito" : undefined}
         />
         {hasConflict ? <Text style={styles.caption}>Escolha um horário livre para liberar o agendamento.</Text> : null}

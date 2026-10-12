@@ -34,7 +34,7 @@ export function AppTabBar({ state, navigation, tabs }: TabBarProps & { tabs: rea
             key={tab.name}
             accessibilityRole="tab"
             accessibilityLabel={tab.label}
-            accessibilityState={{ selected: focused }}
+            aria-selected={focused}
             onPress={onPress}
             style={({ pressed }) => [styles.item, pressed && styles.pressed]}
           >
