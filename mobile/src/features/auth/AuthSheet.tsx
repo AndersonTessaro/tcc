@@ -17,7 +17,7 @@ export function AuthSheet({ title, subtitle, children }: AuthSheetProps) {
       <SafeAreaView style={styles.screen} edges={["top"]}>
         <KeyboardAvoidingView style={styles.screen} behavior={Platform.select({ ios: "padding", default: undefined })}>
           <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-            <View style={styles.brand}>
+            <View style={[styles.brand, { height: Math.max(280, 328 - insets.top) }]}>
               <Image source={logoImage} style={styles.logo} accessible={false} />
               <Text style={styles.brandName}>SONETTO</Text>
             </View>
@@ -35,6 +35,7 @@ export function AuthSheet({ title, subtitle, children }: AuthSheetProps) {
 
 export const authStyles = StyleSheet.create({
   form: { gap: space.md, marginTop: space.xxl },
+  loginForm: { gap: space.xl, marginTop: space.xxxl + space.lg },
   error: { color: colors.danger, fontSize: 14, textAlign: "center" },
   message: { ...type.body, color: colors.muted, lineHeight: 22, textAlign: "center", marginTop: space.xxl },
   fieldIcon: { width: 15, height: 15 },
@@ -44,10 +45,10 @@ export const authStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scrollContent: { flexGrow: 1 },
-  brand: { flex: 1, minHeight: 180, alignItems: "center", justifyContent: "center", paddingVertical: space.xl },
-  logo: { width: 72, height: 135 },
+  brand: { flexShrink: 0, alignItems: "center", justifyContent: "center", paddingVertical: space.xl },
+  logo: { width: 108, height: 204 },
   brandName: { color: colors.onBrand, fontSize: 26, fontWeight: "500", letterSpacing: 0.5, marginTop: space.sm },
-  sheet: { backgroundColor: colors.surface, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: space.xxl, paddingTop: space.xxxl, paddingBottom: space.xxxl },
-  title: { ...type.title, fontWeight: "600", textAlign: "center" },
-  subtitle: { ...type.body, color: colors.muted, textAlign: "center", marginTop: space.xs },
+  sheet: { flexGrow: 1, backgroundColor: colors.surface, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: space.xxl + space.lg, paddingTop: space.xxxl, paddingBottom: space.xxxl },
+  title: { ...type.title, fontSize: 22, fontWeight: "600", textAlign: "center" },
+  subtitle: { ...type.body, fontSize: 16, color: colors.muted, textAlign: "center", marginTop: space.xs },
 });
