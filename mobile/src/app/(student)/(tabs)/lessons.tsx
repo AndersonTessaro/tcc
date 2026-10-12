@@ -11,7 +11,6 @@ import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Card } from "@/ui/Card";
 import { ScreenHeader } from "@/ui/ScreenHeader";
 import { ScreenState } from "@/ui/ScreenState";
-import { StatusChip } from "@/ui/StatusChip";
 import { colors, space, type } from "@/ui/theme";
 import { useTabScrollToTop } from "@/hooks/use-tab-scroll-to-top";
 
@@ -64,26 +63,31 @@ export default function Lessons() {
 function LessonRow({ lesson, onPress }: { lesson: StudentLesson; onPress: () => void }) {
   const when = formatLessonWhen(lesson.date, lesson.startTime);
   const badge = lessonBadge(lesson);
+  const statusIcon = badge.label === "Sem registro" ? "help-circle"
+    : lesson.status === "DONE" ? "checkmark-circle"
+    : lesson.status === "CANCELED" ? "close-circle" : "hourglass";
+  const statusColor = badge.label === "Sem registro" ? colors.muted
+    : lesson.status === "DONE" ? colors.success
+    : lesson.status === "CANCELED" ? colors.danger : colors.primary;
   return (
     <Card onPress={onPress} accessibilityLabel={`${lesson.instrument}, ${when}, ${lesson.teacherName}, ${badge.label}`} accessibilityHint="Abre os detalhes da aula" style={styles.card}>
       <View style={styles.cardText}>
         <Text style={styles.when}>{when}</Text>
         <Text style={styles.instrument}>{lesson.instrument}</Text>
         <Text style={styles.teacher}>{lesson.teacherName}</Text>
-        <StatusChip label={badge.label} tone={badge.tone} />
       </View>
-      <Ionicons name="chevron-forward" size={20} color={colors.borderStrong} />
+      <Ionicons name={statusIcon} size={24} color={statusColor} accessibilityLabel={badge.label} />
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.screen },
-  list: { flexGrow: 1, paddingHorizontal: space.xl, paddingBottom: space.xxl, gap: space.md },
+  list: { flexGrow: 1, paddingHorizontal: space.screenGutter, paddingBottom: space.xxl, gap: space.xxl },
   sectionTitle: { ...type.heading, marginTop: space.md },
-  card: { flexDirection: "row", alignItems: "center", gap: space.md },
+  card: { minHeight: 116, flexDirection: "row", alignItems: "center", gap: space.md, padding: space.xl },
   cardText: { flex: 1, gap: space.xs },
-  when: { ...type.bodyStrong },
-  instrument: { ...type.body },
+  when: { ...type.body },
+  instrument: { ...type.body, fontWeight: "700" },
   teacher: { ...type.caption, marginBottom: space.xs },
 });

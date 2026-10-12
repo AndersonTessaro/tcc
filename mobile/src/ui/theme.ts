@@ -17,6 +17,7 @@ export const colors = {
   cardBorder: "#D9D9D9",
   borderStrong: "#B5AFBC",
   progressTrack: "#CACACA",
+  chartArea: "#EDEBEB",
   track: "#E4E1E8",
   text: "#17131A",
   muted: "#5F5B63",

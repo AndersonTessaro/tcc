@@ -43,19 +43,19 @@ export default function Dashboard() {
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
-      <LinearGradient colors={brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.hero, { paddingTop: insets.top + space.xxl }]}>
-        <View style={styles.helloRow}>
-          <Text accessibilityRole="header" style={styles.greeting}>Olá, {firstName(user?.displayName || user?.username)}!</Text>
-          <Image source={waveIcon} style={styles.waveIcon} accessible={false} />
-        </View>
-        <Text style={styles.greetingSubtitle}>Continue praticando e evoluindo!</Text>
-      </LinearGradient>
       <ScrollView ref={listRef}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={dashboard.refreshing} onRefresh={dashboard.refresh} tintColor={colors.primary} />}
       >
-        {content}
+        <LinearGradient colors={brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.hero, { paddingTop: insets.top + space.xxl }]}>
+          <View style={styles.helloRow}>
+            <Text accessibilityRole="header" style={styles.greeting}>Olá, {firstName(user?.displayName || user?.username)}!</Text>
+            <Image source={waveIcon} style={styles.waveIcon} accessible={false} />
+          </View>
+          <Text style={styles.greetingSubtitle}>Continue praticando e evoluindo!</Text>
+        </LinearGradient>
+        <View style={styles.cards}>{content}</View>
       </ScrollView>
     </View>
   );
@@ -72,22 +72,20 @@ function DashboardCards({ data, onNavigate }: { data: StudentDashboard; onNaviga
   return (
     <>
       <Card variant="plain" style={styles.xpCard}>
-        <View style={styles.rowBetween}>
-          <Text style={styles.eyebrow}>XP atual</Text>
-          <Text style={styles.levelBadge}>Nível {data.level}</Text>
-        </View>
+        <Text style={styles.eyebrow}>XP atual</Text>
         <Text style={styles.xpValue}>{data.xp} XP</Text>
-        <ProgressBar value={progress.earned} max={progress.span} label={`Progresso para o nível ${progress.nextLevel}`} />
-        <Text style={styles.caption}>{remainingXpLabel(progress)}</Text>
+        <Text style={styles.level}>Nível {data.level}</Text>
+        <ProgressBar value={progress.earned} max={progress.span} height={12} label={`Progresso para o nível ${progress.nextLevel}`} />
+        <Text style={styles.xpCaption}>{remainingXpLabel(progress)}</Text>
       </Card>
-
-      <Button label="Registrar prática" icon="add-circle-outline" onPress={() => onNavigate("/(student)/practice/register")} />
 
       <View style={styles.statRow}>
         <Card variant="plain" style={styles.statCard}>
           <Image source={fireIcon} style={styles.cardIcon} accessible={false} />
-          <Text style={styles.cardTitle}>Sequência</Text>
-          <Text style={styles.statValue}>{dayCount(data.streakDays)}</Text>
+          <View style={styles.flex}>
+            <Text style={styles.cardTitle}>Sequência</Text>
+            <Text style={styles.statValue}>{dayCount(data.streakDays)}</Text>
+          </View>
         </Card>
         <Card variant="plain"
           style={styles.statCard}
@@ -95,9 +93,11 @@ function DashboardCards({ data, onNavigate }: { data: StudentDashboard; onNaviga
           accessibilityLabel={`Prática semanal: ${weekly}. Ver minhas metas`}
         >
           <Ionicons name="musical-notes-outline" size={28} color={colors.primary} />
-          <Text style={styles.cardTitle}>Prática semanal</Text>
-          <Text style={styles.statValue}>{weekly}</Text>
-          <Text style={styles.link}>Ver minhas metas</Text>
+          <View style={styles.flex}>
+            <Text style={styles.cardTitle}>Prática semanal</Text>
+            <Text style={styles.statValue}>{weekly}</Text>
+            <Text style={styles.link}>Ver minhas metas</Text>
+          </View>
         </Card>
       </View>
 
@@ -125,6 +125,8 @@ function DashboardCards({ data, onNavigate }: { data: StudentDashboard; onNaviga
           </View>
         </Card>
       )}
+
+      <Button label="Registrar prática" icon="add-circle-outline" onPress={() => onNavigate("/(student)/practice/register")} />
     </>
   );
 }
@@ -144,26 +146,28 @@ function DashboardSkeleton() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.screen },
-  hero: { paddingHorizontal: space.xxl, paddingBottom: 64 },
+  hero: { paddingHorizontal: space.screenGutter, paddingBottom: 64 },
   helloRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
   greeting: { color: colors.onBrand, fontSize: 26, fontWeight: "600", flexShrink: 1 },
   waveIcon: { width: 26, height: 26 },
   greetingSubtitle: { color: colors.onBrandMuted, fontSize: 15, marginTop: space.xs },
-  content: { flexGrow: 1, gap: space.lg, paddingHorizontal: space.xl, paddingBottom: space.xxl, marginTop: -44 },
+
+  content: { flexGrow: 1, paddingBottom: space.xxl },
+  cards: { gap: space.xl, paddingHorizontal: space.screenGutter, marginTop: -44 },
   skeleton: { gap: space.lg },
-  xpCard: { gap: space.sm },
-  rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  eyebrow: { ...type.label, color: colors.muted },
-  levelBadge: { ...type.label, color: colors.primary, backgroundColor: colors.primarySoft, borderRadius: radius.pill, paddingHorizontal: space.md, paddingVertical: space.xs, overflow: "hidden" },
-  xpValue: { ...type.display },
+  xpCard: { gap: space.lg, padding: space.xxxl },
+  eyebrow: { ...type.body, textAlign: "center" },
+  level: { ...type.body, marginTop: space.sm },
+  xpValue: { ...type.display, textAlign: "center" },
+  xpCaption: { ...type.caption, textAlign: "center" },
   caption: { ...type.caption },
-  statRow: { flexDirection: "row", gap: space.lg },
-  statCard: { flex: 1, gap: space.xs },
+  statRow: { gap: space.xl },
+  statCard: { minHeight: 116, flexDirection: "row", alignItems: "center", gap: space.lg, padding: space.xxl },
   cardIcon: { width: 28, height: 28 },
-  cardTitle: { ...type.label },
+  cardTitle: { ...type.label, fontWeight: "700" },
   statValue: { ...type.title },
   link: { color: colors.link, fontSize: 13, fontWeight: "600", marginTop: space.xs },
-  lessonCard: { flexDirection: "row", alignItems: "center", gap: space.lg },
-  lessonWhen: { ...type.heading, marginTop: 2 },
+  lessonCard: { minHeight: 116, flexDirection: "row", alignItems: "center", gap: space.lg, padding: space.xxl },
+  lessonWhen: { ...type.body, marginTop: space.sm },
   flex: { flex: 1, gap: 2 },
 });
