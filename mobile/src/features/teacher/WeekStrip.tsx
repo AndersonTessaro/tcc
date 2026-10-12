@@ -20,7 +20,7 @@ export function WeekStrip({ value, today, onChange }: WeekStripProps) {
         <Text accessibilityRole="header" style={styles.month}>{formatMonthYear(parseIsoDate(value))}</Text>
         <IconButton icon="chevron-forward" label="Próxima semana" color={colors.primary} onPress={() => onChange(addDays(value, 7))} />
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.days}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scroll} contentContainerStyle={styles.days}>
         {days.map((day) => {
           const date = parseIsoDate(day);
           const selected = day === value;
@@ -56,6 +56,7 @@ const styles = StyleSheet.create({
   wrapper: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.sm, gap: space.sm },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   month: { ...type.bodyStrong },
+  scroll: { flexGrow: 0 },
   days: { flexGrow: 1, flexDirection: "row", justifyContent: "space-between", gap: space.xs },
   day: { flex: 1, minWidth: MIN_TOUCH, minHeight: MIN_TOUCH + 12, borderRadius: radius.md, alignItems: "center", justifyContent: "center", gap: 2, borderWidth: 1.5, borderColor: "transparent" },
   daySelected: { backgroundColor: colors.primary, borderColor: colors.primary },

@@ -51,7 +51,7 @@ export function ChipGroup<T extends string>({ options, value, onChange, label, s
   const groupRole = role === "tab" ? "tablist" : "radiogroup";
   if (scroll) {
     return (
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole={groupRole} accessibilityLabel={label} contentContainerStyle={styles.row}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole={groupRole} accessibilityLabel={label} style={styles.scroll} contentContainerStyle={styles.row}>
         {chips}
       </ScrollView>
     );
@@ -60,6 +60,8 @@ export function ChipGroup<T extends string>({ options, value, onChange, label, s
 }
 
 const styles = StyleSheet.create({
+  // react-native-web gives ScrollView flexGrow 1, so a horizontal row would fill the parent's height.
+  scroll: { flexGrow: 0 },
   row: { flexDirection: "row", gap: space.sm },
   wrap: { flexWrap: "wrap" },
   chip: { minHeight: MIN_TOUCH, paddingHorizontal: space.lg, borderRadius: radius.pill, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.surface, justifyContent: "center" },
