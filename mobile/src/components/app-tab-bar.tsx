@@ -49,10 +49,10 @@ export function AppTabBar({ state, navigation, tabs }: TabBarProps & { tabs: rea
 }
 
 const styles = StyleSheet.create({
-  bar: { flexDirection: "row", backgroundColor: colors.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingHorizontal: space.xs },
+  bar: { flexDirection: "row", backgroundColor: colors.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   item: { flex: 1, minHeight: 60, alignItems: "center", justifyContent: "center", gap: 4, paddingTop: space.sm },
   pressed: { opacity: 0.7 },
-  indicator: { position: "absolute", top: 0, width: 36, height: 3, borderBottomLeftRadius: 3, borderBottomRightRadius: 3, backgroundColor: "transparent" },
+  indicator: { position: "absolute", top: 0, width: "100%", height: 5, backgroundColor: "transparent" },
   indicatorActive: { backgroundColor: colors.primary },
   label: { fontSize: 12, fontWeight: "500" },
   labelActive: { fontWeight: "700" },

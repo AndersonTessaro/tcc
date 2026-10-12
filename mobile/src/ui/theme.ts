@@ -5,14 +5,18 @@ export const colors = {
   brandDark: "#27104F",
   primary: "#6C45BE",
   primaryPressed: "#56349E",
+  action: "#3A1D77",
+  actionPressed: "#2A1454",
   primarySoft: "#EFE9FA",
   accent: "#6C45BE",
   link: "#5C2ABA",
-  screen: "#F4F4F6",
+  screen: "#F4F4F4",
   surface: "#FFFFFF",
   field: "#FAF9FB",
   border: "#DDD9E1",
+  cardBorder: "#D9D9D9",
   borderStrong: "#B5AFBC",
+  progressTrack: "#CACACA",
   track: "#E4E1E8",
   text: "#17131A",
   muted: "#5F5B63",
@@ -31,7 +35,7 @@ export const colors = {
 
 export const brandGradient = ["#2A1454", "#3B1E78", "#3B1E78", "#2A1454"] as const;
 
-export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 } as const;
+export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32, screenGutter: 28 } as const;
 
 export const radius = { sm: 8, md: 12, lg: 16, pill: 999 } as const;
 

@@ -71,7 +71,7 @@ function DashboardCards({ data, onNavigate }: { data: StudentDashboard; onNaviga
 
   return (
     <>
-      <Card style={styles.xpCard}>
+      <Card variant="plain" style={styles.xpCard}>
         <View style={styles.rowBetween}>
           <Text style={styles.eyebrow}>XP atual</Text>
           <Text style={styles.levelBadge}>Nível {data.level}</Text>
@@ -84,12 +84,12 @@ function DashboardCards({ data, onNavigate }: { data: StudentDashboard; onNaviga
       <Button label="Registrar prática" icon="add-circle-outline" onPress={() => onNavigate("/(student)/practice/register")} />
 
       <View style={styles.statRow}>
-        <Card style={styles.statCard}>
+        <Card variant="plain" style={styles.statCard}>
           <Image source={fireIcon} style={styles.cardIcon} accessible={false} />
           <Text style={styles.cardTitle}>Sequência</Text>
           <Text style={styles.statValue}>{dayCount(data.streakDays)}</Text>
         </Card>
-        <Card
+        <Card variant="plain"
           style={styles.statCard}
           onPress={() => onNavigate("/(student)/goals")}
           accessibilityLabel={`Prática semanal: ${weekly}. Ver minhas metas`}
@@ -102,7 +102,7 @@ function DashboardCards({ data, onNavigate }: { data: StudentDashboard; onNaviga
       </View>
 
       {nextLesson?.id && nextLessonWhen ? (
-        <Card
+        <Card variant="plain"
           style={styles.lessonCard}
           onPress={() => onNavigate(`/(student)/lesson/${nextLesson.id}`)}
           accessibilityLabel={`Próxima aula: ${nextLesson.instrument ?? ""}, ${nextLessonWhen}`}
@@ -117,7 +117,7 @@ function DashboardCards({ data, onNavigate }: { data: StudentDashboard; onNaviga
           <Ionicons name="chevron-forward" size={20} color={colors.borderStrong} />
         </Card>
       ) : (
-        <Card style={styles.lessonCard}>
+        <Card variant="plain" style={styles.lessonCard}>
           <Image source={agendaIcon} style={styles.cardIcon} accessible={false} />
           <View style={styles.flex}>
             <Text style={styles.cardTitle}>Próxima aula</Text>
@@ -132,11 +132,11 @@ function DashboardCards({ data, onNavigate }: { data: StudentDashboard; onNaviga
 function DashboardSkeleton() {
   return (
     <View accessible accessibilityLabel="Carregando" style={styles.skeleton}>
-      <Card style={styles.xpCard}><Skeleton width="40%" /><Skeleton width="60%" height={28} /><Skeleton height={10} /></Card>
+      <Card variant="plain" style={styles.xpCard}><Skeleton width="40%" /><Skeleton width="60%" height={28} /><Skeleton height={10} /></Card>
       <Skeleton height={48} rounded={radius.md} />
       <View style={styles.statRow}>
-        <Card style={styles.statCard}><Skeleton width="70%" /><Skeleton width="50%" height={22} /></Card>
-        <Card style={styles.statCard}><Skeleton width="70%" /><Skeleton width="50%" height={22} /></Card>
+        <Card variant="plain" style={styles.statCard}><Skeleton width="70%" /><Skeleton width="50%" height={22} /></Card>
+        <Card variant="plain" style={styles.statCard}><Skeleton width="70%" /><Skeleton width="50%" height={22} /></Card>
       </View>
     </View>
   );

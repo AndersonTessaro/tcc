@@ -20,7 +20,7 @@ type ButtonProps = {
 };
 
 const palette: Record<Variant, { bg: string; pressed: string; text: string; border?: string }> = {
-  primary: { bg: colors.primary, pressed: colors.primaryPressed, text: colors.onBrand },
+  primary: { bg: colors.action, pressed: colors.actionPressed, text: colors.onBrand },
   secondary: { bg: colors.surface, pressed: colors.primarySoft, text: colors.primary, border: colors.primary },
   ghost: { bg: "transparent", pressed: colors.primarySoft, text: colors.primary },
   danger: { bg: colors.surface, pressed: colors.dangerSoft, text: colors.danger, border: colors.danger },
