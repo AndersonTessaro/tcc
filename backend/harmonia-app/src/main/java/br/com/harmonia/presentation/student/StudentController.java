@@ -6,7 +6,6 @@ import br.com.harmonia.application.gamification.PracticeUseCase;
 import br.com.harmonia.application.gamification.ProgressUseCase;
 import br.com.harmonia.application.material.StudentMaterialUseCase;
 import br.com.harmonia.domain.gamification.GamificationService;
-import br.com.harmonia.infrastructure.persistence.gamification.Goal;
 import br.com.harmonia.infrastructure.persistence.gamification.GoalStatus;
 import br.com.harmonia.infrastructure.persistence.gamification.GoalType;
 import br.com.harmonia.infrastructure.persistence.gamification.Progress;
@@ -14,6 +13,7 @@ import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
 import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
 import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
 import br.com.harmonia.presentation.response.AttachmentResponse;
+import br.com.harmonia.presentation.response.GoalResponse;
 import br.com.harmonia.presentation.response.LessonResponse;
 import br.com.harmonia.presentation.response.MaterialResponse;
 import jakarta.validation.Valid;
@@ -134,19 +134,19 @@ public class StudentController {
 
     @GetMapping("/goals")
     @PreAuthorize("hasAuthority('goal.read')")
-    public List<Goal> goals(@RequestParam(required = false) GoalStatus status) {
-        return goal.list(status);
+    public List<GoalResponse> goals(@RequestParam(required = false) GoalStatus status) {
+        return goal.list(status).stream().map(GoalResponse::of).toList();
     }
 
     @PostMapping("/goals")
     @PreAuthorize("hasAuthority('goal.manage')")
-    public Goal createGoal(@Valid @RequestBody NewGoal r) {
-        return goal.create(r.title(), r.description(), r.type(), r.target());
+    public GoalResponse createGoal(@Valid @RequestBody NewGoal r) {
+        return GoalResponse.of(goal.create(r.title(), r.description(), r.type(), r.target()));
     }
 
     @PutMapping("/goals/{id}")
     @PreAuthorize("hasAuthority('goal.manage')")
-    public Goal updateGoalProgress(@PathVariable UUID id, @RequestParam @Min(0) int progress) {
-        return goal.updateProgress(id, progress);
+    public GoalResponse updateGoalProgress(@PathVariable UUID id, @RequestParam @Min(0) int progress) {
+        return GoalResponse.of(goal.updateProgress(id, progress));
     }
 }

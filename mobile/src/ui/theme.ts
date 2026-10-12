@@ -45,6 +45,8 @@ export const type = {
   title: { fontSize: 20, fontWeight: "700", color: colors.text },
   heading: { fontSize: 17, fontWeight: "700", color: colors.text },
   body: { fontSize: 15, fontWeight: "400", color: colors.text },
+  cardTitle: { fontSize: 15, fontWeight: "700", color: colors.text },
+  formLabel: { fontSize: 16, fontWeight: "500", color: colors.text },
   bodyStrong: { fontSize: 15, fontWeight: "600", color: colors.text },
   label: { fontSize: 14, fontWeight: "600", color: colors.text },
   caption: { fontSize: 13, fontWeight: "400", color: colors.muted },

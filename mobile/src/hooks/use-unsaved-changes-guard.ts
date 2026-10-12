@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Platform } from "react-native";
 import { useNavigation } from "expo-router";
 import { confirm } from "@/lib/confirm";
 
@@ -7,6 +8,7 @@ export function useUnsavedChangesGuard(dirty: boolean) {
   const dirtyRef = useRef(dirty);
   const saved = useRef(false);
   const confirming = useRef(false);
+  const removeBeforeUnload = useRef<(() => void) | null>(null);
   dirtyRef.current = dirty;
 
   useEffect(() => {
@@ -15,6 +17,22 @@ export function useUnsavedChangesGuard(dirty: boolean) {
     navigation.setOptions({ gestureEnabled: false });
     return () => navigation.setOptions({ gestureEnabled: true });
   }, [dirty, navigation]);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined" || !dirty || saved.current) return;
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (!dirtyRef.current || saved.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    const remove = () => window.removeEventListener("beforeunload", beforeUnload);
+    removeBeforeUnload.current = remove;
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => {
+      remove();
+      if (removeBeforeUnload.current === remove) removeBeforeUnload.current = null;
+    };
+  }, [dirty]);
 
   useEffect(() => navigation.addListener("beforeRemove", (event) => {
     if (!dirtyRef.current || saved.current) return;
@@ -29,10 +47,15 @@ export function useUnsavedChangesGuard(dirty: boolean) {
     }).then((discard) => {
       if (discard) {
         saved.current = true;
+        removeBeforeUnload.current?.();
         navigation.dispatch(event.data.action);
       }
     }).finally(() => { confirming.current = false; });
   }), [navigation]);
 
-  return () => { saved.current = true; };
+  return () => {
+    saved.current = true;
+    removeBeforeUnload.current?.();
+    removeBeforeUnload.current = null;
+  };
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { PracticeRewardView } from "@/features/student/PracticeReward";
 import { practiceReward, type PracticeReward } from "@/features/student/reward";
@@ -10,7 +11,7 @@ import { addDays, isValidIsoDate, parseIsoDate, todayIso } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
 import { ChipGroup, type ChipOption } from "@/ui/Chip";
-import { DateTimeField } from "@/ui/DateTimeField";
+import { DateTimeField, type DateTimeFieldHandle } from "@/ui/DateTimeField";
 import { ScreenHeader } from "@/ui/ScreenHeader";
 import { TextField } from "@/ui/TextField";
 import { colors, MIN_TOUCH, radius, space, type } from "@/ui/theme";
@@ -49,9 +50,8 @@ function practiceDate(choice: DateChoice, otherDate: string): string {
   return otherDate;
 }
 
-function practiceMinutes(choice: DurationChoice, custom: string): number {
-  if (choice !== "custom") return Number(choice);
-  return /^\d+$/.test(custom.trim()) ? Number(custom.trim()) : 0;
+function practiceMinutes(value: string): number {
+  return /^\d+$/.test(value.trim()) ? Number(value.trim()) : 0;
 }
 
 function buildNotes(what: string, difficulty: string, mood: number | null): string {
@@ -61,17 +61,23 @@ function buildNotes(what: string, difficulty: string, mood: number | null): stri
 
 export default function RegisterPractice() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
+  const dateRef = useRef<DateTimeFieldHandle>(null);
+  const minutesRef = useRef<TextInput>(null);
+  const whatRef = useRef<TextInput>(null);
+  const fieldPositions = useRef({ date: 0, minutes: 0, what: 0 });
   const [dateChoice, setDateChoice] = useState<DateChoice>("today");
   const [otherDate, setOtherDate] = useState(() => addDays(todayIso(), -2));
   const [durationChoice, setDurationChoice] = useState<DurationChoice>("30");
-  const [customMinutes, setCustomMinutes] = useState("");
+  const [customMinutes, setCustomMinutes] = useState("30");
   const [what, setWhat] = useState("");
   const [difficulty, setDifficulty] = useState("");
   const [mood, setMood] = useState<number | null>(null);
   const [errors, setErrors] = useState<{ date?: string; minutes?: string; notes?: string }>({});
   const [requestError, setRequestError] = useState("");
   const [reward, setReward] = useState<PracticeReward | null>(null);
-  const markSaved = useUnsavedChangesGuard(dateChoice !== "today" || durationChoice !== "30" || !!customMinutes || !!what || !!difficulty || mood !== null);
+  const markSaved = useUnsavedChangesGuard(dateChoice !== "today" || durationChoice !== "30" || customMinutes !== "30" || !!what || !!difficulty || mood !== null);
   const progressBefore = useRef<StudentProgress | null>(null);
 
   useEffect(() => {
@@ -84,7 +90,7 @@ export default function RegisterPractice() {
 
   const save = async () => {
     const date = practiceDate(dateChoice, otherDate);
-    const minutes = practiceMinutes(durationChoice, customMinutes);
+    const minutes = practiceMinutes(customMinutes);
     const notes = buildNotes(what, difficulty, mood);
     const nextErrors = {
       date: !isValidIsoDate(date) || date > todayIso() ? "Escolha uma data até hoje." : undefined,
@@ -92,7 +98,13 @@ export default function RegisterPractice() {
       notes: notes.length > MAX_NOTES_LENGTH ? `Resuma a descrição para até ${MAX_NOTES_LENGTH} caracteres.` : undefined,
     };
     setErrors(nextErrors);
-    if (nextErrors.date || nextErrors.minutes || nextErrors.notes) return;
+    if (nextErrors.date || nextErrors.minutes || nextErrors.notes) {
+      const field = nextErrors.date ? "date" : nextErrors.minutes ? "minutes" : "what";
+      const fieldRef = field === "date" ? dateRef : field === "minutes" ? minutesRef : whatRef;
+      fieldRef.current?.focus();
+      scrollRef.current?.scrollTo({ y: Math.max(0, fieldPositions.current[field] - space.sm), animated: true });
+      return;
+    }
     setRequestError("");
     try {
       const before = progressBefore.current ?? await studentService.progress().catch(() => null);
@@ -118,40 +130,59 @@ export default function RegisterPractice() {
       <StatusBar style="dark" />
       <ScreenHeader title="Registrar prática" back />
       <ScrollView
-        contentContainerStyle={styles.form}
+        ref={scrollRef}
+        contentContainerStyle={[styles.form, { paddingBottom: Math.max(insets.bottom, space.xxl) }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets
       >
-        <View style={styles.block}>
-          <Text style={styles.label}>Quando?</Text>
+        <View style={styles.block} onLayout={(event) => { fieldPositions.current.date = event.nativeEvent.layout.y; }}>
+          <DateTimeField
+            ref={dateRef}
+            mode="date"
+            label="Data"
+            labelStyle={styles.label}
+            fieldStyle={styles.field}
+            value={practiceDate(dateChoice, otherDate)}
+            onChange={(value) => { setOtherDate(value); setDateChoice("other"); }}
+            maximumDate={parseIsoDate(todayIso())}
+            error={errors.date}
+          />
           <ChipGroup label="Data da prática" options={DATE_OPTIONS} value={dateChoice} onChange={setDateChoice} />
-          {dateChoice === "other" ? (
-            <DateTimeField mode="date" label="Data" value={otherDate} onChange={setOtherDate} maximumDate={parseIsoDate(todayIso())} />
-          ) : null}
-          {errors.date ? <Text accessibilityRole="alert" style={styles.error}>{errors.date}</Text> : null}
         </View>
 
+        <View style={styles.block} onLayout={(event) => { fieldPositions.current.minutes = event.nativeEvent.layout.y; }}>
+          <TextField
+            ref={minutesRef}
+            label="Tempo de prática"
+            labelStyle={styles.label}
+            fieldStyle={styles.field}
+            accessibilityLabel="Tempo de prática em minutos"
+            keyboardType="number-pad"
+            returnKeyType="done"
+            placeholder="Ex.: 90"
+            hint="Em minutos"
+            value={customMinutes}
+            onChangeText={(value) => { setCustomMinutes(value); setDurationChoice("custom"); }}
+            maxLength={4}
+            error={errors.minutes}
+          />
+          <ChipGroup label="Duração rápida" options={DURATION_OPTIONS} value={durationChoice} onChange={(value) => {
+            setDurationChoice(value);
+            if (value !== "custom") setCustomMinutes(value);
+            else { setCustomMinutes(""); minutesRef.current?.focus(); }
+          }} />
+        </View>
+
+        <View style={styles.block} onLayout={(event) => { fieldPositions.current.what = event.nativeEvent.layout.y; }}>
+          <Text style={styles.label}>O que praticou? <Text style={styles.optional}>(opcional)</Text></Text>
+          <TextField ref={whatRef} accessibilityLabel="O que praticou? (opcional)" fieldStyle={styles.field} style={styles.notesInput} placeholder="Ex.: escalas, música nova…" autoComplete="off" value={what} onChangeText={setWhat} multiline maxLength={MAX_NOTES_LENGTH} error={errors.notes} />
+        </View>
         <View style={styles.block}>
-          <Text style={styles.label}>Quanto tempo?</Text>
-          <ChipGroup label="Tempo de prática" options={DURATION_OPTIONS} value={durationChoice} onChange={setDurationChoice} />
-          {durationChoice === "custom" ? (
-            <TextField
-              label="Minutos praticados"
-              keyboardType="number-pad"
-              returnKeyType="done"
-              placeholder="Ex.: 90"
-              value={customMinutes}
-              onChangeText={setCustomMinutes}
-              maxLength={4}
-              error={errors.minutes}
-            />
-          ) : null}
+          <Text style={styles.label}>Dificuldade encontrada <Text style={styles.optional}>(opcional)</Text></Text>
+          <TextField accessibilityLabel="Dificuldade encontrada (opcional)" fieldStyle={styles.field} autoComplete="off" value={difficulty} onChangeText={setDifficulty} maxLength={120} returnKeyType="done" />
         </View>
-
-        <TextField label="O que praticou? (opcional)" placeholder="Ex.: escalas, música nova..." value={what} onChangeText={setWhat} multiline maxLength={MAX_NOTES_LENGTH} error={errors.notes} />
-        <TextField label="Dificuldade encontrada (opcional)" value={difficulty} onChangeText={setDifficulty} maxLength={120} returnKeyType="done" />
 
         <View style={styles.block}>
           <Text style={styles.label}>Como foi a prática?</Text>
@@ -180,14 +211,17 @@ export default function RegisterPractice() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.screen },
-  form: { flexGrow: 1, gap: space.xl, paddingHorizontal: space.xl, paddingBottom: space.xxl },
+  form: { flexGrow: 1, gap: space.xxl, paddingHorizontal: space.screenGutter },
   block: { gap: space.sm },
-  label: { ...type.label },
+  label: { ...type.formLabel },
+  optional: { ...type.caption },
+  field: { borderRadius: radius.lg, borderWidth: 1, backgroundColor: colors.surface },
+  notesInput: { minHeight: 48 },
   moods: { flexDirection: "row", justifyContent: "space-between" },
   mood: { width: MIN_TOUCH + 8, height: MIN_TOUCH + 8, alignItems: "center", justifyContent: "center", borderRadius: radius.pill, borderWidth: 2, borderColor: "transparent" },
   selectedMood: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   pressed: { opacity: 0.7 },
   moodIcon: { width: 32, height: 32 },
   error: { color: colors.danger, fontSize: 13 },
-  save: { marginTop: "auto" },
+  save: { marginTop: -space.sm, borderRadius: radius.lg },
 });

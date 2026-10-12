@@ -1,9 +1,11 @@
 import { forwardRef, useId, useState, type ReactNode } from "react";
-import { Platform, StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
+import { Platform, StyleSheet, Text, TextInput, View, type TextInputProps, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { colors, radius, space, type } from "./theme";
 
 type TextFieldProps = TextInputProps & {
   label?: string;
+  labelStyle?: StyleProp<TextStyle>;
+  fieldStyle?: StyleProp<ViewStyle>;
   error?: string | null;
   hint?: string;
   leading?: ReactNode;
@@ -11,7 +13,7 @@ type TextFieldProps = TextInputProps & {
 };
 
 export const TextField = forwardRef<TextInput, TextFieldProps>(function TextField(
-  { label, error, hint, leading, trailing, style, multiline, accessibilityLabel, accessibilityHint, onFocus, onBlur, ...input },
+  { label, labelStyle, fieldStyle, error, hint, leading, trailing, style, multiline, accessibilityLabel, accessibilityHint, onFocus, onBlur, ...input },
   ref,
 ) {
   const [focused, setFocused] = useState(false);
@@ -19,8 +21,8 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
   const description = error || hint;
   return (
     <View style={styles.wrapper}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
-      <View style={[styles.field, multiline && styles.multiline, focused && styles.focused, !!error && styles.invalid]}>
+      {label ? <Text style={[styles.label, labelStyle]}>{label}</Text> : null}
+      <View style={[styles.field, multiline && styles.multiline, focused && styles.focused, !!error && styles.invalid, fieldStyle]}>
         {leading}
         <TextInput
           ref={ref}

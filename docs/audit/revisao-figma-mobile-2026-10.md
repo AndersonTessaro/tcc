@@ -44,6 +44,18 @@ Fluxo por lote: Codex revisa (read-only) → **Gate 1** verificação de cada ac
 | Lote | Escopo | Status | Commit |
 |---|---|---|---|
 | B0 | fundação (`theme.ts`, `src/ui/*`, tab bar) | ✅ gates 1-3 ok (tsc, 149 testes, captura) | ver git log |
-| B1 | login | pendente | — |
-| B2 | abas do aluno | pendente | — |
-| B3 | telas do Stack do aluno + F-039 | pendente | — |
+| B1 | login | ✅ gates 1-3 ok — Gate 3 pegou "Esqueci minha senha" ainda à esquerda (`Link asChild` descarta estilo-função no web) → corrigido com wrapper | `9d111c1` |
+| B2 | abas do aluno | ✅ gates 1-3 ok — Gate 3 pegou F-017 não resolvido (margem negativa só mudou de lugar) → gradiente movido para dentro do scroll | `dd08bdc` |
+| B3 | telas do Stack do aluno + F-039 | ✅ gates 1-3 ok — `StudentFlowIT` verde; Gate 3 pegou data ISO crua no web → `<input type="date">` nativo (vale p/ 5 telas) | ver git log |
+
+## Métricas do Codex (este ciclo)
+
+- Revisão: 38 achados → 30 aceitos, 6 rejeitados (16%), 2 adiados + 1 achado novo da verificação manual (F-039).
+- Implementação: 3 regressões/omissões pegas só na captura (Gate 3): F-017, F-015 (alinhamento), data ISO no web. `tsc`/`jest` passavam nos três casos — a verificação visual é indispensável.
+
+## Pendências para decisão do dono
+
+- F-008 tab bar visível nas telas de detalhe (estrutura de navegação).
+- ADD-06 histórico completo de práticas (Figma 06).
+- ADD-07 anexo na prática (backend novo).
+- Telas do professor: aguardam as imagens do protótipo (MCP do Figma no limite do plano Starter).

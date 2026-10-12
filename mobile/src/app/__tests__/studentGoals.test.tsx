@@ -27,7 +27,7 @@ beforeEach(() => {
 it("switches tabs from cached data and updates progress", async () => {
   await render(<Goals />);
 
-  expect(await screen.findByText("30min de 2h")).toBeVisible();
+  expect(await screen.findByText("30min / 2h")).toBeVisible();
   await fireEvent.press(screen.getByRole("tab", { name: "Concluídas" }));
   expect(screen.getByText("Ler partitura")).toBeVisible();
   expect(service.goals).toHaveBeenCalledTimes(2);

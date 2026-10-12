@@ -9,6 +9,7 @@ import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { ChipGroup, type ChipOption } from "@/ui/Chip";
+import { IconButton } from "@/ui/IconButton";
 import { ProgressBar } from "@/ui/ProgressBar";
 import { ScreenHeader } from "@/ui/ScreenHeader";
 import { ScreenState } from "@/ui/ScreenState";
@@ -39,8 +40,8 @@ const unitOf = (goalType: GoalType) => TYPE_OPTIONS.find((option) => option.valu
 
 function progressLabel(goal: StudentGoal): string {
   const current = Math.min(goal.target, goal.currentProgress);
-  if (goal.type === "PRACTICE_TIME") return `${formatMinutes(current)} de ${formatMinutes(goal.target)}`;
-  return `${current} de ${goal.target} ${unitOf(goal.type)}`;
+  if (goal.type === "PRACTICE_TIME") return `${formatMinutes(current)} / ${formatMinutes(goal.target)}`;
+  return `${current} / ${goal.target} ${unitOf(goal.type)}`;
 }
 
 function parseAmount(value: string): number | null {
@@ -75,10 +76,15 @@ export default function GoalsOverview() {
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
-      <ScreenHeader title="Minhas metas" back />
+      <ScreenHeader title="Minhas metas" back action={<IconButton icon="add" label="Nova meta" onPress={() => setEditor("new")} />} />
       <View style={styles.toolbar}>
-        <ChipGroup role="tab" label="Situação das metas" options={TAB_OPTIONS} value={tab} onChange={setTab} />
-        <Button label="Nova meta" icon="add" compact onPress={() => setEditor("new")} />
+        <View accessibilityRole="tablist" accessibilityLabel="Situação das metas" style={styles.tabs}>
+          {TAB_OPTIONS.map((option) => (
+            <Pressable key={option.value} accessibilityRole="tab" accessibilityLabel={option.label} aria-selected={tab === option.value} onPress={() => setTab(option.value)} style={({ pressed }) => [styles.tab, tab === option.value && styles.activeTab, pressed && styles.pressed]}>
+              <Text style={[styles.tabLabel, tab === option.value && styles.activeTabLabel]}>{option.label}</Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
       {current.data ? (
         <FlatList
@@ -105,7 +111,7 @@ export default function GoalsOverview() {
 
 function GoalCard({ goal, onUpdate }: { goal: StudentGoal; onUpdate: () => void }) {
   return (
-    <Card style={styles.card}>
+    <Card variant="outlined" style={styles.card}>
       <Text style={styles.cardTitle}>{goal.title}</Text>
       {goal.description ? <Text style={styles.description}>{goal.description}</Text> : null}
       <ProgressBar value={goal.currentProgress} max={goal.target} label={`Progresso de ${goal.title}`} height={8} />
@@ -217,10 +223,16 @@ function GoalEditor({ goal, onClose, onSaved }: GoalEditorProps) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.screen },
-  toolbar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.sm, paddingHorizontal: space.xl, paddingBottom: space.md, flexWrap: "wrap" },
-  list: { flexGrow: 1, paddingHorizontal: space.xl, paddingBottom: space.xxl, gap: space.md },
+  toolbar: { paddingHorizontal: space.screenGutter, paddingBottom: space.lg },
+  tabs: { flexDirection: "row" },
+  tab: { flex: 1, minHeight: 48, alignItems: "center", justifyContent: "center", borderBottomWidth: 4, borderBottomColor: colors.progressTrack },
+  activeTab: { borderBottomColor: colors.primary },
+  tabLabel: { ...type.formLabel, fontWeight: "400" },
+  activeTabLabel: { color: colors.primary, fontWeight: "600" },
+  pressed: { opacity: 0.7 },
+  list: { flexGrow: 1, paddingHorizontal: space.screenGutter, paddingBottom: space.xxl, gap: space.md },
   card: { gap: space.sm },
-  cardTitle: { ...type.bodyStrong },
+  cardTitle: { ...type.cardTitle },
   description: { ...type.caption, lineHeight: 19 },
   progressText: { ...type.body },
   update: { alignSelf: "flex-start", paddingHorizontal: 0 },

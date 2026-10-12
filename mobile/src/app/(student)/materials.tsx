@@ -58,7 +58,8 @@ export default function Materials() {
       <View style={styles.search}>
         <TextField
           accessibilityLabel="Buscar material"
-          placeholder="Buscar material..."
+          placeholder="Buscar material…"
+          autoComplete="off"
           value={search}
           onChangeText={setSearch}
           returnKeyType="search"
@@ -128,8 +129,8 @@ function MaterialCard({ material, downloading, disabled, onDownload }: MaterialC
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.screen },
-  search: { paddingHorizontal: space.xl, paddingBottom: space.md },
-  list: { flexGrow: 1, paddingHorizontal: space.xl, paddingBottom: space.xxl, gap: space.md },
+  search: { paddingHorizontal: space.screenGutter, paddingBottom: space.md },
+  list: { flexGrow: 1, paddingHorizontal: space.screenGutter, paddingBottom: space.xxl, gap: space.md },
   card: { gap: space.md },
   cardHeader: { flexDirection: "row", gap: space.md },
   fileIcon: { width: 36, height: 36 },
