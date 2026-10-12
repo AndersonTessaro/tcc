@@ -88,7 +88,7 @@ class PracticeRecordingIT {
     }
 
     private MockMultipartFile video() {
-        return new MockMultipartFile("file", "practice.mp4", "video/mp4", new byte[] {1, 2, 3});
+        return new MockMultipartFile("file", "practice.mp4", "video/mp4", new byte[] {0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm'});
     }
 
     private String mine(Fixture fixture) {
@@ -119,7 +119,7 @@ class PracticeRecordingIT {
             .andExpect(jsonPath("$.id").value(fixture.practiceId()))
             .andExpect(jsonPath("$.recording.fileName").value("practice.mp4"))
             .andExpect(jsonPath("$.recording.contentType").value("video/mp4"))
-            .andExpect(jsonPath("$.recording.sizeBytes").value(3))
+            .andExpect(jsonPath("$.recording.sizeBytes").value(12))
             .andExpect(jsonPath("$.recording.uploadedAt").isString())
             .andExpect(jsonPath("$.recording.storagePath").doesNotHaveJsonPath())
             .andExpect(jsonPath("$.student").doesNotHaveJsonPath());
@@ -129,12 +129,12 @@ class PracticeRecordingIT {
         assertThat(Files.exists(storageDir.resolve(oldPath))).isTrue();
         mvc.perform(get("/me/practices").header("Authorization", "Bearer " + fixture.studentToken()))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].recording.sizeBytes").value(3))
+            .andExpect(jsonPath("$[0].recording.sizeBytes").value(12))
             .andExpect(jsonPath("$[0].recording.storagePath").doesNotHaveJsonPath());
         mvc.perform(get(mine(fixture)).header("Authorization", "Bearer " + fixture.studentToken()))
             .andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_OCTET_STREAM))
             .andExpect(header().string("X-Content-Type-Options", "nosniff"))
-            .andExpect(content().bytes(new byte[] {1, 2, 3}));
+            .andExpect(content().bytes(new byte[] {0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm'}));
         mvc.perform(get("/teacher/students/" + fixture.studentId() + "/practices")
                 .header("Authorization", "Bearer " + fixture.teacherToken()))
             .andExpect(status().isOk())
@@ -143,23 +143,23 @@ class PracticeRecordingIT {
             .andExpect(jsonPath("$[0].recording.storagePath").doesNotHaveJsonPath());
         mvc.perform(get(teacherRecording(fixture)).header("Authorization", "Bearer " + fixture.teacherToken()))
             .andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_OCTET_STREAM))
-            .andExpect(content().bytes(new byte[] {1, 2, 3}));
+            .andExpect(content().bytes(new byte[] {0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm'}));
 
-        var replacement = new MockMultipartFile("file", "replacement.mp3", "audio/mpeg", new byte[] {4, 5});
+        var replacement = new MockMultipartFile("file", "replacement.mp3", "audio/mpeg", new byte[] {'I', 'D', '3', 4, 0, 0});
         mvc.perform(multipart(mine(fixture)).file(replacement)
                 .header("Authorization", "Bearer " + fixture.studentToken()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.recording.fileName").value("replacement.mp3"))
-            .andExpect(jsonPath("$.recording.sizeBytes").value(2));
+            .andExpect(jsonPath("$.recording.sizeBytes").value(6));
         String newPath = practices.findById(UUID.fromString(fixture.practiceId())).orElseThrow()
             .getRecording().getStoragePath();
         assertThat(newPath).isNotEqualTo(oldPath);
         assertThat(Files.exists(storageDir.resolve(oldPath))).isFalse();
-        assertThat(Files.readAllBytes(storageDir.resolve(newPath))).containsExactly((byte) 4, (byte) 5);
+        assertThat(Files.readAllBytes(storageDir.resolve(newPath))).containsExactly('I', 'D', '3', 4, 0, 0);
         mvc.perform(get(mine(fixture)).header("Authorization", "Bearer " + fixture.studentToken()))
-            .andExpect(status().isOk()).andExpect(content().bytes(new byte[] {4, 5}));
+            .andExpect(status().isOk()).andExpect(content().bytes(new byte[] {'I', 'D', '3', 4, 0, 0}));
         mvc.perform(get(teacherRecording(fixture)).header("Authorization", "Bearer " + fixture.teacherToken()))
-            .andExpect(status().isOk()).andExpect(content().bytes(new byte[] {4, 5}));
+            .andExpect(status().isOk()).andExpect(content().bytes(new byte[] {'I', 'D', '3', 4, 0, 0}));
         mvc.perform(get("/me/practices").header("Authorization", "Bearer " + fixture.studentToken()))
             .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].recording.fileName").value("replacement.mp3"));
@@ -171,6 +171,11 @@ class PracticeRecordingIT {
         Fixture fixture = fixture();
         var pdf = new MockMultipartFile("file", "a.pdf", "application/pdf", new byte[] {1});
         mvc.perform(multipart(mine(fixture)).file(pdf).header("Authorization", "Bearer " + fixture.studentToken()))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.code").value("DOMAIN_VALIDATION"))
+            .andExpect(jsonPath("$.message").value("Recording must be an audio or video file"));
+        var disguised = new MockMultipartFile("file", "malware.mp4", "video/mp4", new byte[] {'M', 'Z', (byte) 0x90, 0, 3, 0});
+        mvc.perform(multipart(mine(fixture)).file(disguised).header("Authorization", "Bearer " + fixture.studentToken()))
             .andExpect(status().isUnprocessableEntity())
             .andExpect(jsonPath("$.code").value("DOMAIN_VALIDATION"))
             .andExpect(jsonPath("$.message").value("Recording must be an audio or video file"));
@@ -234,12 +239,12 @@ class PracticeRecordingIT {
         mvc.perform(multipart(mine(fixture)).file(video()).header("Authorization", "Bearer " + fixture.admin()))
             .andExpect(status().isOk());
         mvc.perform(get(mine(fixture)).header("Authorization", "Bearer " + fixture.admin()))
-            .andExpect(status().isOk()).andExpect(content().bytes(new byte[] {1, 2, 3}));
+            .andExpect(status().isOk()).andExpect(content().bytes(new byte[] {0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm'}));
         mvc.perform(get("/teacher/students/" + fixture.studentId() + "/practices")
                 .header("Authorization", "Bearer " + fixture.admin()))
             .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(fixture.practiceId()));
         mvc.perform(get(teacherRecording(fixture)).header("Authorization", "Bearer " + fixture.admin()))
-            .andExpect(status().isOk()).andExpect(content().bytes(new byte[] {1, 2, 3}));
+            .andExpect(status().isOk()).andExpect(content().bytes(new byte[] {0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm'}));
         assertProgressUnchanged(fixture);
     }
 }

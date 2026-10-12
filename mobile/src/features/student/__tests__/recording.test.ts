@@ -10,11 +10,12 @@ it.each([
   expect(recordingMimeType(name, "application/octet-stream")).toBe(expected);
 });
 
-it("preserves audio/video MIME and rejects unknown extensions", () => {
-  expect(recordingMimeType("recording", "audio/flac")).toBe("audio/flac");
-  expect(recordingMimeType("recording", "video/custom")).toBe("video/custom");
+it("keeps the declared audio/video MIME only for allowed extensions", () => {
+  expect(recordingMimeType("pratica.flac", "audio/x-flac")).toBe("audio/x-flac");
+  expect(recordingMimeType("pratica.MKV")).toBe("video/x-matroska");
+  expect(recordingMimeType("recording", "audio/flac")).toBeNull();
+  expect(recordingMimeType("aula.exe", "video/mp4")).toBeNull();
   expect(recordingMimeType("document.pdf", "application/pdf")).toBeNull();
-  expect(recordingMimeType("recording")).toBeNull();
 });
 
 it("accepts exactly 50 MB and unknown size, rejects wrong type, empty and oversized files", () => {

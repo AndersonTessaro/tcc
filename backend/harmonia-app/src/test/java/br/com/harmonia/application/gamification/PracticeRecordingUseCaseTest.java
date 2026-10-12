@@ -67,11 +67,11 @@ class PracticeRecordingUseCaseTest {
     }
 
     private MockMultipartFile file() {
-        return new MockMultipartFile("file", "practice.mp4", "video/mp4", new byte[] {1, 2, 3});
+        return new MockMultipartFile("file", "practice.mp4", "video/mp4", new byte[] {0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm'});
     }
 
     private void stubSave() {
-        when(storage.save("practice.mp4", new byte[] {1, 2, 3})).thenReturn("new_path");
+        when(storage.save("practice.mp4", new byte[] {0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm'})).thenReturn("new_path");
         when(practices.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }
 
@@ -125,10 +125,10 @@ class PracticeRecordingUseCaseTest {
         assertThat(saved.getRecording().getFileName()).isEqualTo("practice.mp4");
         assertThat(saved.getRecording().getStoragePath()).isEqualTo("new_path");
         assertThat(saved.getRecording().getContentType()).isEqualTo("video/mp4");
-        assertThat(saved.getRecording().getSizeBytes()).isEqualTo(3L);
+        assertThat(saved.getRecording().getSizeBytes()).isEqualTo(12L);
         assertThat(saved.getRecording().getUploadedAt()).isNotNull();
         verify(current).assertOwnedByCurrentStudent(practice.getStudent());
-        verify(storage).save("practice.mp4", new byte[] {1, 2, 3});
+        verify(storage).save("practice.mp4", new byte[] {0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm'});
         verify(practices).save(practice);
         complete(TransactionSynchronization.STATUS_COMMITTED);
         verify(storage, never()).delete(any());
@@ -180,8 +180,6 @@ class PracticeRecordingUseCaseTest {
     void attach_readFailure_wrapsIOExceptionWithoutStorage() throws Exception {
         Practice practice = practice();
         var file = mock(org.springframework.web.multipart.MultipartFile.class);
-        when(file.getContentType()).thenReturn("video/mp4");
-        when(file.getSize()).thenReturn(1L);
         when(file.getBytes()).thenThrow(new IOException("Cannot read upload"));
 
         assertThatThrownBy(() -> useCase().attach(practice.getId(), file))
