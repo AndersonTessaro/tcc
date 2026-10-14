@@ -38,7 +38,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
             setFocused(false);
             onBlur?.(event);
           }}
-          style={[styles.input, multiline && styles.multilineInput, style]}
+          style={[styles.input, multiline && styles.multilineInput, webNoOutline, style]}
           {...input}
           aria-invalid={!!error}
           aria-describedby={Platform.OS === "web" && description ? descriptionId : undefined}
@@ -54,6 +54,9 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
     </View>
   );
 });
+
+// The wrapper border already shows focus; Chrome's outline "auto" ignores width, and RN types lack "none" (RNW passes it to CSS).
+const webNoOutline = Platform.OS === "web" ? ({ outlineStyle: "none" } as unknown as TextStyle) : null;
 
 const styles = StyleSheet.create({
   wrapper: { gap: 6 },
