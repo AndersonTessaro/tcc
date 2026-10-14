@@ -1,7 +1,8 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import Schedule from "@/app/(teacher)/(tabs)/schedule";
 import { teacherService, type TeacherLesson } from "@/features/teacher/teacherService";
-import { addDays, todayIso } from "@/lib/format";
+import { formatFullDate, parseIsoDate, toIsoDate, todayIso } from "@/lib/format";
+import { shiftMonth } from "@/lib/format/calendar";
 import { confirm } from "@/lib/confirm";
 import { ApiError } from "@/lib/http/apiError";
 
@@ -49,7 +50,9 @@ describe("Schedule screen", () => {
     service.schedule.mockResolvedValue([lesson({ attendance: "PRESENT" })]);
     await render(<Schedule />);
 
-    expect(await screen.findByText("09:00–10:00 · Ana Souza")).toBeVisible();
+    expect(await screen.findByText("Ana Souza")).toBeVisible();
+    expect(screen.getByText("09:00")).toBeVisible();
+    expect(screen.getByLabelText("Até 10:00")).toBeVisible();
     expect(screen.getByRole("radio", { name: "Presente" })).toBeChecked();
   });
 
@@ -68,21 +71,21 @@ describe("Schedule screen", () => {
     await render(<Schedule />);
     await fireEvent.press(await screen.findByRole("radio", { name: "Falta" }));
 
-    expect(screen.getByText("09:00–10:00 · Ana Souza")).toBeVisible();
+    expect(screen.getByText("Ana Souza")).toBeVisible();
     expect(screen.getByRole("radio", { name: "Falta" })).toBeChecked();
     expect(service.attendance).toHaveBeenCalledWith("l1", "ABSENT");
     expect(screen.queryByLabelText("Carregando")).toBeNull();
 
     await act(async () => finish({}));
     await waitFor(() => expect(service.schedule).toHaveBeenCalledTimes(2));
-    expect(screen.getByText("09:00–10:00 · Ana Souza")).toBeVisible();
+    expect(screen.getByText("Ana Souza")).toBeVisible();
     expect(screen.getByRole("radio", { name: "Falta" })).toBeChecked();
   });
 
   it("asks for a justification only after choosing Justificada and sends it with EXCUSED", async () => {
     service.schedule.mockResolvedValue([lesson({ attendance: "PRESENT" })]);
     await render(<Schedule />);
-    await screen.findByText("09:00–10:00 · Ana Souza");
+    await screen.findByText("Ana Souza");
     expect(screen.queryByLabelText("Justificativa para Ana Souza")).toBeNull();
 
     await fireEvent.press(screen.getByRole("radio", { name: "Justificada" }));
@@ -136,17 +139,28 @@ describe("Schedule screen", () => {
 
     expect(await screen.findByText("Aula cancelada não recebe frequência")).toBeVisible();
     expect(screen.getByRole("radio", { name: "Presente" })).not.toBeChecked();
-    expect(screen.getByText("09:00–10:00 · Ana Souza")).toBeVisible();
+    expect(screen.getByText("Ana Souza")).toBeVisible();
   });
 
-  it("navigates between days and weeks with the week strip", async () => {
+  it("selects days in the full month, navigates months and returns to today", async () => {
     service.schedule.mockResolvedValue([]);
     await render(<Schedule />);
     expect(await screen.findByText("Sem aulas neste dia")).toBeVisible();
     expect(service.schedule).toHaveBeenLastCalledWith(today);
 
-    await fireEvent.press(screen.getByRole("button", { name: "Próxima semana" }));
-    await waitFor(() => expect(service.schedule).toHaveBeenLastCalledWith(addDays(today, 7)));
+    const nextMonth = toIsoDate(shiftMonth(parseIsoDate(today), 1));
+    await fireEvent.press(screen.getByRole("button", { name: "Próximo mês" }));
+    await waitFor(() => expect(service.schedule).toHaveBeenLastCalledWith(nextMonth));
+    const lastDay = toIsoDate(new Date(parseIsoDate(nextMonth).getFullYear(), parseIsoDate(nextMonth).getMonth() + 1, 0));
+    await fireEvent.press(screen.getByRole("button", { name: formatFullDate(lastDay) }));
+    await waitFor(() => expect(service.schedule).toHaveBeenLastCalledWith(lastDay));
+    expect(screen.getByRole("button", { name: formatFullDate(lastDay) })).toBeSelected();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Mês anterior" }));
+    const startOfMonth = toIsoDate(new Date(parseIsoDate(today).getFullYear(), parseIsoDate(today).getMonth(), 1));
+    await waitFor(() => expect(service.schedule).toHaveBeenLastCalledWith(startOfMonth));
+    await fireEvent.press(screen.getByRole("button", { name: "Próximo mês" }));
+    await waitFor(() => expect(service.schedule).toHaveBeenLastCalledWith(nextMonth));
 
     await fireEvent.press(screen.getByRole("button", { name: "Ir para hoje" }));
     await waitFor(() => expect(service.schedule).toHaveBeenLastCalledWith(today));

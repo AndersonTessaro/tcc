@@ -81,3 +81,9 @@ export function formatFileSize(bytes: number | null | undefined): string {
 export function normalizeSearch(value: string): string {
   return value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 }
+
+const numberFormatter = new Intl.NumberFormat("pt-BR");
+
+export function formatNumber(value: number): string {
+  return numberFormatter.format(value);
+}

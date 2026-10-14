@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { StatusChip } from "@/ui/StatusChip";
-import { colors, space, type } from "@/ui/theme";
+import { colors, radius, space, type } from "@/ui/theme";
 import { AttendanceControl } from "./AttendanceControl";
 import { canRecordAttendance, hhmm, lessonActions, lessonStatusLabel, lessonStatusTone } from "./agenda";
 import type { AttendanceStatus, LessonStatus, TeacherLesson } from "./teacherService";
@@ -24,14 +24,18 @@ export function AgendaLessonCard({ lesson, today, busy, error, onMark, onChangeS
   return (
     <Card style={styles.card}>
       <View testID={`lesson-${lesson.id}`} style={styles.top}>
+        <View style={styles.timeColumn}>
+          <Text style={styles.time}>{hhmm(lesson.startTime)}</Text>
+          <Text accessibilityLabel={`Até ${hhmm(lesson.endTime)}`} style={styles.endTime}>{hhmm(lesson.endTime)}</Text>
+        </View>
         <View style={styles.titleBlock}>
-          <Text style={styles.title}>{hhmm(lesson.startTime)}–{hhmm(lesson.endTime)} · {lesson.studentName}</Text>
+          <Text style={styles.title}>{lesson.studentName}</Text>
           <Text style={styles.subtitle}>{lesson.instrument}</Text>
         </View>
-        <StatusChip label={lessonStatusLabel(lesson.status)} tone={lessonStatusTone(lesson.status)} />
       </View>
-      {lesson.content ? <Text style={styles.detail}>Conteúdo: {lesson.content}</Text> : null}
-      {lesson.homework ? <Text style={styles.detail}>Tarefa: {lesson.homework}</Text> : null}
+      <View style={styles.status}><StatusChip label={lessonStatusLabel(lesson.status)} tone={lessonStatusTone(lesson.status)} /></View>
+      {lesson.content ? <Text numberOfLines={1} style={styles.detail}>Conteúdo: {lesson.content}</Text> : null}
+      {lesson.homework ? <Text numberOfLines={1} style={styles.detail}>Tarefa: {lesson.homework}</Text> : null}
       {attendanceOpen ? (
         <AttendanceControl lesson={lesson} busy={busy} onMark={(status, justification) => onMark(lesson, status, justification)} />
       ) : (
@@ -50,8 +54,12 @@ export function AgendaLessonCard({ lesson, today, busy, error, onMark, onChangeS
 }
 
 const styles = StyleSheet.create({
-  card: { gap: space.md },
-  top: { flexDirection: "row", alignItems: "flex-start", gap: space.sm },
+  card: { gap: space.sm, padding: space.md, borderRadius: radius.sm, backgroundColor: "transparent" },
+  top: { minHeight: 60, flexDirection: "row", alignItems: "center", gap: space.xs },
+  timeColumn: { width: 48, gap: space.xs },
+  time: { ...type.caption, color: colors.text, fontVariant: ["tabular-nums"] },
+  endTime: { ...type.caption, fontSize: 11, fontVariant: ["tabular-nums"] },
+  status: { alignSelf: "flex-start" },
   titleBlock: { flex: 1, gap: 2 },
   title: { ...type.bodyStrong },
   subtitle: { ...type.caption },

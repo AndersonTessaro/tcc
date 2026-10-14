@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,7 +26,52 @@ function recentAttendanceRate(report: TeacherStudentDetailData | null | undefine
   return history.length ? Math.round((100 * history.filter((item) => item.status === "PRESENT").length) / history.length) : 0;
 }
 
+const REPORT_CATEGORIES: { title: string; description: string; icon: keyof typeof Ionicons.glyphMap; available?: boolean }[] = [
+  { title: "Frequência dos alunos", description: "Acompanhe a frequência geral", icon: "pulse" },
+  { title: "Prática em casa", description: "Veja o tempo de prática dos alunos", icon: "home" },
+  { title: "Evolução por aluno", description: "Acompanhe o progresso individual", icon: "trending-up", available: true },
+  { title: "Desempenho de turmas", description: "Relatório geral das turmas", icon: "speedometer" },
+];
+
 export default function TeacherReports() {
+  const [individualOpen, setIndividualOpen] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  useTabScrollToTop(scrollRef);
+
+  if (individualOpen) return <IndividualReports onBack={() => setIndividualOpen(false)} />;
+
+  return (
+    <View style={styles.screen}>
+      <StatusBar style="dark" />
+      <ScreenHeader title="Relatórios" />
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.categories}>
+        {REPORT_CATEGORIES.map((category) => (
+          <Pressable
+            key={category.title}
+            accessibilityRole="button"
+            accessibilityLabel={category.title}
+            accessibilityHint={category.available ? "Escolha um aluno para ver seu relatório individual" : "Em breve. Este relatório ainda não está disponível"}
+            aria-disabled={!category.available}
+            disabled={!category.available}
+            onPress={() => setIndividualOpen(true)}
+            style={({ pressed }) => pressed && styles.pressed}
+          >
+            <Card variant="outlined" style={styles.category}>
+              <Ionicons name={category.icon} size={26} color={colors.text} accessible={false} />
+              <View style={styles.categoryText}>
+                <Text style={styles.categoryTitle}>{category.title}</Text>
+                <Text style={styles.categoryDescription}>{category.description}</Text>
+                {!category.available ? <Text style={styles.comingSoon}>Em breve</Text> : null}
+              </View>
+            </Card>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+function IndividualReports({ onBack }: { onBack: () => void }) {
   const router = useRouter();
   const listRef = useRef<FlatList<StudentSummary>>(null);
   useTabScrollToTop(listRef);
@@ -47,7 +92,7 @@ export default function TeacherReports() {
     return (
       <View style={styles.screen}>
         <StatusBar style="dark" />
-        <ScreenHeader title="Relatórios" />
+        <ScreenHeader title="Relatórios" back onBack={() => setSelected(null)} />
         <ScrollView
           contentContainerStyle={styles.content}
           refreshControl={<RefreshControl refreshing={report.refreshing} onRefresh={report.refresh} tintColor={colors.primary} colors={[colors.primary]} />}
@@ -100,11 +145,11 @@ export default function TeacherReports() {
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
-      <ScreenHeader title="Relatórios" />
+      <ScreenHeader title="Relatórios" back onBack={onBack} />
       <View style={styles.search}>
         <TextField
           accessibilityLabel="Buscar aluno nos relatórios"
-          placeholder="Buscar aluno..."
+          placeholder="Buscar aluno…"
           value={query}
           onChangeText={setQuery}
           autoCorrect={false}
@@ -138,6 +183,13 @@ export default function TeacherReports() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.screen },
+  categories: { paddingHorizontal: space.xl, paddingBottom: space.xxxl, gap: 22 },
+  category: { minHeight: 72, borderRadius: radius.sm, backgroundColor: "transparent", flexDirection: "row", alignItems: "center", gap: space.xl },
+  categoryText: { flex: 1, gap: space.xs },
+  categoryTitle: { ...type.label, fontSize: 14, fontWeight: "700" },
+  categoryDescription: { ...type.caption, fontSize: 12 },
+  comingSoon: { ...type.caption, fontSize: 12, color: colors.muted },
+  pressed: { opacity: 0.85 },
   search: { paddingHorizontal: space.lg, paddingBottom: space.sm },
   list: { paddingHorizontal: space.lg, paddingBottom: space.xxxl, gap: space.sm, flexGrow: 1 },
   rowCard: { borderRadius: radius.lg, overflow: "hidden" },

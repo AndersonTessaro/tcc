@@ -1,4 +1,4 @@
-import { isValidIsoDate, addDays, formatFileSize, formatLessonWhen, formatMinutes, normalizeSearch, relativeDayLabel } from "@/lib/format";
+import { isValidIsoDate, addDays, formatNumber, formatFileSize, formatLessonWhen, formatMinutes, normalizeSearch, relativeDayLabel } from "@/lib/format";
 
 const now = new Date(2026, 9, 5, 10, 0);
 
@@ -34,4 +34,9 @@ describe("format", () => {
   it("adds days across month boundaries", () => {
     expect(addDays("2026-10-31", 1)).toBe("2026-11-01");
   });
+});
+
+it("groups XP with pt-BR separators", () => {
+  expect(formatNumber(10000)).toBe("10.000");
+  expect(formatNumber(0)).toBe("0");
 });

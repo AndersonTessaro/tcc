@@ -10,7 +10,6 @@ import { formatLessonWhen, formatMinutes, todayIso } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
-import { ListRow } from "@/ui/ListRow";
 import { ScreenState } from "@/ui/ScreenState";
 import { Skeleton, SkeletonList } from "@/ui/Skeleton";
 import { brandGradient, colors, MIN_TOUCH, radius, shadow, space, type } from "@/ui/theme";
@@ -115,18 +114,25 @@ export default function TeacherDashboard() {
               )}
 
               <Text accessibilityRole="header" style={styles.sectionTitle}>Próximas aulas</Text>
-              <Card style={styles.upcomingCard}>
+              <Card variant="plain" style={styles.upcomingCard}>
                 {data.upcomingLessons.length ? data.upcomingLessons.map((lesson) => (
-                  <ListRow
+                  <Pressable
                     key={lesson.id}
-                    title={lesson.studentName}
-                    subtitle={`${formatLessonWhen(lesson.date, lesson.startTime)} · ${lesson.instrument}`}
-                    accessibilityLabel={`Abrir aula de ${lesson.studentName}, ${formatLessonWhen(lesson.date, lesson.startTime)}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Abrir aula de ${lesson.studentName}, ${formatLessonWhen(lesson.date, lesson.startTime)}, ${lesson.instrument}`}
                     onPress={() => openSchedule(lesson.date)}
-                  />
+                    style={({ pressed }) => [styles.upcomingRow, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.upcomingTime}>{hhmm(lesson.startTime)}</Text>
+                    <View style={styles.upcomingIdentity}>
+                      <Text style={styles.upcomingName}>{lesson.studentName}</Text>
+                      <Text style={styles.caption}>{formatLessonWhen(lesson.date)}</Text>
+                    </View>
+                    <Text style={styles.upcomingInstrument}>{lesson.instrument}</Text>
+                  </Pressable>
                 )) : <Text style={[styles.empty, styles.emptyPadded]}>Nenhuma aula agendada.</Text>}
               </Card>
-              <Button label="Ver agenda completa" variant="ghost" icon="calendar-outline" onPress={() => openSchedule()} />
+              <Button label="Ver agenda completa" variant="ghost" onPress={() => openSchedule()} style={styles.agendaLink} />
             </>
           )}
         </View>
@@ -178,12 +184,12 @@ type MetricCardProps = {
 function MetricCard({ title, value, icon, action, onPress }: MetricCardProps) {
   const body = (
     <>
-      <View style={styles.metricTop}>
-        <Text style={styles.caption}>{title}</Text>
-        <Ionicons name={icon} size={18} color={colors.primary} />
-      </View>
+      <Text style={styles.caption}>{title}</Text>
       <Text numberOfLines={1} style={styles.metricValue}>{value}</Text>
-      {action ? <Text style={styles.metricAction}>{action}</Text> : null}
+      <View style={styles.metricBottom}>
+        {action ? <Text style={styles.metricAction}>{action}</Text> : <View />}
+        <Ionicons name={icon} size={18} color={colors.primary} accessible={false} />
+      </View>
     </>
   );
   if (!onPress) return <View accessible accessibilityLabel={`${title}: ${value}`} style={styles.metricCard}>{body}</View>;
@@ -202,23 +208,29 @@ const styles = StyleSheet.create({
   hello: { ...type.display, color: colors.onBrand, fontWeight: "600" },
   wave: { width: 27, height: 27 },
   subtitle: { ...type.body, color: colors.onBrandMuted, marginTop: space.xs },
-  content: { marginTop: -44, paddingHorizontal: space.xl, gap: space.md },
+  content: { marginTop: -44, paddingHorizontal: space.screenGutter, gap: space.md },
   skeleton: { gap: space.md },
   pressed: { opacity: 0.85 },
   classCard: { minHeight: 76, backgroundColor: colors.surface, borderRadius: radius.lg, paddingHorizontal: space.xl, paddingVertical: space.md, flexDirection: "row", alignItems: "center", ...shadow },
   classText: { flex: 1, gap: space.xs },
   caption: { ...type.caption },
   classValue: { ...type.title },
-  metrics: { flexDirection: "row", flexWrap: "wrap", gap: space.md },
-  metricCard: { flexBasis: "47%", flexGrow: 1, minHeight: 104, borderRadius: radius.lg, backgroundColor: colors.surface, padding: space.lg, gap: space.sm, ...shadow },
-  metricTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  metricValue: { ...type.title },
+  metrics: { flexDirection: "row", flexWrap: "wrap", columnGap: space.xxl, rowGap: space.xl },
+  metricCard: { flexBasis: "40%", flexGrow: 1, flexShrink: 1, minWidth: 0, minHeight: 116, borderRadius: radius.lg, backgroundColor: colors.surface, padding: space.lg, gap: space.sm },
+  metricBottom: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: "auto", gap: space.xs },
+  metricValue: { ...type.title, fontVariant: ["tabular-nums"] },
   metricAction: { ...type.label, color: colors.link },
   sectionTitle: { ...type.heading, marginTop: space.sm },
   todayCard: { gap: space.sm },
   lessonTitle: { ...type.bodyStrong },
   error: { color: colors.danger, fontSize: 13 },
   upcomingCard: { padding: 0, overflow: "hidden" },
+  upcomingRow: { minHeight: MIN_TOUCH, flexDirection: "row", alignItems: "center", paddingHorizontal: space.lg, paddingVertical: space.sm },
+  upcomingTime: { ...type.body, width: 56, fontVariant: ["tabular-nums"] },
+  upcomingIdentity: { flex: 1, gap: space.xs },
+  upcomingName: { ...type.body, fontWeight: "700" },
+  upcomingInstrument: { ...type.body, flexShrink: 1, maxWidth: "30%", textAlign: "right", marginLeft: space.sm },
+  agendaLink: { alignSelf: "flex-end", minHeight: MIN_TOUCH, paddingHorizontal: 0 },
   empty: { ...type.body, color: colors.muted },
   emptyPadded: { padding: space.lg },
   backdrop: { flex: 1, backgroundColor: colors.scrim, justifyContent: "center", padding: space.xxl },
