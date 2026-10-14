@@ -83,3 +83,10 @@ it.each([
 ])("translates recording error %s %s %s", (status, code, detail, expected) => {
   expect(apiErrorMessage(new ApiError(status, code, detail), "Falha")).toBe(expected);
 });
+
+it.each([
+  ["Email already in use", "Este e-mail já está em uso."],
+  ["Username already in use", "Este usuário já está em uso."],
+])("translates duplicate login details: %s", (detail, expected) => {
+  expect(apiErrorMessage(new ApiError(409, "DUPLICATE_RESOURCE", detail), "Falha")).toBe(expected);
+});

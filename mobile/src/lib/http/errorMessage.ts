@@ -16,6 +16,8 @@ const BY_CODE: Record<string, string> = {
 
 // Backend domain messages are in English; only the ones a user can trigger are translated.
 const BY_DETAIL: [RegExp, string][] = [
+  [/Email already in use/i, "Este e-mail já está em uso."],
+  [/Username already in use/i, "Este usuário já está em uso."],
   [/Recording must be an audio or video file/i, "Escolha um arquivo de áudio ou vídeo."],
   [/Recording is empty/i, "O arquivo está vazio."],
   [/Recording exceeds 50 MB/i, "O arquivo passa de 50 MB. Grave um vídeo mais curto ou envie só o áudio."],

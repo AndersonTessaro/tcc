@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet,
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { PracticeRecordingDownload } from "@/features/student/PracticeRecordingDownload";
+import { useAuth } from "@/features/auth/useAuth";
 import { useResource } from "@/hooks/use-resource";
 import { addDays, formatFullDate, formatMinutes, todayIso } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
@@ -23,9 +24,9 @@ import { TeacherStudentSections, type StudentSection } from "./TeacherStudentSec
 const RECENT_DAYS = 29;
 
 async function loadStudent(id: string) {
-  const [detail, students, enrollments, lessons, materials, practices] = await Promise.all([
+  const [detail, profile, enrollments, lessons, materials, practices] = await Promise.all([
     teacherService.student(id),
-    teacherService.students(),
+    teacherService.studentProfile(id),
     teacherService.enrollments(),
     teacherService.studentLessons(id),
     teacherService.studentMaterials(id),
@@ -33,7 +34,9 @@ async function loadStudent(id: string) {
   ]);
   return {
     detail,
-    name: students.find((item) => item.id === id)?.name ?? null,
+    name: profile.name,
+    sharedNotes: profile.sharedNotes,
+    privateNotes: profile.privateNotes,
     instruments: [...new Set(enrollments.filter((item) => item.studentId === id).map((item) => item.instrument))],
     lessons,
     materials,
@@ -44,6 +47,8 @@ async function loadStudent(id: string) {
 export default function TeacherStudentDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuth();
+  const canUpdate = user?.authorities.includes("student.update");
   const [tab, setTab] = useState<StudentSection>("summary");
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const resource = useResource(() => loadStudent(id), id ?? "");
@@ -69,6 +74,16 @@ export default function TeacherStudentDetail() {
           <>
             <TeacherStudentMetrics attendanceRate={recentRate} weeklyPracticeMin={detail.weeklyPracticeMin} xp={detail.progress?.xpTotal ?? 0} level={detail.progress?.level ?? 1} />
             <View style={styles.information}>
+              <Card style={styles.info}>
+                <Text style={styles.infoLabel}>Observações</Text>
+                <Text style={styles.caption}>O aluno vê esta observação.</Text>
+                <Text style={styles.infoText}>{data.sharedNotes || "Nenhuma observação"}</Text>
+              </Card>
+              <Card style={styles.info}>
+                <Text style={styles.infoLabel}>Anotações</Text>
+                <Text style={styles.caption}>Visível só para você.</Text>
+                <Text style={styles.infoText}>{data.privateNotes || "Nenhuma observação"}</Text>
+              </Card>
               <Card style={styles.info}>
                 <Text style={styles.infoLabel}>Próxima meta</Text>
                 <Text style={styles.infoText}>{detail.nextGoal || "Nenhuma meta ativa"}</Text>
@@ -181,9 +196,9 @@ export default function TeacherStudentDetail() {
           >
             {renderTab()}
           </ScrollView>
-          {tab === "lessons" || tab === "summary" ? (
+          {tab === "lessons" || (tab === "summary" && canUpdate) ? (
             <View style={styles.footer}>
-              <Button label="Nova aula" onPress={newLesson} style={styles.newLesson} />
+              <Button label={tab === "summary" ? "Editar aluno" : "Nova aula"} onPress={tab === "summary" ? () => router.push({ pathname: "/(teacher)/student-form", params: { id } }) : newLesson} style={styles.newLesson} />
             </View>
           ) : null}
         </>

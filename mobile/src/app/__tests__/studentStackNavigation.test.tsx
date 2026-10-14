@@ -33,6 +33,7 @@ const routes = {
   "(student)/(tabs)/progress": () => <Text>Progresso do aluno</Text>,
   "(student)/(tabs)/more": () => <Text>Mais do aluno</Text>,
   "(student)/practice/register": RegisterDraft,
+  "(student)/teacher-notes": () => <Text>Observações do professor</Text>,
 };
 
 beforeEach(() => {
@@ -89,4 +90,11 @@ it("guards tab navigation when the form was opened directly", async () => {
   await fireEvent.press(screen.getByRole("tab", { name: "Início" }));
   expect(screen.getByText("Início do aluno")).toBeVisible();
   expect(screen.queryByLabelText("Rascunho")).toBeNull();
+});
+
+it("keeps Mais active with one tab bar on teacher notes", async () => {
+  await renderRouter(routes, { initialUrl: "/(student)/teacher-notes" });
+  expect(screen.getByText("Observações do professor")).toBeVisible();
+  expect(screen.getAllByRole("tab")).toHaveLength(5);
+  expect(screen.getByRole("tab", { name: "Mais", selected: true })).toBeVisible();
 });

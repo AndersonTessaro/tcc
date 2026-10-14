@@ -33,6 +33,7 @@ const routes = {
   "(teacher)/(tabs)/reports": () => <Text>Relatórios do professor</Text>,
   "(teacher)/(tabs)/more": () => <Text>Mais do professor</Text>,
   "(teacher)/new-lesson": LessonDraft,
+  "(teacher)/student-form": LessonDraft,
   "(teacher)/student/[id]": () => <Text>Detalhe do aluno</Text>,
   "(teacher)/practice/[id]": () => <Text>Detalhe da prática</Text>,
   "(teacher)/history": () => <Text>Histórico</Text>,
@@ -48,6 +49,7 @@ afterEach(() => jest.useRealTimers());
 
 it.each([
   ["/(teacher)/student/student-1", "Alunos"],
+  ["/(teacher)/student-form", "Alunos"],
   ["/(teacher)/practice/practice-1", "Alunos"],
   ["/(teacher)/new-lesson", "Aulas"],
   ["/(teacher)/history", "Aulas"],
