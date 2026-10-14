@@ -95,6 +95,19 @@ O Figma de "Mais" do professor mostra por engano a tab bar do aluno; mantida a d
 
 Conhecido, fora do escopo: no web, abrir `/dashboard` ou `/more` digitando a URL resolve primeiro a rota do aluno (mesmo caminho nos dois grupos) → um 403 de `/me/dashboard` no console antes do redirecionamento. A navegação dentro do app usa rotas com grupo e não é afetada.
 
+## Adições 1 e 5 (2026-10-14)
+
+Plano do architect: `docs/superpowers/plans/2026-10-14-teacher-student-management.md`. Decisões do dono: duas notas por professor↔aluno (privada + compartilhada que o aluno lê); sem troca de senha obrigatória; professor não altera e-mail; admin ler as notas fica para o futuro.
+
+| Fase | Escopo | Verificação |
+|---|---|---|
+| A | backend cadastro/edição + notas | `verify` 142 testes; alerta de segurança (usuário igual ao e-mail de outra conta → login ambíguo) corrigido com checagem cruzada + IT |
+| B | backend `difficulty`/`rating` + backfill V15 | `verify` 149 testes; backfill conferido nos dados reais |
+| C | mobile prática | 236 testes; capturas do detalhe/lista/histórico |
+| D | mobile formulário + notas do aluno | 288 testes; fluxo Playwright real (cadastrar → Resumo → editar → aluno entra com a senha inicial e lê a observação), sem erro HTTP. Gate 3 pegou e-mail/usuário somente leitura com aparência de editável → fundo cinza + "Só a administração pode alterar." (`40`–`45`) |
+
+Dados de teste criados no banco dev pelo fluxo: alunos `aluno.<n>` ("Aluno Teste …") vinculados a `prof.figma`.
+
 ## Pendências para decisão do dono
 
-Adições do Figma do professor que exigem backend: cadastro/edição de aluno com observações; anexos e edição de aula; os 3 relatórios agregados; perfil, turmas, financeiro, configurações e notificações; dificuldade/humor da prática como campos próprios.
+Adições do Figma do professor que exigem backend: anexos e edição de aula; os 3 relatórios agregados; perfil, turmas, financeiro, configurações e notificações.
