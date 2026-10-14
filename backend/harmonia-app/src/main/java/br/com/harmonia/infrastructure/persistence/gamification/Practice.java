@@ -33,6 +33,10 @@ public class Practice {
 
     private String notes;
 
+    private String difficulty;
+
+    private Integer rating;
+
     @Embedded
     private PracticeRecording recording;
 

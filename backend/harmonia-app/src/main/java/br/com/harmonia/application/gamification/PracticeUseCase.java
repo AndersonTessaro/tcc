@@ -32,7 +32,7 @@ public class PracticeUseCase {
     public record PracticeRegistration(Practice practice, Progress progress) {}
 
     @Transactional
-    public PracticeRegistration register(int durationMin, LocalDate date, String notes) {
+    public PracticeRegistration register(int durationMin, LocalDate date, String notes, String difficulty, Integer rating) {
         Student student = current.currentStudent();
         int xp = gamification.xpFromPractice(durationMin);
 
@@ -41,6 +41,8 @@ public class PracticeUseCase {
         practice.setDate(date);
         practice.setDurationMin(durationMin);
         practice.setNotes(notes);
+        practice.setDifficulty(difficulty);
+        practice.setRating(rating);
         practice.setXpEarned(xp);
         Practice savedPractice = practices.save(practice);
 
