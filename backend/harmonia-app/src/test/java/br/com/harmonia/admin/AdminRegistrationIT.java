@@ -180,4 +180,21 @@ class AdminRegistrationIT {
     void admin_endpoint_withoutToken_is401() throws Exception {
         mvc.perform(get("/admin/students")).andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void admin_duplicateStudentUsername_returnsIdentifiableConflict() throws Exception {
+        String t = token();
+        String username = "duplicate-" + UUID.randomUUID();
+        postId(t, "/admin/students",
+            "{\"username\":\"" + username + "\",\"email\":\"" + username
+                + "@h.local\",\"password\":\"Student@123\",\"name\":\"Student\"}");
+
+        mvc.perform(post("/admin/students").header("Authorization", "Bearer " + t)
+                .contentType("application/json")
+                .content("{\"username\":\"" + username + "\",\"email\":\"" + UUID.randomUUID()
+                    + "@h.local\",\"password\":\"Student@123\",\"name\":\"Other Student\"}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code", is("DUPLICATE_RESOURCE")))
+            .andExpect(jsonPath("$.message", is("Username already in use")));
+    }
 }

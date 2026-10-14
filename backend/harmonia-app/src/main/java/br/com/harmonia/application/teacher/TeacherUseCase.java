@@ -7,7 +7,6 @@ import br.com.harmonia.application.gamification.port.PracticeRepository;
 import br.com.harmonia.application.lesson.port.AttendanceRepository;
 import br.com.harmonia.application.lesson.port.LessonRepository;
 import br.com.harmonia.application.profile.port.EnrollmentRepository;
-import br.com.harmonia.domain.common.OwnershipException;
 import br.com.harmonia.infrastructure.persistence.gamification.GoalStatus;
 import br.com.harmonia.infrastructure.persistence.gamification.Practice;
 import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
@@ -36,11 +35,12 @@ public class TeacherUseCase {
     private final GoalRepository goals;
     private final CurrentUserService current;
     private final PracticeRepository practices;
+    private final StudentLinkGuard links;
 
     public TeacherUseCase(EnrollmentRepository enrollments, ProgressRepository progresses,
                           LessonRepository lessons, AttendanceRepository attendances,
                           GoalRepository goals, CurrentUserService current,
-                          PracticeRepository practices) {
+                          PracticeRepository practices, StudentLinkGuard links) {
         this.enrollments = enrollments;
         this.progresses = progresses;
         this.lessons = lessons;
@@ -48,6 +48,7 @@ public class TeacherUseCase {
         this.goals = goals;
         this.current = current;
         this.practices = practices;
+        this.links = links;
     }
 
     public record DashboardSummary(int totalStudents, int attendancePercent, int weeklyPracticeMin,
@@ -116,9 +117,7 @@ public class TeacherUseCase {
     }
 
     private void assertLinked(UUID studentId) {
-        if (!current.isAdmin()
-                && enrollments.findByTeacherIdAndStudentId(current.currentTeacher().getId(), studentId).isEmpty())
-            throw new OwnershipException("Student not linked");
+        links.assertLinked(studentId);
     }
 
     /** Pedagogical report for a linked student (RF12/RF18). */
