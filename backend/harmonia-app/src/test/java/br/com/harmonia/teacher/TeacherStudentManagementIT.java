@@ -187,6 +187,18 @@ class TeacherStudentManagementIT {
     }
 
     @Test
+    void register_usernameEqualToAnotherAccountsEmailIsRejectedAndVictimStillLogsIn() throws Exception {
+        Map<String, Object> victim = newStudent();
+        postId(teacher.token(), "/teacher/students", victim);
+        Map<String, Object> attacker = newStudent();
+        attacker.put("username", victim.get("email"));
+        postJson(teacher.token(), "/teacher/students", attacker).andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code", is("DUPLICATE_RESOURCE")))
+            .andExpect(jsonPath("$.message", is("Username already in use")));
+        assertThat(login((String) victim.get("email"), "Student@123")).isNotBlank();
+    }
+
+    @Test
     void register_invalidEmailPasswordPhoneAndLengthsReturnValidation() throws Exception {
         Map<String, Object> invalid = Map.of("email", "invalid", "password", "short", "phone", "invalid-phone",
             "username", "u".repeat(101), "name", "n".repeat(151), "privateNotes", "p".repeat(1001),

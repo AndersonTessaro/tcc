@@ -42,10 +42,11 @@ public class AdminRegistrationUseCase {
     }
 
     private User newUser(String username, String email, String password, String name, String role) {
-        if (users.findByUsername(username).isPresent()) {
+        // Login matches username OR email, so a value may not repeat across the two columns either.
+        if (users.findByUsername(username).isPresent() || users.findByEmail(username).isPresent()) {
             throw new DuplicateResourceException("Username already in use");
         }
-        if (users.findByEmail(email).isPresent()) {
+        if (users.findByEmail(email).isPresent() || users.findByUsername(email).isPresent()) {
             throw new DuplicateResourceException("Email already in use");
         }
         User u = new User();
