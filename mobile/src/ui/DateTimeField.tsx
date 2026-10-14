@@ -72,6 +72,7 @@ export const DateTimeField = forwardRef<DateTimeFieldHandle, DateTimeFieldProps>
             color: colors.text,
             fontSize: 16,
             fontFamily: "inherit",
+            outlineColor: colors.primary,
           }}
         />
         {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
