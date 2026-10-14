@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import { formatFullDate, formatMonthYear, toIsoDate } from "@/lib/format";
+import { monthGrid } from "@/lib/format/calendar";
 import { Card } from "@/ui/Card";
 import { IconButton } from "@/ui/IconButton";
 import { colors, radius, space, type } from "@/ui/theme";
@@ -40,39 +41,40 @@ export function AttendanceCalendar({ month, onChangeMonth, history }: Attendance
   const year = month.getFullYear();
   const monthIndex = month.getMonth();
   const statuses = attendanceByDate(history);
-  const leading = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
-  const count = new Date(year, monthIndex + 1, 0).getDate();
-  const cells = Array.from({ length: Math.ceil((leading + count) / 7) * 7 }, (_, index) => index - leading + 1);
+  const cells = monthGrid(month);
 
   return (
-    <Card style={styles.card}>
-      <View style={styles.header}>
-        <IconButton icon="chevron-back" label="Mês anterior" color={colors.primary} onPress={() => onChangeMonth(new Date(year, monthIndex - 1, 1))} />
-        <Text accessibilityRole="header" style={styles.title}>{formatMonthYear(month)}</Text>
-        <IconButton icon="chevron-forward" label="Próximo mês" color={colors.primary} onPress={() => onChangeMonth(new Date(year, monthIndex + 1, 1))} />
-      </View>
-      <View style={styles.grid}>
-        {WEEKDAY_INITIALS.map((label, index) => (
-          <Text key={`weekday-${index}`} accessible={false} style={styles.weekday}>{label}</Text>
-        ))}
-        {cells.map((day, index) => {
-          if (day < 1 || day > count) return <View key={`blank-${index}`} style={styles.cell} />;
-          const iso = toIsoDate(new Date(year, monthIndex, day));
-          const status = statuses.get(iso);
-          const tone = status ? STATUS_STYLE[status] : null;
-          return (
-            <View key={iso} style={styles.cell}>
-              <View
-                accessible
-                accessibilityLabel={formatFullDate(iso) + (tone ? `, ${tone.label}` : "")}
-                style={[styles.day, tone && { backgroundColor: tone.bg }]}
-              >
-                <Text style={[styles.dayText, tone && { color: tone.fg, fontWeight: "700" }]}>{day}</Text>
+    <View style={styles.wrapper}>
+      <Card style={styles.card}>
+        <View style={styles.header}>
+          <IconButton icon="chevron-back" label="Mês anterior" color={colors.primary} onPress={() => onChangeMonth(new Date(year, monthIndex - 1, 1))} />
+          <Text accessibilityRole="header" style={styles.title}>{formatMonthYear(month)}</Text>
+          <IconButton icon="chevron-forward" label="Próximo mês" color={colors.primary} onPress={() => onChangeMonth(new Date(year, monthIndex + 1, 1))} />
+        </View>
+        <View style={styles.grid}>
+          {WEEKDAY_INITIALS.map((label, index) => (
+            <Text key={`weekday-${index}`} accessible={false} style={styles.weekday}>{label}</Text>
+          ))}
+          {cells.map((date, index) => {
+            if (!date) return <View key={`blank-${index}`} style={styles.cell} />;
+            const day = date.getDate();
+            const iso = toIsoDate(date);
+            const status = statuses.get(iso);
+            const tone = status ? STATUS_STYLE[status] : null;
+            return (
+              <View key={iso} style={styles.cell}>
+                <View
+                  accessible
+                  accessibilityLabel={formatFullDate(iso) + (tone ? `, ${tone.label}` : "")}
+                  style={[styles.day, tone && { backgroundColor: tone.bg }]}
+                >
+                  <Text style={[styles.dayText, tone && { color: tone.fg, fontWeight: "700" }]}>{day}</Text>
+                </View>
               </View>
-            </View>
-          );
-        })}
-      </View>
+            );
+          })}
+        </View>
+      </Card>
       <View style={styles.legend}>
         {Object.values(STATUS_STYLE).map((tone) => (
           <View key={tone.label} style={styles.legendItem}>
@@ -81,21 +83,22 @@ export function AttendanceCalendar({ month, onChangeMonth, history }: Attendance
           </View>
         ))}
       </View>
-    </Card>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { gap: space.sm, paddingHorizontal: space.sm },
+  wrapper: { gap: space.xl },
+  card: { gap: space.sm, paddingHorizontal: space.sm, borderRadius: 0, borderWidth: 1 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  title: { ...type.bodyStrong },
+  title: { ...type.body, fontSize: 12, color: colors.onBrand, backgroundColor: colors.badge, paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: space.xs },
   grid: { flexDirection: "row", flexWrap: "wrap" },
   weekday: { width: "14.285%", textAlign: "center", ...type.caption, fontSize: 12, paddingVertical: space.xs },
   cell: { width: "14.285%", minHeight: 40, alignItems: "center", justifyContent: "center" },
   day: { width: 32, height: 32, borderRadius: radius.sm, alignItems: "center", justifyContent: "center" },
   dayText: { ...type.body, fontSize: 14 },
-  legend: { flexDirection: "row", flexWrap: "wrap", gap: space.md, paddingHorizontal: space.sm },
-  legendItem: { flexDirection: "row", alignItems: "center", gap: space.xs },
-  legendDot: { width: 14, height: 14, borderRadius: radius.sm / 2 },
+  legend: { flexDirection: "column", gap: space.sm, paddingHorizontal: space.xs },
+  legendItem: { flexDirection: "row", alignItems: "center", gap: space.md },
+  legendDot: { width: 24, height: 24, borderRadius: radius.sm / 2 },
   legendText: { ...type.caption },
 });

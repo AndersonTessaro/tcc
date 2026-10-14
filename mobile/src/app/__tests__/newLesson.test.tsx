@@ -69,8 +69,8 @@ describe("NewLesson screen", () => {
     await fireEvent.changeText(screen.getByLabelText("Início"), "14:00");
     await fireEvent.press(screen.getByRole("radio", { name: "45 min" }));
     await fireEvent.changeText(screen.getByLabelText("Conteúdo trabalhado"), "  Escalas  ");
-    await waitFor(() => expect(screen.getByRole("button", { name: "Registrar aula" })).toBeEnabled());
-    await fireEvent.press(screen.getByRole("button", { name: "Registrar aula" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Salvar aula" })).toBeEnabled());
+    await fireEvent.press(screen.getByRole("button", { name: "Salvar aula" }));
 
     await waitFor(() =>
       expect(service.newLesson).toHaveBeenCalledWith({
@@ -131,8 +131,8 @@ describe("NewLesson screen", () => {
     await fireEvent.changeText(screen.getByLabelText("Data"), PAST_DATE);
     await fireEvent.press(await screen.findByRole("radio", { name: "Justificada" }));
     await fireEvent.changeText(screen.getByLabelText("Justificativa"), "Consulta médica");
-    await waitFor(() => expect(screen.getByRole("button", { name: "Registrar aula" })).toBeEnabled());
-    await fireEvent.press(screen.getByRole("button", { name: "Registrar aula" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Salvar aula" })).toBeEnabled());
+    await fireEvent.press(screen.getByRole("button", { name: "Salvar aula" }));
 
     await waitFor(() => expect(service.attendance).toHaveBeenCalledWith("lesson-1", "EXCUSED", "Consulta médica"));
     expect(mockBack).toHaveBeenCalled();

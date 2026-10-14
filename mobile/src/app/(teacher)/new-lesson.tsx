@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { teacherService, type AttendanceStatus } from "@/features/teacher/teacherService";
-import { EnrollmentPicker } from "@/features/teacher/EnrollmentPicker";
+import { EnrollmentPicker, type EnrollmentPickerHandle } from "@/features/teacher/EnrollmentPicker";
 import { SlotPlanner } from "@/features/teacher/SlotPlanner";
 import { ATTENDANCE_OPTIONS } from "@/features/teacher/agenda";
 import { validateDate, validateTimeRange } from "@/features/teacher/lessonForm";
@@ -15,8 +15,8 @@ import { apiErrorKey, apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { ChipGroup } from "@/ui/Chip";
-import { DateTimeField } from "@/ui/DateTimeField";
-import { ScreenHeader } from "@/ui/ScreenHeader";
+import { DateTimeField, type DateTimeFieldHandle } from "@/ui/DateTimeField";
+import { TeacherStackHeader } from "@/features/teacher/TeacherStackHeader";
 import { ScreenState } from "@/ui/ScreenState";
 import { StatusChip } from "@/ui/StatusChip";
 import { TextField } from "@/ui/TextField";
@@ -41,6 +41,11 @@ const localInitialStatus = (date: string) => (date > todayIso() ? "SCHEDULED" : 
 
 export default function NewLesson() {
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
+  const enrollmentRef = useRef<EnrollmentPickerHandle>(null);
+  const dateRef = useRef<DateTimeFieldHandle>(null);
+  const timeRef = useRef<DateTimeFieldHandle>(null);
+  const fieldPositions = useRef({ enrollment: 0, date: 0, scheduling: 0, time: 0 });
   const toast = useToast();
   const params = useLocalSearchParams<{ studentId?: string; date?: string }>();
   const initialDate = params.date && !validateDate(params.date) ? params.date : todayIso();
@@ -52,6 +57,7 @@ export default function NewLesson() {
   const [customEnd, setCustomEnd] = useState(addMinutes(DEFAULT_START, 60));
   const [content, setContent] = useState("");
   const [homework, setHomework] = useState("");
+  const [homeworkHeight, setHomeworkHeight] = useState(32);
   const [attendance, setAttendance] = useState<AttendanceStatus | null>(null);
   const [justification, setJustification] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -111,11 +117,21 @@ export default function NewLesson() {
     time: validateTimeRange(startTime, endTime) ?? undefined,
   });
 
+  const focusInvalid = (found: FieldErrors) => {
+    const field = found.enrollment ? "enrollment" : found.date ? "date" : found.time ? "time" : null;
+    if (!field) return;
+    const fieldRef = field === "enrollment" ? enrollmentRef : field === "date" ? dateRef : timeRef;
+    fieldRef.current?.focus();
+    const y = fieldPositions.current[field] + (field === "time" ? fieldPositions.current.scheduling : 0);
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - space.sm), animated: true });
+  };
+
   const save = async () => {
     if (slot.checking || hasConflict) return;
     const found = validate();
     if (found.enrollment || found.date || found.time) {
       setErrors(found);
+      focusInvalid(found);
       return;
     }
     setErrors({});
@@ -132,7 +148,9 @@ export default function NewLesson() {
       lessonId = lesson.id;
       markSaved();
     } catch (error) {
-      setErrors({ [apiErrorKey(error, ["enrollment", "date", "time"])]: apiErrorMessage(error, "Erro ao registrar aula") });
+      const found = { [apiErrorKey(error, ["enrollment", "date", "time"])]: apiErrorMessage(error, "Erro ao registrar aula") };
+      setErrors(found);
+      focusInvalid(found);
       return;
     }
     if (completed && attendance) {
@@ -150,93 +168,98 @@ export default function NewLesson() {
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScreenHeader title="Nova aula" back />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
-        <Text accessibilityRole="header" style={styles.section}>1. Aluno e instrumento</Text>
-        {enrollments.loading ? (
-          <ScreenState loading />
-        ) : enrollments.error ? (
-          <ScreenState message={apiErrorMessage(enrollments.error, "Erro ao carregar alunos")} retry={() => void enrollments.reload()} />
-        ) : (
-          <EnrollmentPicker
-            key={initialQuery}
-            enrollments={enrollments.data ?? []}
-            value={enrollmentId}
-            initialQuery={initialQuery}
-            onChange={(id) => {
-              setEnrollmentId(id);
-              clearError("enrollment");
-            }}
-            error={errors.enrollment}
-          />
-        )}
-        {errors.enrollment && enrollmentId ? <Text accessibilityLiveRegion="polite" style={styles.error}>{errors.enrollment}</Text> : null}
-
-        <Text accessibilityRole="header" style={styles.section}>2. Data e horário</Text>
-        <DateTimeField mode="date" label="Data" value={date} onChange={(value) => { setDate(value); clearError("date"); }} error={errors.date} />
-        {!validateDate(date) ? <Text style={styles.caption}>{relativeDayLabel(date)} · {formatFullDate(date)}</Text> : null}
-        <View style={styles.row}>
-          <DateTimeField mode="time" label="Início" value={startTime} onChange={changeStart} />
-          {duration === CUSTOM ? (
-            <DateTimeField mode="time" label="Fim" value={customEnd} onChange={(value) => { setCustomEnd(value); clearError("time"); }} />
+      <TeacherStackHeader />
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
+        <View onLayout={(event) => { fieldPositions.current.enrollment = event.nativeEvent.layout.y; }}>
+          {enrollments.loading ? (
+            <ScreenState loading />
+          ) : enrollments.error ? (
+            <ScreenState message={apiErrorMessage(enrollments.error, "Erro ao carregar alunos")} retry={() => void enrollments.reload()} />
           ) : (
-            <View style={styles.endPreview} accessible accessibilityLabel={`Fim às ${endTime}`}>
-              <Text style={styles.label}>Fim</Text>
-              <Text style={styles.endValue}>{endTime}</Text>
-            </View>
+            <EnrollmentPicker
+              ref={enrollmentRef}
+              identity
+              key={initialQuery}
+              enrollments={enrollments.data ?? []}
+              value={enrollmentId}
+              initialQuery={initialQuery}
+              onChange={(id) => {
+                setEnrollmentId(id);
+                clearError("enrollment");
+              }}
+              error={errors.enrollment}
+            />
           )}
+          {errors.enrollment && enrollmentId ? <Text accessibilityLiveRegion="polite" style={styles.error}>{errors.enrollment}</Text> : null}
+
         </View>
-        <ChipGroup label="Duração" options={durationOptions} value={duration} onChange={changeDuration} />
-        {errors.time ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{errors.time}</Text> : null}
-
-        <Text accessibilityRole="header" style={styles.section}>3. Disponibilidade</Text>
-        <SlotPlanner
-          availability={slot.data ?? null}
-          checking={slot.checking}
-          error={slot.error}
-          verified={verified}
-          startTime={startTime}
-          durationMin={durationMin}
-          onPickStart={changeStart}
-          onUseSchedule={(block) => applySchedule(shortTime(block.startTime), shortTime(block.endTime))}
-        />
-
-        <Text accessibilityRole="header" style={styles.section}>4. Situação da aula</Text>
-        <Card style={styles.statusCard}>
-          <View style={styles.statusRow}>
-            <StatusChip label={completed ? "Concluída" : "Agendada"} tone={completed ? "success" : "info"} />
-            <Text style={styles.statusText}>
-              {completed
-                ? "Data de hoje ou passada: a aula já nasce concluída."
-                : "Data futura: a aula nasce agendada. Depois você conclui ou cancela pela agenda."}
-            </Text>
-          </View>
-          {completed ? (
-            <>
-              <Text style={styles.label}>Frequência (opcional)</Text>
-              <ChipGroup
-                label="Frequência"
-                options={ATTENDANCE_OPTIONS.map((option) => ({ value: option.status, label: option.label }))}
-                value={attendance}
-                onChange={(value) => setAttendance((current) => (current === value ? null : value))}
-              />
-              <Text style={styles.caption}>Presente soma XP ao aluno. Falta ou justificada não soma; trocar depois de "Presente" retira o XP.</Text>
-              {attendance === "EXCUSED" ? (
-                <TextField label="Justificativa" placeholder="Motivo da ausência" value={justification} onChangeText={setJustification} maxLength={500} />
-              ) : null}
-            </>
-          ) : (
-            <Text style={styles.caption}>A frequência fica disponível a partir do dia da aula.</Text>
-          )}
-        </Card>
-
-        <Text accessibilityRole="header" style={styles.section}>5. Registro</Text>
+        <View onLayout={(event) => { fieldPositions.current.date = event.nativeEvent.layout.y; }}>
+          <DateTimeField ref={dateRef} mode="date" label="Data" value={date} onChange={(value) => { setDate(value); clearError("date"); }} error={errors.date} />
+          {!validateDate(date) ? <Text style={styles.caption}>{relativeDayLabel(date)} · {formatFullDate(date)}</Text> : null}
+        </View>
         <TextField label="Conteúdo trabalhado" placeholder="Ex.: escalas maiores, música X" value={content} onChangeText={setContent} multiline maxLength={2000} />
-        <TextField label="Tarefa para casa" placeholder="O que o aluno deve praticar" value={homework} onChangeText={setHomework} multiline maxLength={2000} />
+        <TextField label="Tarefa para casa" placeholder="O que o aluno deve praticar" value={homework} onChangeText={setHomework} style={[styles.homeworkInput, { height: homeworkHeight }]} onContentSizeChange={(event) => setHomeworkHeight(Math.max(32, event.nativeEvent.contentSize.height))} multiline maxLength={2000} />
+        <View style={styles.scheduling} onLayout={(event) => { fieldPositions.current.scheduling = event.nativeEvent.layout.y; }}>
+          <Text accessibilityRole="header" style={styles.section}>Agendamento</Text>
+          <View style={styles.row} onLayout={(event) => { fieldPositions.current.time = event.nativeEvent.layout.y; }}>
+            <DateTimeField ref={timeRef} mode="time" label="Início" value={startTime} onChange={changeStart} />
+            {duration === CUSTOM ? (
+              <DateTimeField mode="time" label="Fim" value={customEnd} onChange={(value) => { setCustomEnd(value); clearError("time"); }} />
+            ) : (
+              <View style={styles.endPreview} accessible accessibilityLabel={`Fim às ${endTime}`}>
+                <Text style={styles.label}>Fim</Text>
+                <Text style={styles.endValue}>{endTime}</Text>
+              </View>
+            )}
+          </View>
+          <ChipGroup label="Duração" options={durationOptions} value={duration} onChange={changeDuration} />
+          {errors.time ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{errors.time}</Text> : null}
+
+          <Text accessibilityRole="header" style={styles.section}>Disponibilidade</Text>
+          <SlotPlanner
+            availability={slot.data ?? null}
+            checking={slot.checking}
+            error={slot.error}
+            verified={verified}
+            startTime={startTime}
+            durationMin={durationMin}
+            onPickStart={changeStart}
+            onUseSchedule={(block) => applySchedule(shortTime(block.startTime), shortTime(block.endTime))}
+          />
+
+          <Text accessibilityRole="header" style={styles.section}>Situação da aula</Text>
+          <Card style={styles.statusCard}>
+            <View style={styles.statusRow}>
+              <StatusChip label={completed ? "Concluída" : "Agendada"} tone={completed ? "success" : "info"} />
+              <Text style={styles.statusText}>
+                {completed
+                  ? "Data de hoje ou passada: a aula já nasce concluída."
+                  : "Data futura: a aula nasce agendada. Depois você conclui ou cancela pela agenda."}
+              </Text>
+            </View>
+            {completed ? (
+              <>
+                <Text style={styles.label}>Frequência (opcional)</Text>
+                <ChipGroup
+                  label="Frequência"
+                  options={ATTENDANCE_OPTIONS.map((option) => ({ value: option.status, label: option.label }))}
+                  value={attendance}
+                  onChange={(value) => setAttendance((current) => (current === value ? null : value))}
+                />
+                <Text style={styles.caption}>Presente soma XP ao aluno. Falta ou justificada não soma; trocar depois de "Presente" retira o XP.</Text>
+                {attendance === "EXCUSED" ? (
+                  <TextField label="Justificativa" placeholder="Motivo da ausência" value={justification} onChangeText={setJustification} maxLength={500} />
+                ) : null}
+              </>
+            ) : (
+              <Text style={styles.caption}>A frequência fica disponível a partir do dia da aula.</Text>
+            )}
+          </Card>
+        </View>
 
         {errors.form ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{errors.form}</Text> : null}
         <Button
-          label={completed ? "Registrar aula" : "Agendar aula"}
+          label={completed ? "Salvar aula" : "Agendar aula"}
           icon="checkmark"
           onPress={save}
           disabled={enrollments.loading || !!enrollments.error || hasConflict || slot.checking}
@@ -252,6 +275,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.screen },
   content: { paddingHorizontal: space.lg, paddingBottom: space.xxxl, gap: space.md },
   section: { ...type.heading, marginTop: space.md },
+  scheduling: { gap: space.md },
+  homeworkInput: { minHeight: 32 },
   row: { flexDirection: "row", gap: space.md },
   label: { ...type.label },
   caption: { ...type.caption },

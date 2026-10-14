@@ -62,6 +62,39 @@ Tela web: escolher arquivo → "Prática.mp4 · 2,0 MB" com Trocar/Remover → s
 - Revisão: 38 achados → 30 aceitos, 6 rejeitados (16%), 2 adiados + 1 achado novo da verificação manual (F-039).
 - Implementação: 3 regressões/omissões pegas só na captura (Gate 3): F-017, F-015 (alinhamento), data ISO no web. `tsc`/`jest` passavam nos três casos — a verificação visual é indispensável.
 
+## Telas do professor (Figma 21–30, `prof.figma`)
+
+Revisão Codex em 31 achados. Gate 1:
+
+| ID | Tela | Decisão | Motivo |
+|---|---|---|---|
+| T-001–005 | 21 dashboard | ACEITO | Margem ~28, métricas planas com ícone na ação, próximas aulas em colunas hora/nome/instrumento, "Ver agenda completa" à direita |
+| T-006–007 | 22 alunos | ACEITO | Margem do Figma e avatar de 60px |
+| T-008 | 23–27, 26 | ACEITO (dono) | Tab bar também no Stack do professor (`teacher-tabs.ts`, `dismissTo`) |
+| T-009–010 | 23/24/27 | ACEITO | Cabeçalho só com voltar, avatar 80px; seções em abas de texto sublinhadas |
+| T-011 | 23/24/27 | REJEITADO | Navegação por setas do teclado no web (mobile-first) |
+| T-012–015 | 23/24 | ACEITO | Métricas planas; campos de informação contornados; um card por aula; "Nova aula" no rodapé |
+| T-016 | 23–27 | ADIADO | Carregamento por seção (6 requisições); otimização sem efeito visual |
+| T-017 | 25 prática | PARCIAL | Lista mantida; tocar abre a nova tela de detalhe da prática (`practice/[id]`) com os campos do Figma. Dificuldade/humor saem das notas livres (`practiceNotes.ts`) |
+| T-018–020 | 27 frequência | ACEITO | Calendário retangular, legenda vertical, resumo do mês contornado |
+| T-021–023 | 26 nova aula | ACEITO | Aluno → Data → Conteúdo → Tarefa; agenda numa seção "Agendamento"; foco no 1º campo inválido |
+| T-024–025 | 22/28/29 | ACEITO | Busca "…"; Agenda com calendário do mês (`MonthCalendar`) |
+| T-026 | 28 agenda | PARCIAL | Linha compacta hora/nome, mas a chamada de presença continua visível (função do app) |
+| T-027 | 22/28/29 | REJEITADO | Banner de erro sobre listas (mesma decisão do `use-resource` no aluno) |
+| T-028 | 29 relatórios | PARCIAL | Menu com as 4 categorias; só "Evolução por aluno" tem dados — as outras 3 aparecem "Em breve" |
+| T-029 | 30 mais | REJEITADO → adição | "Ver perfil" exige tela de perfil (backend) |
+| T-030–031 | 30, 23 | ACEITO | Lista de "Mais" sem blocos; números com `Intl` pt-BR |
+
+O Figma de "Mais" do professor mostra por engano a tab bar do aluno; mantida a do professor.
+
+| Lote | Escopo | Status |
+|---|---|---|
+| T1 | abas do professor (dashboard, alunos, agenda, relatórios, mais) | ✅ gates 1-3 ok — Gate 3 pegou setas do calendário em cor diferente da frequência; `WeekStrip` sem uso removido |
+| T2 | telas internas (detalhe do aluno, prática, nova aula, frequência) + tab bar no Stack | ✅ gates 1-3 ok (tsc, 231 testes) — Gate 3 pegou rodapé das métricas quebrando linha ("Últimos 30 dias") e notas cruas ("Dificuldade: …; Avaliação: 5/5") na lista de práticas |
+| — | anel de foco preto no web (pedido do dono) | ✅ `outline: none` medido no textarea focado; borda roxa do campo indica o foco (`31-foco-textarea.png`) |
+
+Conhecido, fora do escopo: no web, abrir `/dashboard` ou `/more` digitando a URL resolve primeiro a rota do aluno (mesmo caminho nos dois grupos) → um 403 de `/me/dashboard` no console antes do redirecionamento. A navegação dentro do app usa rotas com grupo e não é afetada.
+
 ## Pendências para decisão do dono
 
-- Telas do professor: aguardam as imagens do protótipo (MCP do Figma no limite do plano Starter).
+Adições do Figma do professor que exigem backend: cadastro/edição de aluno com observações; anexos e edição de aula; os 3 relatórios agregados; perfil, turmas, financeiro, configurações e notificações; dificuldade/humor da prática como campos próprios.
