@@ -7,6 +7,7 @@ import { colors } from "@/ui/theme";
 
 const activeTabs: Record<string, string> = {
   student: "students",
+  "student-form": "students",
   practice: "students",
   "new-lesson": "schedule",
   history: "schedule",

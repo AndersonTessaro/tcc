@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import TeacherPracticeDetail from "@/features/teacher/TeacherPracticeDetail";
+import TeacherStudents from "@/features/teacher/TeacherStudents";
 import TeacherStudentDetail from "@/features/teacher/TeacherStudentDetail";
 import { teacherService } from "@/features/teacher/teacherService";
 import { saveDownload } from "@/lib/files/saveDownload";
@@ -7,6 +8,8 @@ import { ApiError } from "@/lib/http/apiError";
 
 const mockToast = jest.fn();
 const mockPush = jest.fn();
+let mockAuthorities = ["student.register", "student.update"];
+jest.mock("@/features/auth/useAuth", () => ({ useAuth: () => ({ user: { authorities: mockAuthorities } }) }));
 let mockParams: Record<string, string> = { id: "student-1" };
 jest.mock("@/ui/Toast", () => ({ useToast: () => ({ show: mockToast }) }));
 jest.mock("@/lib/files/saveDownload", () => ({ saveDownload: jest.fn() }));
@@ -17,7 +20,7 @@ jest.mock("expo-router", () => ({
 }));
 jest.mock("@/features/teacher/teacherService", () => ({
   teacherService: {
-    student: jest.fn(), students: jest.fn(), enrollments: jest.fn(),
+    student: jest.fn(), studentProfile: jest.fn(), students: jest.fn(), enrollments: jest.fn(),
     studentLessons: jest.fn(), studentMaterials: jest.fn(), studentPractices: jest.fn(),
     downloadPracticeRecording: jest.fn(),
   },
@@ -28,6 +31,8 @@ const recording = { fileName: "Prática.mp4", contentType: "video/mp4", sizeByte
 beforeEach(() => {
   jest.clearAllMocks();
   mockParams = { id: "student-1" };
+  mockAuthorities = ["student.register", "student.update"];
+  service.studentProfile.mockResolvedValue({ id: "student-1", name: "João", username: "joao", email: "joao@example.com", phone: null, sharedNotes: "Pratique escalas", privateNotes: "Revisar postura" });
   service.student.mockResolvedValue({
     studentId: "student-1", progress: null, lessonsCount: 0,
     attendance: { present: 0, absent: 0, excused: 0, rate: 0 }, attendanceHistory: [],
@@ -182,4 +187,43 @@ it("keeps the practice visible while student identity is retried", async () => {
   await fireEvent.press(screen.getByRole("button", { name: "Tentar novamente" }));
   expect(await screen.findByText("João")).toBeVisible();
   expect(service.enrollments).toHaveBeenCalledTimes(2);
+});
+
+it("loads profile instead of the student list, shows separate visibility cards and edits from Resumo", async () => {
+  await render(<TeacherStudentDetail />);
+  await screen.findByText("João");
+  expect(service.studentProfile).toHaveBeenCalledWith("student-1");
+  expect(service.students).not.toHaveBeenCalled();
+  expect(screen.getByText("Observações")).toBeVisible();
+  expect(screen.getByText("O aluno vê esta observação.")).toBeVisible();
+  expect(screen.getByText("Pratique escalas")).toBeVisible();
+  expect(screen.getByText("Anotações")).toBeVisible();
+  expect(screen.getByText("Visível só para você.")).toBeVisible();
+  expect(screen.getByText("Revisar postura")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Nova aula" })).toBeNull();
+  await fireEvent.press(screen.getByRole("button", { name: "Editar aluno" }));
+  expect(mockPush).toHaveBeenCalledWith({ pathname: "/(teacher)/student-form", params: { id: "student-1" } });
+  await fireEvent.press(screen.getByRole("tab", { name: "Aulas" }));
+  expect(screen.queryByRole("button", { name: "Editar aluno" })).toBeNull();
+  await fireEvent.press(screen.getByRole("button", { name: "Nova aula" }));
+  expect(mockPush).toHaveBeenCalledWith({ pathname: "/(teacher)/new-lesson", params: { studentId: "student-1" } });
+});
+it("hides editing without student.update and shows empty notes", async () => {
+  mockAuthorities = [];
+  service.studentProfile.mockResolvedValue({ id: "student-1", name: "João", username: "joao", email: "joao@example.com", phone: null, sharedNotes: null, privateNotes: null });
+  await render(<TeacherStudentDetail />);
+  await screen.findByText("João");
+  expect(screen.getAllByText("Nenhuma observação")).toHaveLength(2);
+  expect(screen.queryByRole("button", { name: "Editar aluno" })).toBeNull();
+  await fireEvent.press(screen.getByRole("tab", { name: "Aulas" }));
+  expect(screen.getByRole("button", { name: "Nova aula" })).toBeVisible();
+});
+it.each([true, false])("shows the add action only with student.register: %s", async (allowed) => {
+  mockAuthorities = allowed ? ["student.register"] : ["student.update"];
+  await render(<TeacherStudents />);
+  await screen.findByText("João");
+  if (allowed) {
+    await fireEvent.press(screen.getByRole("button", { name: "Novo aluno" }));
+    expect(mockPush).toHaveBeenCalledWith("/(teacher)/student-form");
+  } else expect(screen.queryByRole("button", { name: "Novo aluno" })).toBeNull();
 });

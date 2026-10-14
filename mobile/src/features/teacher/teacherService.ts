@@ -11,6 +11,29 @@ export type TeacherEnrollment = {
   instrument: string;
 };
 
+export type TeacherInstrument = { id: string; name: string };
+export type TeacherStudentProfile = {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  phone: string | null;
+  privateNotes: string | null;
+  sharedNotes: string | null;
+};
+export type UpdateTeacherStudent = {
+  name: string;
+  phone?: string | null;
+  privateNotes?: string;
+  sharedNotes?: string;
+};
+export type NewTeacherStudent = UpdateTeacherStudent & {
+  username: string;
+  email: string;
+  password: string;
+  instrumentId: string;
+};
+
 export type StudentSummary = { id: string; name: string; username: string };
 
 export type LessonStatus = "SCHEDULED" | "DONE" | "CANCELED";
@@ -97,6 +120,10 @@ export type TeacherStudentMaterial = {
 };
 
 export const teacherService = {
+  instruments: () => api.get<TeacherInstrument[]>("/teacher/instruments"),
+  createStudent: (body: NewTeacherStudent) => api.post<TeacherStudentProfile>("/teacher/students", body),
+  studentProfile: (id: string) => api.get<TeacherStudentProfile>(`/teacher/students/${id}/profile`),
+  updateStudentProfile: (id: string, body: UpdateTeacherStudent) => api.put<TeacherStudentProfile>(`/teacher/students/${id}/profile`, body),
   dashboard: (className?: string) => api.get<TeacherDashboardData>(`/teacher/dashboard${className ? `?className=${encodeURIComponent(className)}` : ""}`),
   students: () => api.get<StudentSummary[]>("/teacher/students"),
   student: (id: string) => api.get<TeacherStudentDetailData>(`/teacher/students/${id}`),

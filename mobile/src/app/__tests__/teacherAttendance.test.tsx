@@ -3,13 +3,14 @@ import TeacherStudentDetail from "@/features/teacher/TeacherStudentDetail";
 import { teacherService, type TeacherStudentDetailData } from "@/features/teacher/teacherService";
 
 const mockPush = jest.fn();
+jest.mock("@/features/auth/useAuth", () => ({ useAuth: () => ({ user: { authorities: [] } }) }));
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush, back: jest.fn() }),
   useLocalSearchParams: () => ({ id: "student-1" }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
 jest.mock("@/features/teacher/teacherService", () => ({
-  teacherService: { student: jest.fn(), students: jest.fn(), enrollments: jest.fn(), studentLessons: jest.fn(), studentMaterials: jest.fn(), studentPractices: jest.fn() },
+  teacherService: { student: jest.fn(), studentProfile: jest.fn(), enrollments: jest.fn(), studentLessons: jest.fn(), studentMaterials: jest.fn(), studentPractices: jest.fn() },
 }));
 
 it("uses attendance records from the selected calendar month for the summary", async () => {
@@ -30,7 +31,7 @@ it("uses attendance records from the selected calendar month for the summary", a
   };
   const service = teacherService as jest.Mocked<typeof teacherService>;
   service.student.mockResolvedValue(report);
-  service.students.mockResolvedValue([{ id: "student-1", name: "João Silva", username: "joao" }]);
+  service.studentProfile.mockResolvedValue({ id: "student-1", name: "João Silva", username: "joao", email: "joao@example.com", phone: null, sharedNotes: null, privateNotes: null });
   service.enrollments.mockResolvedValue([]);
   service.studentLessons.mockResolvedValue([]);
   service.studentMaterials.mockResolvedValue([]);

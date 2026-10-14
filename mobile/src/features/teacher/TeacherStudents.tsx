@@ -3,6 +3,7 @@ import { FlatList, Image, RefreshControl, StyleSheet, Text, View } from "react-n
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/features/auth/useAuth";
 import { useResource } from "@/hooks/use-resource";
 import { normalizeSearch } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
@@ -33,6 +34,8 @@ function instrumentsByStudent(enrollments: TeacherEnrollment[]) {
 
 export default function TeacherStudents() {
   const router = useRouter();
+  const { user } = useAuth();
+  const canRegister = user?.authorities.includes("student.register");
   const listRef = useRef<FlatList<StudentSummary>>(null);
   useTabScrollToTop(listRef);
   const resource = useResource(loadStudents);
@@ -52,13 +55,13 @@ export default function TeacherStudents() {
   ) : query.trim() ? (
     <ScreenState icon="search-outline" title="Nenhum aluno encontrado" message="Confira a grafia ou limpe a busca." action={{ label: "Limpar busca", onPress: () => setQuery("") }} />
   ) : (
-    <ScreenState icon="people-outline" title="Nenhum aluno vinculado" message="Os alunos aparecem aqui quando a administração cria uma matrícula com você." />
+    <ScreenState icon="people-outline" title="Nenhum aluno vinculado" message={canRegister ? "Toque em + para cadastrar um aluno ou peça uma matrícula à administração." : "Peça uma matrícula à administração."} />
   );
 
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
-      <ScreenHeader title="Alunos" />
+      <ScreenHeader title="Alunos" action={canRegister ? <IconButton icon="add" label="Novo aluno" onPress={() => router.push("/(teacher)/student-form")} /> : null} />
       <View style={styles.search}>
         <TextField
           accessibilityLabel="Buscar aluno"

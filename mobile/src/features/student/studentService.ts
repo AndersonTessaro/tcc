@@ -55,6 +55,8 @@ export type StudentPractice = {
   recording: { fileName: string; contentType: string; sizeBytes: number; uploadedAt: string } | null;
 };
 
+export type TeacherNote = { teacherName: string; notes: string; updatedAt: string };
+
 export type StudentAttendance = {
   date: string;
   status: "PRESENT" | "ABSENT" | "EXCUSED";
@@ -83,6 +85,7 @@ export type StudentMaterial = {
 };
 
 export const studentService = {
+  teacherNotes: () => api.get<TeacherNote[]>("/me/teacher-notes"),
   dashboard: () => api.get<StudentDashboard>("/me/dashboard"),
   lessons: (status: "upcoming" | "past") => api.get<StudentLesson[]>(`/me/lessons?status=${status}`),
   lesson: (id: string) => api.get<StudentLessonDetail>(`/me/lessons/${id}`),
