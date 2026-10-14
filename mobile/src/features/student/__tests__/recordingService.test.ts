@@ -18,8 +18,9 @@ afterEach(() => jest.restoreAllMocks());
 it("returns practiceId along with progress from JSON registration", async () => {
   const response = { practiceId: "practice-1", xpTotal: 30, level: 1, streakDays: 1, totalPracticeMin: 30 };
   client.post.mockResolvedValue(response);
-  expect(await studentService.registerPractice(30, "Escalas", "2026-10-12")).toEqual(response);
-  expect(client.post).toHaveBeenCalledWith("/me/practices", { durationMin: 30, notes: "Escalas", date: "2026-10-12" });
+  const practice = { durationMin: 30, notes: "Escalas", difficulty: "Acordes", rating: 4, date: "2026-10-12" };
+  expect(await studentService.registerPractice(practice)).toEqual(response);
+  expect(client.post).toHaveBeenCalledWith("/me/practices", practice);
 });
 
 it("uploads the file part with inferred MIME and a media timeout without registering again", async () => {

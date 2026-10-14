@@ -14,7 +14,6 @@ import { colors, radius, space, type } from "@/ui/theme";
 import { AttendanceCalendar, attendanceSummary } from "./AttendanceCalendar";
 import { hhmm, lessonStatusLabel, scheduleHref } from "./agenda";
 import { MaterialUpload } from "./MaterialUpload";
-import { practiceDetails } from "./practiceNotes";
 import { teacherService, type TeacherStudentMaterial } from "./teacherService";
 import { TeacherStudentMetrics } from "./TeacherStudentMetrics";
 import { TeacherStackHeader } from "./TeacherStackHeader";
@@ -127,7 +126,7 @@ export default function TeacherStudentDetail() {
               <Card style={styles.listCard}>
                 {practices.slice(0, 10).map((item) => (
                   <View key={item.id}>
-                    <ListRow title={`${formatFullDate(item.date)} · ${formatMinutes(item.durationMin)}`} subtitle={item.notes ? practiceDetails(item.notes).activity : "Sem observações"} onPress={() => router.push({ pathname: "/(teacher)/practice/[id]", params: { id: item.id, practiceId: item.id, studentId: id } })} />
+                    <ListRow title={`${formatFullDate(item.date)} · ${formatMinutes(item.durationMin)}`} subtitle={item.notes || "Sem observações"} onPress={() => router.push({ pathname: "/(teacher)/practice/[id]", params: { id: item.id, practiceId: item.id, studentId: id } })} />
                     <PracticeRecordingDownload practice={item} download={teacherService.downloadPracticeRecording} prefix="Gravação: " />
                   </View>
                 ))}

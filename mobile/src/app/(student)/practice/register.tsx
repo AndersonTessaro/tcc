@@ -48,11 +48,6 @@ function practiceMinutes(value: string): number {
   return /^\d+$/.test(value.trim()) ? Number(value.trim()) : 0;
 }
 
-function buildNotes(what: string, difficulty: string, mood: number | null): string {
-  return [what.trim(), difficulty.trim() && `Dificuldade: ${difficulty.trim()}`, mood != null && `Avaliação: ${mood + 1}/5`]
-    .filter(Boolean).join("; ");
-}
-
 export default function RegisterPractice() {
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
@@ -98,7 +93,7 @@ export default function RegisterPractice() {
     if (savingRef.current || picking || recordingSelectionError) return;
     const date = practiceDate(dateChoice, otherDate);
     const minutes = practiceMinutes(customMinutes);
-    const notes = buildNotes(what, difficulty, mood);
+    const notes = what.trim();
     const nextErrors = {
       date: !isValidIsoDate(date) || date > todayIso() ? "Escolha uma data até hoje." : undefined,
       minutes: minutes < 1 || minutes > MAX_MINUTES ? "Informe os minutos praticados (1 a 1440)." : undefined,
@@ -118,7 +113,13 @@ export default function RegisterPractice() {
     try {
       if (!savedRef.current) {
         progressBefore.current ??= await studentService.progress().catch(() => null);
-        const progress = await studentService.registerPractice(minutes, notes || undefined, date);
+        const progress = await studentService.registerPractice({
+          durationMin: minutes,
+          date,
+          notes: notes || undefined,
+          difficulty: difficulty.trim() || undefined,
+          rating: mood === null ? undefined : mood + 1,
+        });
         savedRef.current = progress;
         setSavedRegistration(progress);
         markSaved();

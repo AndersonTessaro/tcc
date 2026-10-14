@@ -50,6 +50,8 @@ export type StudentPractice = {
   date: string;
   durationMin: number;
   notes: string | null;
+  difficulty: string | null;
+  rating: number | null;
   recording: { fileName: string; contentType: string; sizeBytes: number; uploadedAt: string } | null;
 };
 
@@ -92,8 +94,8 @@ export const studentService = {
   attendance: () => api.get<StudentAttendance[]>("/me/attendance"),
   goals: (status?: "ACTIVE" | "COMPLETED") =>
     api.get<StudentGoal[]>(`/me/goals${status ? `?status=${status}` : ""}`),
-  registerPractice: (durationMin: number, notes?: string, date?: string) =>
-    api.post<PracticeRegistration>("/me/practices", { durationMin, notes, date }),
+  registerPractice: (body: { durationMin: number; date: string; notes?: string; difficulty?: string; rating?: number }) =>
+    api.post<PracticeRegistration>("/me/practices", body),
   uploadPracticeRecording: (practiceId: string, file: PickedFile) => {
     const form = new FormData();
     appendFile(form, "file", { ...file, mimeType: recordingMimeType(file.name, file.mimeType) ?? undefined });

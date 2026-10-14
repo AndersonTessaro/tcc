@@ -40,7 +40,7 @@ beforeEach(() => {
   service.studentLessons.mockResolvedValue([]);
   service.studentMaterials.mockResolvedValue([]);
   service.studentPractices.mockResolvedValue(Array.from({ length: 11 }, (_, index) => ({
-    id: "practice-" + index, date: "2026-10-12", durationMin: 30, notes: "Estudo " + index,
+    id: "practice-" + index, date: "2026-10-12", durationMin: 30, notes: "Estudo " + index, difficulty: null, rating: null,
     recording: index === 0 ? recording : null,
   })));
 });
@@ -60,6 +60,18 @@ it("uses the new practice endpoint, shows ten records and downloads using the te
   expect(service.downloadPracticeRecording).toHaveBeenCalledWith("practice-0");
   expect(saveDownload).toHaveBeenCalledWith(bytes, "Prática.mp4", "video/mp4");
   expect(mockToast).toHaveBeenCalledWith("Prática.mp4 pronto para salvar", "success");
+});
+
+it("shows raw activity notes and uses the empty-note subtitle without parsing feedback", async () => {
+  service.studentPractices.mockResolvedValue([
+    { id: "practice-0", date: "2026-10-12", durationMin: 30, notes: "Escalas; Dificuldade: livre; Avaliação: 1/5", difficulty: "Acordes", rating: 4, recording: null },
+    { id: "practice-1", date: "2026-10-12", durationMin: 15, notes: null, difficulty: "Ritmo", rating: 2, recording: null },
+  ]);
+  await render(<TeacherStudentDetail />);
+  await screen.findByText("João");
+  await fireEvent.press(screen.getByRole("tab", { name: "Prática" }));
+  expect(screen.getByText("Escalas; Dificuldade: livre; Avaliação: 1/5")).toBeVisible();
+  expect(screen.getByText("Sem observações")).toBeVisible();
 });
 
 it("reports a teacher download ownership error", async () => {
@@ -99,12 +111,12 @@ it("opens the selected practice with both student and practice identifiers", asy
   expect(mockPush).toHaveBeenCalledWith({ pathname: "/(teacher)/practice/[id]", params: { id: "practice-0", practiceId: "practice-0", studentId: "student-1" } });
 });
 
-it("shows read-only practice fields, parses difficulty and mood, and downloads the recording", async () => {
+it("shows read-only practice fields using separate difficulty and rating and downloads the recording", async () => {
   mockParams = { id: "practice-0", practiceId: "practice-0", studentId: "student-1" };
   service.enrollments.mockResolvedValue([{ id: "e1", studentId: "student-1", studentName: "João", instrument: "Violão" }]);
   service.studentPractices.mockResolvedValue([
-    { id: "other", date: "2026-10-10", durationMin: 5, notes: "Outro registro", recording: null },
-    { id: "practice-0", date: "2026-10-12", durationMin: 90, notes: "Escalas; arpejos; Dificuldade: troca; ritmo; Avaliação: 3/5", recording },
+    { id: "other", date: "2026-10-10", durationMin: 5, notes: "Outro registro", difficulty: null, rating: null, recording: null },
+    { id: "practice-0", date: "2026-10-12", durationMin: 90, notes: "Escalas; arpejos", difficulty: "troca; ritmo", rating: 3, recording },
   ]);
   const bytes = new ArrayBuffer(4);
   service.downloadPracticeRecording.mockResolvedValue(bytes);
@@ -122,9 +134,28 @@ it("shows read-only practice fields, parses difficulty and mood, and downloads t
   expect(saveDownload).toHaveBeenCalledWith(bytes, "Prática.mp4", "video/mp4");
 });
 
+it("preserves activity notes and uses feedback fields even when notes contain legacy markers", async () => {
+  mockParams = { id: "practice-0", studentId: "student-1" };
+  service.studentPractices.mockResolvedValue([{ id: "practice-0", date: "2026-10-12", durationMin: 30, notes: "Escalas; Dificuldade: livre; Avaliação: 1/5", difficulty: "Acordes", rating: 4, recording: null }]);
+  await render(<TeacherPracticeDetail />);
+  expect(await screen.findByText("Escalas; Dificuldade: livre; Avaliação: 1/5")).toBeVisible();
+  expect(screen.getByText("Acordes")).toBeVisible();
+  expect(screen.getByLabelText("Avaliação 4 de 5, selecionada")).toBeVisible();
+  expect(screen.queryByLabelText("Avaliação 1 de 5, selecionada")).toBeNull();
+});
+
+it("does not infer missing feedback from activity notes", async () => {
+  mockParams = { id: "practice-0", studentId: "student-1" };
+  service.studentPractices.mockResolvedValue([{ id: "practice-0", date: "2026-10-12", durationMin: 30, notes: "Escalas; Dificuldade: livre; Avaliação: 1/5", difficulty: null, rating: null, recording: null }]);
+  await render(<TeacherPracticeDetail />);
+  expect(await screen.findByText("Escalas; Dificuldade: livre; Avaliação: 1/5")).toBeVisible();
+  expect(screen.getAllByText("Não informado")).toHaveLength(3);
+  expect(screen.queryByLabelText(/selecionada/)).toBeNull();
+});
+
 it("shows missing fields explicitly without selecting a mood", async () => {
   mockParams = { id: "practice-0", studentId: "student-1" };
-  service.studentPractices.mockResolvedValue([{ id: "practice-0", date: "2026-10-12", durationMin: 30, notes: null, recording: null }]);
+  service.studentPractices.mockResolvedValue([{ id: "practice-0", date: "2026-10-12", durationMin: 30, notes: null, difficulty: null, rating: null, recording: null }]);
   await render(<TeacherPracticeDetail />);
   await screen.findByText("12/10/2026");
   expect(screen.getAllByText("Não informado")).toHaveLength(4);

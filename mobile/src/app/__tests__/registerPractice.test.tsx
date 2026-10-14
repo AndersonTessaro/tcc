@@ -48,7 +48,7 @@ it("registers a preset duration and celebrates XP, level up and streak", async (
   expect(await screen.findByText("+45 XP")).toBeVisible();
   expect(screen.getByText("Subiu para o nível 2!")).toBeVisible();
   expect(screen.getByText("Sequência: 3 dias")).toBeVisible();
-  expect(service.registerPractice).toHaveBeenCalledWith(45, "Escalas; Avaliação: 4/5", todayIso());
+  expect(service.registerPractice).toHaveBeenCalledWith({ durationMin: 45, notes: "Escalas", rating: 4, date: todayIso() });
 
   await fireEvent.press(screen.getByRole("button", { name: "Concluir" }));
   expect(mockBack).toHaveBeenCalled();
@@ -67,7 +67,7 @@ it("validates a custom duration and shows the API error without leaving the form
   await fireEvent.press(screen.getByRole("button", { name: "Salvar registro" }));
 
   expect(await screen.findByText("Dados inválidos. Revise os campos.")).toBeVisible();
-  expect(service.registerPractice).toHaveBeenCalledWith(90, undefined, todayIso());
+  expect(service.registerPractice).toHaveBeenCalledWith({ durationMin: 90, date: todayIso() });
   expect(mockBack).not.toHaveBeenCalled();
 });
 
@@ -86,13 +86,13 @@ it("keeps date and duration editable and lets shortcuts fill them", async () => 
     await fireEvent(screen.getByLabelText("Data"), "change", { currentTarget: { value: "2026-07-08" } });
     await fireEvent.changeText(screen.getByLabelText("Tempo de prática em minutos"), "90");
     await fireEvent.press(screen.getByRole("button", { name: "Salvar registro" }));
-    expect(service.registerPractice).toHaveBeenCalledWith(90, undefined, "2026-07-08");
+    expect(service.registerPractice).toHaveBeenCalledWith({ durationMin: 90, date: "2026-07-08" });
   } finally {
     platform.restore();
   }
 });
 
-it("validates date before minutes and rejects an oversized combined description", async () => {
+it("validates date before minutes and rejects oversized activity notes", async () => {
   const platform = jest.replaceProperty(Platform, "OS", "web");
   try {
     await render(<RegisterPractice />);
@@ -104,7 +104,7 @@ it("validates date before minutes and rejects an oversized combined description"
     expect(service.registerPractice).not.toHaveBeenCalled();
     await fireEvent(screen.getByLabelText("Data"), "change", { currentTarget: { value: todayIso() } });
     await fireEvent.changeText(screen.getByLabelText("Tempo de prática em minutos"), "90");
-    await fireEvent.changeText(screen.getByLabelText("O que praticou? (opcional)"), "a".repeat(255));
+    await fireEvent.changeText(screen.getByLabelText("O que praticou? (opcional)"), "a".repeat(256));
     await fireEvent.changeText(screen.getByLabelText("Dificuldade encontrada (opcional)"), "Acordes");
     await fireEvent.press(screen.getByRole("button", { name: "Salvar registro" }));
     expect(screen.getByText("Resuma a descrição para até 255 caracteres.")).toBeVisible();
@@ -112,6 +112,28 @@ it("validates date before minutes and rejects an oversized combined description"
   } finally {
     platform.restore();
   }
+});
+
+it("saves 255 activity characters with separate trimmed difficulty and rating", async () => {
+  service.registerPractice.mockResolvedValue({ practiceId: "practice-1", xpTotal: 120, level: 1, streakDays: 3, totalPracticeMin: 120 });
+  await render(<RegisterPractice />);
+  await fireEvent.changeText(screen.getByLabelText("O que praticou? (opcional)"), "  " + "a".repeat(255) + "  ");
+  await fireEvent.changeText(screen.getByLabelText("Dificuldade encontrada (opcional)"), "  troca; ritmo  ");
+  await fireEvent.press(screen.getByRole("radio", { name: "Avaliação 5 de 5" }));
+  await fireEvent.press(screen.getByRole("button", { name: "Salvar registro" }));
+  expect(await screen.findByText("+30 XP")).toBeVisible();
+  expect(service.registerPractice).toHaveBeenCalledWith({ durationMin: 30, notes: "a".repeat(255), difficulty: "troca; ritmo", rating: 5, date: todayIso() });
+  expect(screen.queryByText("Resuma a descrição para até 255 caracteres.")).toBeNull();
+});
+
+it("omits blank notes and difficulty and an unselected rating", async () => {
+  service.registerPractice.mockResolvedValue({ practiceId: "practice-1", xpTotal: 120, level: 1, streakDays: 3, totalPracticeMin: 120 });
+  await render(<RegisterPractice />);
+  await fireEvent.changeText(screen.getByLabelText("O que praticou? (opcional)"), "  ");
+  await fireEvent.changeText(screen.getByLabelText("Dificuldade encontrada (opcional)"), "  ");
+  await fireEvent.press(screen.getByRole("button", { name: "Salvar registro" }));
+  expect(await screen.findByText("+30 XP")).toBeVisible();
+  expect(service.registerPractice).toHaveBeenCalledWith({ durationMin: 30, date: todayIso(), notes: undefined, difficulty: undefined, rating: undefined });
 });
 
 const recording = { uri: "file:///practice.mp4", name: "Prática.mp4", size: RECORDING_MAX_BYTES };
@@ -136,7 +158,7 @@ it("chooses the recording and uploads after registration before celebrating", as
   expect(screen.getByLabelText("Tempo de prática em minutos")).toHaveProp("editable", false);
   expect(screen.getByRole("radio", { name: "45 min" })).toBeDisabled();
   expect(screen.queryByText("+30 XP")).toBeNull();
-  await act(() => finishUpload({ id: "practice-1", date: todayIso(), durationMin: 30, notes: null, recording: null }));
+  await act(() => finishUpload({ id: "practice-1", date: todayIso(), durationMin: 30, notes: null, difficulty: null, rating: null, recording: null }));
   expect(await screen.findByText("+30 XP")).toBeVisible();
   expect(service.registerPractice).toHaveBeenCalledTimes(1);
 });
@@ -151,7 +173,7 @@ it("retries only the upload, preserving XP after multiple failures", async () =>
   await fireEvent.press(screen.getByRole("button", { name: "Tentar enviar de novo" }));
   expect(service.registerPractice).toHaveBeenCalledTimes(1);
   expect(service.uploadPracticeRecording).toHaveBeenCalledTimes(2);
-  service.uploadPracticeRecording.mockResolvedValue({ id: "practice-1", date: todayIso(), durationMin: 30, notes: null, recording: null });
+  service.uploadPracticeRecording.mockResolvedValue({ id: "practice-1", date: todayIso(), durationMin: 30, notes: null, difficulty: null, rating: null, recording: null });
   await fireEvent.press(screen.getByRole("button", { name: "Tentar enviar de novo" }));
   expect(await screen.findByText("+30 XP")).toBeVisible();
   expect(service.registerPractice).toHaveBeenCalledTimes(1);
