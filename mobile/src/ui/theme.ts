@@ -19,6 +19,7 @@ export const colors = {
   progressTrack: "#CACACA",
   chartArea: "#EDEBEB",
   track: "#E4E1E8",
+  badge: "#000000",
   text: "#17131A",
   muted: "#5F5B63",
   placeholder: "#6A666B",

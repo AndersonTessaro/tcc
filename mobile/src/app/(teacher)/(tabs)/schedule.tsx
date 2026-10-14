@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { teacherService, type TeacherLesson } from "@/features/teacher/teacherService";
 import { AgendaLessonCard } from "@/features/teacher/AgendaLessonCard";
-import { WeekStrip } from "@/features/teacher/WeekStrip";
+import { MonthCalendar } from "@/features/teacher/MonthCalendar";
 import { useLessonActions } from "@/features/teacher/useLessonActions";
 import { useTabScrollToTop } from "@/hooks/use-tab-scroll-to-top";
 import { validateDate } from "@/features/teacher/lessonForm";
@@ -44,7 +44,7 @@ export default function Schedule() {
 
   const header = (
     <View style={styles.headerBlock}>
-      <WeekStrip value={date} today={today} onChange={setDate} />
+      <MonthCalendar value={date} today={today} onChange={setDate} />
       <Text accessibilityRole="header" style={styles.dayTitle}>
         {relativeDayLabel(date)} · {formatFullDate(date)}
       </Text>

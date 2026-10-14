@@ -60,11 +60,12 @@ it("shows a materials error and retries instead of reporting an empty list", asy
 it("loads the selected student's report and opens their details", async () => {
   const today = new Date();
   const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  const report: TeacherStudentDetailData = { studentId: "student-1", progress: { xpTotal: 540, level: 4, streakDays: 3 }, lessonsCount: 12, attendance: { present: 3, absent: 1, excused: 0, rate: 75 }, attendanceHistory: ["PRESENT", "PRESENT", "PRESENT", "ABSENT"].map((status) => ({ date, status: status as "PRESENT" | "ABSENT" })), goals: { active: 2, completed: 5 }, nextGoal: "Praticar acordes", weeklyPracticeMin: 125, recentPractices: [], enrollmentDate: date };
+  const report: TeacherStudentDetailData = { studentId: "student-1", progress: { xpTotal: 10540, level: 4, streakDays: 3 }, lessonsCount: 12, attendance: { present: 3, absent: 1, excused: 0, rate: 75 }, attendanceHistory: ["PRESENT", "PRESENT", "PRESENT", "ABSENT"].map((status) => ({ date, status: status as "PRESENT" | "ABSENT" })), goals: { active: 2, completed: 5 }, nextGoal: "Praticar acordes", weeklyPracticeMin: 125, recentPractices: [], enrollmentDate: date };
   teacher.reports.mockResolvedValue(report);
   await render(<Reports />);
+  await fireEvent.press(screen.getByRole("button", { name: "Evolução por aluno" }));
   await fireEvent.press(await screen.findByRole("button", { name: "Relatório de João Silva" }));
-  expect(await screen.findByText("540")).toBeVisible();
+  expect(await screen.findByText("10.540")).toBeVisible();
   expect(screen.getByText("75%")).toBeVisible();
   expect(screen.getByText("2h 05m")).toBeVisible();
   expect(screen.getByText("12 aulas registradas")).toBeVisible();
@@ -77,6 +78,7 @@ it("loads the selected student's report and opens their details", async () => {
 it("keeps the selected student when a report request fails and is retried", async () => {
   teacher.reports.mockRejectedValue(new TypeError("Failed to fetch"));
   await render(<Reports />);
+  await fireEvent.press(screen.getByRole("button", { name: "Evolução por aluno" }));
   await fireEvent.press(await screen.findByRole("button", { name: "Relatório de João Silva" }));
   expect(await screen.findByText("Sem conexão com o servidor")).toBeVisible();
   await fireEvent.press(screen.getByRole("button", { name: "Tentar novamente" }));
@@ -111,4 +113,23 @@ it("sends only one recovery request while submission is pending", async () => {
   expect(auth.forgot).toHaveBeenCalledTimes(1);
   await act(async () => finish(undefined));
   expect(screen.getByText("Confira sua caixa de entrada")).toBeVisible();
+});
+
+it("offers individual evolution and marks the three aggregate reports as coming soon", async () => {
+  await render(<Reports />);
+  for (const name of ["Frequência dos alunos", "Prática em casa", "Desempenho de turmas"]) {
+    const card = screen.getByRole("button", { name });
+    expect(card).toBeDisabled();
+    expect(card.props.accessibilityHint).toContain("Em breve");
+    await fireEvent.press(card);
+  }
+  expect(screen.getAllByText("Em breve")).toHaveLength(3);
+  expect(screen.queryByLabelText("Buscar aluno nos relatórios")).toBeNull();
+  expect(teacher.reports).not.toHaveBeenCalled();
+  await fireEvent.press(screen.getByRole("button", { name: "Evolução por aluno" }));
+  expect(screen.getByPlaceholderText("Buscar aluno…")).toBeVisible();
+  await fireEvent.changeText(screen.getByLabelText("Buscar aluno nos relatórios"), "ninguém");
+  expect(await screen.findByText("Nenhum aluno encontrado")).toBeVisible();
+  await fireEvent.press(screen.getByRole("button", { name: "Voltar" }));
+  expect(screen.getByRole("button", { name: "Evolução por aluno" })).toBeVisible();
 });
