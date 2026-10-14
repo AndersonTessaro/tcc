@@ -41,6 +41,8 @@ erDiagram
 
     STUDENT ||--o{ PRACTICE : "registra"
     INSTRUMENT |o--o{ PRACTICE : "de"
+    TEACHER ||--o{ TEACHER_STUDENT_NOTE : "anota"
+    STUDENT ||--o{ TEACHER_STUDENT_NOTE : "recebe"
     STUDENT ||--o{ GOAL : "persegue"
     TEACHER |o--o{ GOAL : "atribui"
 
@@ -179,9 +181,19 @@ erDiagram
         uuid instrument_id FK "nullable"
         date date
         int duration_min
-        string notes
+        string notes "o que praticou"
+        string difficulty "nullable"
+        int rating "1..5, nullable"
         int xp_earned
         timestamp created_at
+    }
+    TEACHER_STUDENT_NOTE {
+        uuid id PK
+        uuid teacher_id FK
+        uuid student_id FK
+        string private_notes "só o professor"
+        string shared_notes "aluno lê"
+        timestamp updated_at
     }
     GOAL {
         uuid id PK
@@ -253,7 +265,7 @@ Construído **completo já no MVP** (fundação de segurança), JWT RSA + Refres
 | Domínio | Permissões |
 |---|---|
 | auth | `auth.user.manage`, `auth.role.manage`, `auth.permission.manage` |
-| aluno | `aluno.read`, `aluno.manage` |
+| aluno | `aluno.read`, `aluno.manage`, `aluno.register`, `aluno.update`, `nota.read` |
 | professor | `professor.read`, `professor.manage` |
 | matrícula | `matricula.manage` |
 | instrumento | `instrumento.manage` |
@@ -266,8 +278,8 @@ Construído **completo já no MVP** (fundação de segurança), JWT RSA + Refres
 | config | `config.manage` |
 
 #### Seed de roles → permissões
-- **ALUNO** — `aula.read`, `material.read`, `meta.read`, `meta.manage`, `pratica.register`, `progresso.read` (sempre + ownership = só os próprios).
-- **PROFESSOR** — `aluno.read`, `aula.read`, `aula.manage`, `frequencia.manage`, `material.read`, `material.manage`, `meta.read`, `meta.manage`, `relatorio.read` (+ ownership = só alunos vinculados).
+- **ALUNO** — `aula.read`, `material.read`, `meta.read`, `meta.manage`, `pratica.register`, `progresso.read`, `nota.read` (sempre + ownership = só os próprios).
+- **PROFESSOR** — `aluno.read`, `aula.read`, `aula.manage`, `frequencia.manage`, `material.read`, `material.manage`, `meta.read`, `meta.manage`, `relatorio.read`, `aluno.register` (cadastra aluno já matriculado consigo), `aluno.update` (nome, telefone, notas; exige matrícula ativa) (+ ownership = só alunos vinculados).
 - **ADMIN** — todas. `hasRole('ADMIN')` faz bypass de ownership (RN13).
 
 ### Estrutura pedagógica
@@ -278,6 +290,7 @@ Construído **completo já no MVP** (fundação de segurança), JWT RSA + Refres
 | **Turma** | Organização (RF24, RN05) | Só agrupa; aula não depende dela (RN04). |
 | **Matricula** | **Vínculo central** (RF22) | aluno+professor+instrumento+turma?. Base de RN11/RN12. Instrumentos do aluno (RN01) = distintos nas matrículas. |
 | **Horario** | Agenda recorrente (RF17/RF25) | Slot semanal por matrícula; gera aulas. |
+| **NotaProfessorAluno** | Notas do professor sobre o aluno (V13) | Uma linha por par professor↔aluno: `private_notes` (só aquele professor) e `shared_notes` (o aluno lê em `GET /me/teacher-notes`). Outro professor do mesmo aluno não vê nenhuma. |
 
 ### Aulas, frequência, reposição
 | Entidade | Papel | Notas |
@@ -295,7 +308,7 @@ Construído **completo já no MVP** (fundação de segurança), JWT RSA + Refres
 ### Gamificação (diferencial)
 | Entidade | Papel | Notas |
 |---|---|---|
-| **Pratica** | Prática em casa (RF07) | Gera `xp_ganho`; alimenta Progresso/streak. |
+| **Pratica** | Prática em casa (RF07) | Gera `xp_ganho` (só pela duração); alimenta Progresso/streak. `notes` = o que praticou; `difficulty` e `rating` (1–5) são campos próprios desde V14 (V15 separou os registros antigos). |
 | **Progresso** | Agregado 1:1 aluno (RF03/RF08) | XP, nível, sequência, tempo total. Cache de RN07. |
 | **Meta** | Metas do aluno (RF09) | Ativas/Concluídas (telas Figma). Opcionalmente atribuída por professor. |
 

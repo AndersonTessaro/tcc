@@ -19,6 +19,11 @@ Este é o dicionário canônico — usar SEMPRE estes nomes ao criar/renomear c�
 | AnexoAula | LessonAttachment |
 | Material | Material |
 | Pratica | Practice |
+| Dificuldade (da prática) | difficulty |
+| Avaliação / humor (da prática) | rating |
+| NotaProfessorAluno | TeacherStudentNote |
+| Anotações do professor | private_notes |
+| Observação para o aluno | shared_notes |
 | Progresso | Progress |
 | Meta | Goal |
 | Horario | Schedule |
@@ -46,6 +51,8 @@ Este é o dicionário canônico — usar SEMPRE estes nomes ao criar/renomear c�
 | PT | EN |
 |----|----|
 | aluno.read / aluno.manage | student.read / student.manage |
+| aluno.register / aluno.update | student.register / student.update |
+| nota.read | note.read |
 | professor.read / professor.manage | teacher.read / teacher.manage |
 | matricula.manage | enrollment.manage |
 | instrumento.manage | instrument.manage |
