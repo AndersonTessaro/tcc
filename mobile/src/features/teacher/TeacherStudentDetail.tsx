@@ -8,26 +8,18 @@ import { addDays, formatFullDate, formatMinutes, todayIso } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
-import { ChipGroup } from "@/ui/Chip";
 import { ListRow } from "@/ui/ListRow";
-import { ScreenHeader } from "@/ui/ScreenHeader";
 import { ScreenState } from "@/ui/ScreenState";
 import { colors, radius, space, type } from "@/ui/theme";
 import { AttendanceCalendar, attendanceSummary } from "./AttendanceCalendar";
 import { hhmm, lessonStatusLabel, scheduleHref } from "./agenda";
 import { MaterialUpload } from "./MaterialUpload";
+import { practiceDetails } from "./practiceNotes";
 import { teacherService, type TeacherStudentMaterial } from "./teacherService";
 import { TeacherStudentMetrics } from "./TeacherStudentMetrics";
-
-type Tab = "summary" | "lessons" | "attendance" | "practice" | "materials";
-
-const TABS: { value: Tab; label: string }[] = [
-  { value: "summary", label: "Resumo" },
-  { value: "lessons", label: "Aulas" },
-  { value: "attendance", label: "Frequência" },
-  { value: "practice", label: "Prática" },
-  { value: "materials", label: "Materiais" },
-];
+import { TeacherStackHeader } from "./TeacherStackHeader";
+import { TeacherStudentIdentity } from "./TeacherStudentIdentity";
+import { TeacherStudentSections, type StudentSection } from "./TeacherStudentSections";
 
 const RECENT_DAYS = 29;
 
@@ -53,7 +45,7 @@ async function loadStudent(id: string) {
 export default function TeacherStudentDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("summary");
+  const [tab, setTab] = useState<StudentSection>("summary");
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const resource = useResource(() => loadStudent(id), id ?? "");
   const { data, setData } = resource;
@@ -77,38 +69,39 @@ export default function TeacherStudentDetail() {
         return (
           <>
             <TeacherStudentMetrics attendanceRate={recentRate} weeklyPracticeMin={detail.weeklyPracticeMin} xp={detail.progress?.xpTotal ?? 0} level={detail.progress?.level ?? 1} />
-            <Card style={styles.info}>
-              <Text style={styles.infoLabel}>Próxima meta</Text>
-              <Text style={styles.infoText}>{detail.nextGoal || "Nenhuma meta ativa"}</Text>
-            </Card>
-            <Card style={styles.info}>
-              <Text style={styles.infoLabel}>Data da matrícula</Text>
-              <Text style={styles.infoText}>{formatFullDate(detail.enrollmentDate.slice(0, 10))}</Text>
-            </Card>
-            <Button label="Nova aula" icon="add" onPress={newLesson} />
+            <View style={styles.information}>
+              <Card style={styles.info}>
+                <Text style={styles.infoLabel}>Próxima meta</Text>
+                <Text style={styles.infoText}>{detail.nextGoal || "Nenhuma meta ativa"}</Text>
+              </Card>
+              <Card style={styles.info}>
+                <Text style={styles.infoLabel}>Data da matrícula</Text>
+                <Text style={styles.infoText}>{formatFullDate(detail.enrollmentDate.slice(0, 10))}</Text>
+              </Card>
+            </View>
           </>
         );
       case "lessons":
-        return (
-          <>
-            <Button label="Nova aula" icon="add" onPress={newLesson} />
-            {lessons.length ? (
-              <Card style={styles.listCard}>
-                {lessons.map((lesson) => (
-                  <ListRow
-                    key={lesson.id}
-                    title={`${formatFullDate(lesson.date)} · ${hhmm(lesson.startTime)}`}
-                    subtitle={[lesson.content || lesson.instrument, lesson.homework ? `Tarefa: ${lesson.homework}` : null, lessonStatusLabel(lesson.status)].filter(Boolean).join(" · ")}
-                    accessibilityLabel={`Aula de ${formatFullDate(lesson.date)} às ${hhmm(lesson.startTime)}, ${lessonStatusLabel(lesson.status)}. Abrir na agenda`}
-                    onPress={() => router.push(scheduleHref(lesson.date))}
-                  />
-                ))}
+        return lessons.length ? (
+          <View style={styles.lessons}>
+            {lessons.map((lesson) => (
+              <Card
+                key={lesson.id}
+                style={styles.lessonCard}
+                accessibilityLabel={"Aula de " + formatFullDate(lesson.date) + " às " + hhmm(lesson.startTime) + ", " + lessonStatusLabel(lesson.status) + ". Abrir na agenda"}
+                onPress={() => router.push(scheduleHref(lesson.date))}
+              >
+                <View style={styles.lessonDateRow}>
+                  <Text style={styles.infoText}>{formatFullDate(lesson.date)} · {hhmm(lesson.startTime)}</Text>
+                  <Ionicons name="chevron-forward" size={18} color={colors.muted} accessible={false} />
+                </View>
+                <Text numberOfLines={1} style={styles.lessonTitle}>{lesson.content?.split("\n")[0] || lesson.instrument}</Text>
+                <Text numberOfLines={1} style={styles.infoText}>{lesson.homework || "Sem tarefa para casa"}</Text>
+                <Text style={styles.caption}>{lessonStatusLabel(lesson.status)}</Text>
               </Card>
-            ) : (
-              <ScreenState icon="musical-notes-outline" title="Nenhuma aula registrada" />
-            )}
-          </>
-        );
+            ))}
+          </View>
+        ) : <ScreenState icon="musical-notes-outline" title="Nenhuma aula registrada" />;
       case "attendance":
         return (
           <>
@@ -117,7 +110,7 @@ export default function TeacherStudentDetail() {
               <Text accessibilityRole="header" style={styles.infoLabel}>Resumo do mês</Text>
               <View style={styles.summaryRow}>
                 <View style={styles.summaryItem}><Text style={styles.summaryValue}>{monthly.rate}%</Text><Text style={styles.caption}>Frequência</Text></View>
-                <View style={styles.summaryItem}><Text style={styles.summaryValue}>{monthly.present}/{monthly.total}</Text><Text style={styles.caption}>Aulas com presença</Text></View>
+                <View style={styles.summaryCount}><Text style={styles.summaryValue}>{monthly.present}/{monthly.total}</Text><Text style={styles.caption}>Aulas com presença</Text></View>
               </View>
             </Card>
           </>
@@ -134,7 +127,7 @@ export default function TeacherStudentDetail() {
               <Card style={styles.listCard}>
                 {practices.slice(0, 10).map((item) => (
                   <View key={item.id}>
-                    <ListRow title={`${formatFullDate(item.date)} · ${formatMinutes(item.durationMin)}`} subtitle={item.notes || "Sem observações"} />
+                    <ListRow title={`${formatFullDate(item.date)} · ${formatMinutes(item.durationMin)}`} subtitle={item.notes ? practiceDetails(item.notes).activity : "Sem observações"} onPress={() => router.push({ pathname: "/(teacher)/practice/[id]", params: { id: item.id, practiceId: item.id, studentId: id } })} />
                     <PracticeRecordingDownload practice={item} download={teacherService.downloadPracticeRecording} prefix="Gravação: " />
                   </View>
                 ))}
@@ -169,28 +162,32 @@ export default function TeacherStudentDetail() {
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScreenHeader title="Aluno" back />
+      <TeacherStackHeader />
       {resource.loading ? (
         <ScreenState loading skeleton />
       ) : resource.error || !data ? (
         <ScreenState message={apiErrorMessage(resource.error, "Não foi possível carregar o aluno.")} retry={() => void resource.reload()} />
       ) : (
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets
-          refreshControl={<RefreshControl refreshing={resource.refreshing} onRefresh={resource.refresh} tintColor={colors.primary} colors={[colors.primary]} />}
-        >
+        <>
           <View style={styles.profile}>
-            <Ionicons name="person-circle" size={64} color={colors.primary} accessible={false} />
-            <View style={styles.profileText}>
-              <Text accessibilityRole="header" style={styles.name}>{data.name ?? "Aluno"}</Text>
-              <Text style={styles.caption}>{data.instruments.join(", ") || "Instrumento não informado"}</Text>
-            </View>
+            <TeacherStudentIdentity name={data.name ?? "Aluno"} instrument={data.instruments.join(", ") || "Instrumento não informado"} />
           </View>
-          <ChipGroup label="Seções do aluno" role="tab" options={TABS} value={tab} onChange={setTab} scroll />
-          {renderTab()}
-        </ScrollView>
+          <TeacherStudentSections value={tab} onChange={setTab} />
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+            automaticallyAdjustKeyboardInsets
+            refreshControl={<RefreshControl refreshing={resource.refreshing} onRefresh={resource.refresh} tintColor={colors.primary} colors={[colors.primary]} />}
+          >
+            {renderTab()}
+          </ScrollView>
+          {tab === "lessons" || tab === "summary" ? (
+            <View style={styles.footer}>
+              <Button label="Nova aula" onPress={newLesson} style={styles.newLesson} />
+            </View>
+          ) : null}
+        </>
       )}
     </KeyboardAvoidingView>
   );
@@ -198,18 +195,25 @@ export default function TeacherStudentDetail() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.screen },
-  content: { paddingHorizontal: space.lg, paddingBottom: space.xxxl, gap: space.md, flexGrow: 1 },
-  profile: { flexDirection: "row", alignItems: "center", gap: space.lg },
-  profileText: { flex: 1, gap: space.xs },
-  name: { ...type.title },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: space.lg, paddingTop: space.lg, paddingBottom: space.xl, gap: space.md, flexGrow: 1 },
+  profile: { paddingHorizontal: space.xxxl + space.lg, paddingVertical: space.xxl },
+  footer: { paddingHorizontal: space.xl, paddingTop: space.md, paddingBottom: space.xl },
+  newLesson: { minHeight: 48, borderRadius: radius.sm },
+  information: { gap: space.xs, marginTop: space.xxl },
+  lessons: { gap: 18 },
+  lessonCard: { borderRadius: radius.sm, minHeight: 95, padding: 10, gap: space.sm },
+  lessonDateRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  lessonTitle: { ...type.body, fontWeight: "700" },
   caption: { ...type.caption },
-  info: { gap: space.xs },
+  info: { gap: space.xs, borderRadius: radius.sm, padding: 10, minHeight: 56 },
   infoLabel: { ...type.label },
   infoText: { ...type.body },
   sectionTitle: { ...type.heading, marginTop: space.sm },
   listCard: { padding: 0, overflow: "hidden", borderRadius: radius.lg },
-  monthSummary: { gap: space.sm },
-  summaryRow: { flexDirection: "row", gap: space.lg },
-  summaryItem: { flex: 1, gap: 2 },
+  monthSummary: { gap: space.sm, borderRadius: 0, padding: space.md },
+  summaryRow: { flexDirection: "row", gap: space.lg, justifyContent: "space-between" },
+  summaryItem: { gap: 2 },
+  summaryCount: { gap: 2, alignItems: "flex-end" },
   summaryValue: { ...type.title },
 });
