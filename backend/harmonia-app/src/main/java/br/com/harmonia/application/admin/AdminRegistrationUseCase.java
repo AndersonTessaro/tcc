@@ -42,6 +42,12 @@ public class AdminRegistrationUseCase {
     }
 
     private User newUser(String username, String email, String password, String name, String role) {
+        if (users.findByUsername(username).isPresent()) {
+            throw new DuplicateResourceException("Username already in use");
+        }
+        if (users.findByEmail(email).isPresent()) {
+            throw new DuplicateResourceException("Email already in use");
+        }
         User u = new User();
         u.setUsername(username);
         u.setEmail(email);
@@ -52,9 +58,10 @@ public class AdminRegistrationUseCase {
     }
 
     @Transactional
-    public UUID createStudent(String username, String email, String password, String name) {
+    public UUID createStudent(String username, String email, String password, String name, String phone) {
         Student s = new Student();
         s.setUser(newUser(username, email, password, name, "STUDENT"));
+        s.setPhone(phone);
         return students.save(s).getId();
     }
 

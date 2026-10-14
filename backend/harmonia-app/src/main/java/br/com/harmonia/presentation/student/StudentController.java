@@ -1,6 +1,8 @@
 package br.com.harmonia.presentation.student;
 
 import br.com.harmonia.application.lesson.StudentLessonUseCase;
+import br.com.harmonia.application.student.StudentNoteUseCase;
+import br.com.harmonia.presentation.response.SharedNoteResponse;
 import br.com.harmonia.application.gamification.GoalUseCase;
 import br.com.harmonia.application.gamification.PracticeUseCase;
 import br.com.harmonia.application.gamification.PracticeRecordingUseCase;
@@ -46,22 +48,30 @@ public class StudentController {
     private final GoalUseCase goal;
     private final StudentLessonUseCase lesson;
     private final StudentMaterialUseCase material;
+    private final StudentNoteUseCase notes;
     private final GamificationService gamification = new GamificationService();
 
     public StudentController(ProgressUseCase progress, PracticeUseCase practice, GoalUseCase goal,
                             StudentLessonUseCase lesson, StudentMaterialUseCase material,
-                            PracticeRecordingUseCase recording) {
+                            PracticeRecordingUseCase recording, StudentNoteUseCase notes) {
         this.progress = progress;
         this.practice = practice;
         this.goal = goal;
         this.lesson = lesson;
         this.material = material;
         this.recording = recording;
+        this.notes = notes;
     }
 
     public record RegisterPractice(@Min(1) int durationMin, LocalDate date, String notes) {}
     public record AttendanceResponse(LocalDate date, AttendanceStatus status) {}
     public record NewGoal(@NotBlank String title, String description, @NotNull GoalType type, @Min(1) int target) {}
+
+    @GetMapping("/teacher-notes")
+    @PreAuthorize("hasAuthority('note.read')")
+    public List<SharedNoteResponse> teacherNotes() {
+        return notes.sharedWithMe().stream().map(SharedNoteResponse::of).toList();
+    }
 
     @GetMapping("/dashboard")
     @PreAuthorize("hasAuthority('progress.read')")
