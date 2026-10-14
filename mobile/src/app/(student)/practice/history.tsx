@@ -1,7 +1,7 @@
 import { FlatList, Image, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { PracticeRecordingDownload } from "@/features/student/PracticeRecordingDownload";
-import { practiceMoods, practiceRating } from "@/features/student/practiceMood";
+import { practiceMoods } from "@/features/student/practiceMood";
 import { studentService, type StudentPractice } from "@/features/student/studentService";
 import { useResource } from "@/hooks/use-resource";
 import { formatMinutes, relativeDayLabel } from "@/lib/format";
@@ -39,7 +39,7 @@ export default function PracticeHistory() {
 }
 
 function PracticeRow({ practice }: { practice: StudentPractice }) {
-  const rating = practiceRating(practice.notes);
+  const rating = practice.rating;
   return (
     <Card variant="outlined" style={styles.row}>
       <View style={styles.details}>
