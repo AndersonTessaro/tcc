@@ -7,6 +7,7 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ push: jest.fn() }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
+jest.mock("@/features/notifications/notificationService", () => ({ notificationService: { unreadCount: jest.fn().mockResolvedValue({ unreadCount: 0 }) } }));
 jest.mock("../teacherService", () => ({ teacherService: { dashboard: jest.fn(), attendance: jest.fn() } }));
 
 const service = teacherService as jest.Mocked<typeof teacherService>;

@@ -6,6 +6,7 @@ import { haptics } from "@/lib/haptics";
 import { colors } from "@/ui/theme";
 
 const activeTabs: Record<string, string> = {
+  notifications: "dashboard",
   student: "students",
   "student-form": "students",
   practice: "students",

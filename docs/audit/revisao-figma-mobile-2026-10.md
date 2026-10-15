@@ -84,6 +84,7 @@ Revisão Codex em 31 achados. Gate 1:
 | T-028 | 29 relatórios | ACEITO | Menu com as 4 categorias, todas com dados (frequência, prática em casa, evolução por aluno, desempenho de turmas). O Figma só desenha o menu; as telas internas seguem o estilo do app |
 | T-029 | 30 mais | ACEITO | "Ver perfil" abre a conta real; nome e bio editáveis, e-mail/usuário e instrumentos somente leitura |
 | T-030–031 | 30, 23 | ACEITO | Lista de "Mais" sem blocos; números com `Intl` pt-BR |
+| ADD-09 | 21 dashboard e central | IMPLEMENTADO | Sino com contador de não lidas (até "9+"), recarga no foco/pull-to-refresh e central no Stack; lista acessível com leitura individual/em lote e acesso à prática, aula, aluno ou Agenda. A lista segue o estilo do app, sem tela própria no Figma |
 | ADD-08 | 30 mais | ACEITO (dono) | Menu completo na ordem Perfil → Turmas → Horários → Reposições → Histórico de aulas → Financeiro → Configurações → Ajuda → Sair; telas internas seguem o estilo do app, financeiro próprio somente leitura e troca da senha com encerramento da sessão |
 
 O Figma de "Mais" do professor mostra por engano a tab bar do aluno; mantida a do professor.
@@ -126,7 +127,7 @@ Conhecido: no web, `/lesson/<id>` digitado resolve a rota do aluno (mesmo caminh
 
 ## Pendências para decisão do dono
 
-Adições do Figma do professor que exigem backend: anexos e edição de aula (✅); os 3 relatórios agregados (✅); perfil, turmas, financeiro e configurações (✅ menu Mais implementado); notificações continuam pendentes.
+Adições do Figma do professor que exigem backend: anexos e edição de aula (✅); os 3 relatórios agregados (✅); perfil, turmas, financeiro e configurações (✅ menu Mais implementado); notificações (✅ central no app implementada, sem push).
 
 
 ## Menu Mais do professor (2026-10-15)
@@ -145,3 +146,21 @@ Resultado final:
 Gate 2 (revisão do diff): use cases importavam DTOs de `presentation.response` → records movidos para `application` (reposições: use case devolve entidade e o controller mapeia, como no `MakeupController`); histórico de aulas tinha ficado sem acesso → volta ao menu.
 
 Gate 3 (captura, API reiniciada com V17/V18, `prof.figma`, capturas `app-after/30*.png`): e-mail e usuário pareciam campos editáveis → viram texto só leitura; Ajuda citava "RN09" para o usuário → texto sem o código. Senha atual errada mostra o erro no próprio campo e a senha não muda. Mensalidade de R$ 250 definida pelo admin em duas matrículas do João (dados de dev) para conferir o total.
+
+
+## Notificações do professor (2026-10-15)
+
+Plano: `docs/superpowers/plans/2026-10-15-teacher-notifications.md`. A central é interna ao app, sem push. O sino da tela 21 abre a lista no Stack e mostra o contador de não lidas ("9+" acima de 9), atualizado ao ganhar foco e no pull-to-refresh. Falha no contador deixa o dashboard funcional. A lista usa os componentes e tokens do app, distingue não lidas por texto e aparência e permite leitura individual ou em lote; falhas de escrita restauram o estado e mostram toast. As navegações usam os parâmetros reais das telas, incluindo `studentId` no detalhe da prática.
+
+Backend: V19 cria `notification`; eventos de prática/meta notificam professores com matrícula ACTIVE, sem duplicar por matrícula. O listener participa da mesma transação, de modo que falha ao gravar a notificação faz a prática falhar (decisão do dono). Jobs de aulas do dia/presença pendente têm chave de deduplicação e removem notificações anteriores a 90 dias. O agendamento fica desabilitado em todos os testes pelo `src/test/resources/application.properties`, pois os ITs não ativam perfil Spring específico.
+
+| Verificação | Resultado |
+|---|---|
+| Backend unitários e compilação das fontes dos ITs | verde |
+| TypeScript | verde (`npx tsc --noEmit`) |
+| Jest | verde: 352 testes / 48 suítes (`npx jest --runInBand`) |
+| `git diff --check` | verde |
+| Backend ITs / `verify` completo | verde (executado fora do sandbox com Docker) |
+| Captura visual / dispositivo | não realizada neste ciclo |
+
+Revisão de código: corrigido o encolhimento do texto da saudação para manter o sino visível com fonte ampliada. Alterações deixadas no working tree, sem commit/push.
