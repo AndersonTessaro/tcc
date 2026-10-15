@@ -123,6 +123,26 @@ export type TeacherStudentMaterial = {
   createdAt: string;
 };
 
+export type AttendanceCounts = { due: number; present: number; absent: number; excused: number; unrecorded: number; rate: number | null };
+export type AttendanceReport = {
+  from: string;
+  to: string;
+  totals: AttendanceCounts;
+  students: { studentId: string; studentName: string; active: boolean; attendance: AttendanceCounts }[];
+};
+export type PracticeReport = {
+  from: string;
+  to: string;
+  totals: { totalMinutes: number; sessions: number; practicingStudents: number; linkedStudents: number; avgRating: number | null };
+  weeks: { weekStart: string; minutes: number }[];
+  students: { studentId: string; studentName: string; minutes: number; sessions: number; practiceDays: number; avgRating: number | null; lastPractice: string | null }[];
+};
+export type ClassReport = {
+  from: string;
+  to: string;
+  groups: { name: string; students: number; attendance: AttendanceCounts; practiceMinutes: number; avgPracticeMinPerStudent: number; avgRating: number | null }[];
+};
+
 export const teacherService = {
   instruments: () => api.get<TeacherInstrument[]>("/teacher/instruments"),
   createStudent: (body: NewTeacherStudent) => api.post<TeacherStudentProfile>("/teacher/students", body),
@@ -173,6 +193,12 @@ export const teacherService = {
   setScheduleActive: (scheduleId: string, active: boolean) =>
     api.patch<TeacherSchedule>(`/teacher/schedules/${scheduleId}/active`, { active }),
   reports: (studentId: string) => api.get<TeacherStudentDetailData>(`/teacher/reports?studentId=${studentId}`),
+  attendanceReport: (from: string, to: string) =>
+    api.get<AttendanceReport>(`/teacher/reports/attendance?from=${from}&to=${to}`),
+  practiceReport: (from: string, to: string) =>
+    api.get<PracticeReport>(`/teacher/reports/practice?from=${from}&to=${to}`),
+  classReport: (from: string, to: string) =>
+    api.get<ClassReport>(`/teacher/reports/classes?from=${from}&to=${to}`),
   uploadMaterial: (
     studentId: string,
     file: MaterialFile,

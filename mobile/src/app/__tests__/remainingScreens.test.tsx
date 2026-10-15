@@ -115,17 +115,12 @@ it("sends only one recovery request while submission is pending", async () => {
   expect(screen.getByText("Confira sua caixa de entrada")).toBeVisible();
 });
 
-it("offers individual evolution and marks the three aggregate reports as coming soon", async () => {
+it("enables the four report categories and opens the individual evolution", async () => {
   await render(<Reports />);
-  for (const name of ["Frequência dos alunos", "Prática em casa", "Desempenho de turmas"]) {
-    const card = screen.getByRole("button", { name });
-    expect(card).toBeDisabled();
-    expect(card.props.accessibilityHint).toContain("Em breve");
-    await fireEvent.press(card);
+  for (const name of ["Frequência dos alunos", "Prática em casa", "Evolução por aluno", "Desempenho de turmas"]) {
+    expect(screen.getByRole("button", { name })).toBeEnabled();
   }
-  expect(screen.getAllByText("Em breve")).toHaveLength(3);
-  expect(screen.queryByLabelText("Buscar aluno nos relatórios")).toBeNull();
-  expect(teacher.reports).not.toHaveBeenCalled();
+  expect(screen.queryByText("Em breve")).toBeNull();
   await fireEvent.press(screen.getByRole("button", { name: "Evolução por aluno" }));
   expect(screen.getByPlaceholderText("Buscar aluno…")).toBeVisible();
   await fireEvent.changeText(screen.getByLabelText("Buscar aluno nos relatórios"), "ninguém");

@@ -81,7 +81,7 @@ Revisão Codex em 31 achados. Gate 1:
 | T-024–025 | 22/28/29 | ACEITO | Busca "…"; Agenda com calendário do mês (`MonthCalendar`) |
 | T-026 | 28 agenda | PARCIAL | Linha compacta hora/nome, mas a chamada de presença continua visível (função do app) |
 | T-027 | 22/28/29 | REJEITADO | Banner de erro sobre listas (mesma decisão do `use-resource` no aluno) |
-| T-028 | 29 relatórios | PARCIAL | Menu com as 4 categorias; só "Evolução por aluno" tem dados — as outras 3 aparecem "Em breve" |
+| T-028 | 29 relatórios | ACEITO | Menu com as 4 categorias, todas com dados (frequência, prática em casa, evolução por aluno, desempenho de turmas). O Figma só desenha o menu; as telas internas seguem o estilo do app |
 | T-029 | 30 mais | REJEITADO → adição | "Ver perfil" exige tela de perfil (backend) |
 | T-030–031 | 30, 23 | ACEITO | Lista de "Mais" sem blocos; números com `Intl` pt-BR |
 
@@ -125,4 +125,4 @@ Conhecido: no web, `/lesson/<id>` digitado resolve a rota do aluno (mesmo caminh
 
 ## Pendências para decisão do dono
 
-Adições do Figma do professor que exigem backend: anexos e edição de aula; os 3 relatórios agregados; perfil, turmas, financeiro, configurações e notificações.
+Adições do Figma do professor que exigem backend: anexos e edição de aula (✅); os 3 relatórios agregados (✅); perfil, turmas, financeiro, configurações e notificações.
