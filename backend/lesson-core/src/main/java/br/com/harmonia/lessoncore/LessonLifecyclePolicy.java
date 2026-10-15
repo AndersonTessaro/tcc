@@ -18,6 +18,28 @@ public final class LessonLifecyclePolicy {
         return lessonDate.isAfter(today) ? SessionStatus.SCHEDULED : SessionStatus.DONE;
     }
 
+    public void validateContentEdit(SessionStatus current) {
+        Objects.requireNonNull(current, "current status is required");
+        if (current == SessionStatus.CANCELED) {
+            throw new DomainValidationException("Canceled lessons cannot be edited");
+        }
+    }
+
+    public void validateReschedule(SessionStatus current, LocalDate newDate, LocalDate today, boolean hasAttendance) {
+        Objects.requireNonNull(current, "current status is required");
+        Objects.requireNonNull(newDate, "newDate is required");
+        Objects.requireNonNull(today, "today is required");
+        if (current != SessionStatus.SCHEDULED) {
+            throw new DomainValidationException("Only scheduled lessons can be rescheduled");
+        }
+        if (newDate.isBefore(today)) {
+            throw new DomainValidationException("Lesson cannot be moved to a past date");
+        }
+        if (hasAttendance) {
+            throw new DomainValidationException("Lesson with recorded attendance cannot be rescheduled");
+        }
+    }
+
     public void validateTransition(SessionStatus current, SessionStatus next) {
         Objects.requireNonNull(current, "current status is required");
         Objects.requireNonNull(next, "next status is required");
