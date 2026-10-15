@@ -10,6 +10,15 @@ import { StatusChip } from "@/ui/StatusChip";
 import { TextField } from "@/ui/TextField";
 import { useToast } from "@/ui/Toast";
 
+function ReadOnlyField({ label, value }: { label: string; value: string }) {
+  return (
+    <View accessible accessibilityLabel={`${label}: ${value}`}>
+      <Text style={styles.caption}>{label}</Text>
+      <Text style={styles.body}>{value}</Text>
+    </View>
+  );
+}
+
 function ProfileForm({ account, onSaved }: { account: Account; onSaved: (account: Account) => void }) {
   const toast = useToast();
   const nameRef = useRef<TextInput>(null);
@@ -46,8 +55,8 @@ function ProfileForm({ account, onSaved }: { account: Account; onSaved: (account
   return (
     <Card style={styles.card}>
       <TextField ref={nameRef} label="Nome" value={displayName} onChangeText={(value) => setEditedName(value === account.displayName ? undefined : value)} error={errors.name} editable={!busy} />
-      <TextField label="E-mail" value={account.email} editable={false} />
-      <TextField label="Usuário" value={account.username} editable={false} />
+      <ReadOnlyField label="E-mail" value={account.email} />
+      <ReadOnlyField label="Usuário" value={account.username} />
       <Text style={styles.caption}>Para alterar, fale com a secretaria</Text>
       {account.teacher ? <>
         <TextField ref={bioRef} label="Bio" value={bio} onChangeText={(value) => setEditedBio(value === (account.teacher?.bio ?? "") ? undefined : value)} error={errors.bio} multiline editable={!busy} />
