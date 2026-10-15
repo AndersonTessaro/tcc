@@ -14,6 +14,12 @@ const activeTabs: Record<string, string> = {
   history: "schedule",
   makeup: "schedule",
   schedules: "more",
+  profile: "more",
+  classes: "more",
+  makeups: "more",
+  finance: "more",
+  settings: "more",
+  help: "more",
 };
 
 export default function TeacherLayout() {
