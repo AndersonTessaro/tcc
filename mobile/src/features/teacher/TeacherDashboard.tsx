@@ -6,6 +6,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useResource } from "@/hooks/use-resource";
+import { NotificationBell } from "@/features/notifications/NotificationBell";
+import { notificationService } from "@/features/notifications/notificationService";
 import { formatLessonWhen, formatMinutes, todayIso } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
@@ -32,6 +34,8 @@ export default function TeacherDashboard() {
   const [recorded, setRecorded] = useState<Record<string, AttendanceStatus | null>>({});
   const dashboard = useResource(() => teacherService.dashboard(selectedClass || undefined), selectedClass);
   const { reload } = dashboard;
+  const unread = useResource(() => notificationService.unreadCount().catch(() => ({ unreadCount: 0 })));
+  const refresh = () => Promise.all([dashboard.refresh(), unread.refresh()]);
 
   useEffect(() => { setRecorded({}); }, [dashboard.data]);
 
@@ -50,15 +54,17 @@ export default function TeacherDashboard() {
       <StatusBar style="light" />
       <ScrollView
         ref={scrollRef}
+        accessibilityLabel="Painel do professor"
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={dashboard.refreshing} onRefresh={dashboard.refresh} tintColor={colors.onBrand} colors={[colors.primary]} />}
+        refreshControl={<RefreshControl refreshing={dashboard.refreshing || unread.refreshing} onRefresh={refresh} tintColor={colors.onBrand} colors={[colors.primary]} />}
       >
         <LinearGradient colors={brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.header, { paddingTop: insets.top + space.xxl }]}>
           <View style={styles.helloRow}>
             <Text accessibilityRole="header" style={styles.hello}>Olá, Professor!</Text>
             <Image source={waveIcon} accessible={false} style={styles.wave} />
+            <View style={styles.bell}><NotificationBell unreadCount={unread.data?.unreadCount ?? 0} /></View>
           </View>
           <Text style={styles.subtitle}>Aqui está o resumo das suas atividades</Text>
         </LinearGradient>
@@ -205,8 +211,9 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1, paddingBottom: space.xxxl },
   header: { minHeight: 180, paddingHorizontal: space.xxl, paddingBottom: 64 },
   helloRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  hello: { ...type.display, color: colors.onBrand, fontWeight: "600" },
+  hello: { ...type.display, color: colors.onBrand, fontWeight: "600", flexShrink: 1 },
   wave: { width: 27, height: 27 },
+  bell: { marginLeft: "auto", flexShrink: 0 },
   subtitle: { ...type.body, color: colors.onBrandMuted, marginTop: space.xs },
   content: { marginTop: -44, paddingHorizontal: space.screenGutter, gap: space.md },
   skeleton: { gap: space.md },

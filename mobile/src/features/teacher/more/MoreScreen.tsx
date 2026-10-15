@@ -9,11 +9,11 @@ import { colors, space, type } from "@/ui/theme";
 
 type LoadState = Pick<Resource<unknown>, "loading" | "error" | "refreshing" | "refresh" | "reload">;
 
-export function MoreScreen({ title, resource, children }: { title: string; resource?: LoadState; children: ReactNode }) {
+export function MoreScreen({ title, resource, action, children }: { title: string; resource?: LoadState; action?: ReactNode; children: ReactNode }) {
   return (
     <KeyboardAvoidingView style={moreStyles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <StatusBar style="dark" />
-      <ScreenHeader title={title} back />
+      <ScreenHeader title={title} back action={action} />
       <ScrollView accessibilityLabel={title} contentContainerStyle={moreStyles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets
         refreshControl={resource ? <RefreshControl refreshing={resource.refreshing} onRefresh={resource.refresh} tintColor={colors.primary} colors={[colors.primary]} /> : undefined}>
         {resource?.loading ? <ScreenState loading skeleton /> : resource?.error ?
