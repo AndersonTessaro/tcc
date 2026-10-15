@@ -1,6 +1,7 @@
 package br.com.harmonia.presentation.student;
 
 import br.com.harmonia.application.lesson.StudentLessonUseCase;
+import br.com.harmonia.application.lesson.LessonAttachmentUseCase;
 import br.com.harmonia.application.student.StudentNoteUseCase;
 import br.com.harmonia.presentation.response.SharedNoteResponse;
 import br.com.harmonia.application.gamification.GoalUseCase;
@@ -49,13 +50,15 @@ public class StudentController {
     private final PracticeRecordingUseCase recording;
     private final GoalUseCase goal;
     private final StudentLessonUseCase lesson;
+    private final LessonAttachmentUseCase attachments;
     private final StudentMaterialUseCase material;
     private final StudentNoteUseCase notes;
     private final GamificationService gamification = new GamificationService();
 
     public StudentController(ProgressUseCase progress, PracticeUseCase practice, GoalUseCase goal,
                             StudentLessonUseCase lesson, StudentMaterialUseCase material,
-                            PracticeRecordingUseCase recording, StudentNoteUseCase notes) {
+                            PracticeRecordingUseCase recording, StudentNoteUseCase notes,
+                            LessonAttachmentUseCase attachments) {
         this.progress = progress;
         this.practice = practice;
         this.goal = goal;
@@ -63,6 +66,7 @@ public class StudentController {
         this.material = material;
         this.recording = recording;
         this.notes = notes;
+        this.attachments = attachments;
     }
 
     public record RegisterPractice(@Min(1) int durationMin, LocalDate date, @Size(max = 500) String notes,
@@ -105,6 +109,13 @@ public class StudentController {
     @PreAuthorize("hasAuthority('lesson.read')")
     public LessonDetailResponse lessonDetail(@PathVariable UUID id) {
         return LessonDetailResponse.of(lesson.detail(id), lesson.attachments(id));
+    }
+
+    @GetMapping("/lessons/{id}/attachments/{attachmentId}")
+    @PreAuthorize("hasAuthority('lesson.read')")
+    public ResponseEntity<byte[]> downloadLessonAttachment(@PathVariable UUID id, @PathVariable UUID attachmentId) {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM)
+            .body(attachments.downloadAsStudent(id, attachmentId));
     }
 
     @GetMapping("/materials")
