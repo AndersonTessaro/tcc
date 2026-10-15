@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
-import Schedule from "@/app/(teacher)/(tabs)/schedule";
+import Schedule from "@/app/teacher/(tabs)/schedule";
 import { teacherService, type TeacherLesson } from "@/features/teacher/teacherService";
 import { formatFullDate, parseIsoDate, toIsoDate, todayIso } from "@/lib/format";
 import { shiftMonth } from "@/lib/format/calendar";
@@ -124,7 +124,7 @@ describe("Schedule screen", () => {
     await fireEvent.press(await screen.findByRole("button", { name: "Repor" }));
 
     expect(mockPush).toHaveBeenCalledWith({
-      pathname: "/(teacher)/makeup/[lessonId]",
+      pathname: "/teacher/makeup/[lessonId]",
       params: { lessonId: "l1", studentName: "Ana Souza", instrument: "Piano", originalDate: today },
     });
   });
@@ -172,6 +172,6 @@ describe("Schedule screen", () => {
     await screen.findByText("Sem aulas neste dia");
     await fireEvent.press(screen.getAllByRole("button", { name: "Nova aula" })[0]);
 
-    expect(mockPush).toHaveBeenCalledWith({ pathname: "/(teacher)/new-lesson", params: { date: today } });
+    expect(mockPush).toHaveBeenCalledWith({ pathname: "/teacher/new-lesson", params: { date: today } });
   });
 });

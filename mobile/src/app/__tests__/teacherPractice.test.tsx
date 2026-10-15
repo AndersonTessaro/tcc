@@ -113,7 +113,7 @@ it("opens the selected practice with both student and practice identifiers", asy
   await screen.findByText("João");
   await fireEvent.press(screen.getByRole("tab", { name: "Prática" }));
   await fireEvent.press(screen.getByText("Estudo 0"));
-  expect(mockPush).toHaveBeenCalledWith({ pathname: "/(teacher)/practice/[id]", params: { id: "practice-0", practiceId: "practice-0", studentId: "student-1" } });
+  expect(mockPush).toHaveBeenCalledWith({ pathname: "/teacher/practice/[id]", params: { id: "practice-0", practiceId: "practice-0", studentId: "student-1" } });
 });
 
 it("shows read-only practice fields using separate difficulty and rating and downloads the recording", async () => {
@@ -202,11 +202,11 @@ it("loads profile instead of the student list, shows separate visibility cards a
   expect(screen.getByText("Revisar postura")).toBeVisible();
   expect(screen.queryByRole("button", { name: "Nova aula" })).toBeNull();
   await fireEvent.press(screen.getByRole("button", { name: "Editar aluno" }));
-  expect(mockPush).toHaveBeenCalledWith({ pathname: "/(teacher)/student-form", params: { id: "student-1" } });
+  expect(mockPush).toHaveBeenCalledWith({ pathname: "/teacher/student-form", params: { id: "student-1" } });
   await fireEvent.press(screen.getByRole("tab", { name: "Aulas" }));
   expect(screen.queryByRole("button", { name: "Editar aluno" })).toBeNull();
   await fireEvent.press(screen.getByRole("button", { name: "Nova aula" }));
-  expect(mockPush).toHaveBeenCalledWith({ pathname: "/(teacher)/new-lesson", params: { studentId: "student-1" } });
+  expect(mockPush).toHaveBeenCalledWith({ pathname: "/teacher/new-lesson", params: { studentId: "student-1" } });
 });
 it("hides editing without student.update and shows empty notes", async () => {
   mockAuthorities = [];
@@ -224,6 +224,6 @@ it.each([true, false])("shows the add action only with student.register: %s", as
   await screen.findByText("João");
   if (allowed) {
     await fireEvent.press(screen.getByRole("button", { name: "Novo aluno" }));
-    expect(mockPush).toHaveBeenCalledWith("/(teacher)/student-form");
+    expect(mockPush).toHaveBeenCalledWith("/teacher/student-form");
   } else expect(screen.queryByRole("button", { name: "Novo aluno" })).toBeNull();
 });

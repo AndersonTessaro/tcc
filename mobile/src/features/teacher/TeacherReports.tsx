@@ -130,7 +130,7 @@ function IndividualReports({ onBack }: { onBack: () => void }) {
                 <Text style={styles.infoLabel}>Próxima meta</Text>
                 <Text style={styles.infoText}>{data.nextGoal || "Nenhuma meta ativa"}</Text>
               </Card>
-              <Button label="Ver detalhes do aluno" icon="person-outline" onPress={() => router.push(`/(teacher)/student/${selected.id}`)} />
+              <Button label="Ver detalhes do aluno" icon="person-outline" onPress={() => router.push(`/teacher/student/${selected.id}`)} />
             </>
           )}
         </ScrollView>

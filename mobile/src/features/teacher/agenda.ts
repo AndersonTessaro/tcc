@@ -49,4 +49,4 @@ export function weekDates(anchor: string): string[] {
 }
 
 // `at` makes re-opening the agenda on the same date a new navigation, so the tab re-applies it.
-export const scheduleHref = (date: string) => ({ pathname: "/(teacher)/schedule" as const, params: { date, at: String(Date.now()) } });
+export const scheduleHref = (date: string) => ({ pathname: "/teacher/schedule" as const, params: { date, at: String(Date.now()) } });

@@ -25,7 +25,7 @@ export default function StudentLayout() {
     router.dismissTo(`/(student)/(tabs)/${name}`);
   };
 
-  // A URL é a mesma nos dois grupos (/dashboard): sem isto a tela do outro perfil monta e chama a API antes do Guard redirecionar.
+  // Professor numa URL do aluno (ex.: /dashboard) não pode montar a tela, que chamaria /me/* (403) antes do Guard redirecionar.
   if (!user || isTeacher(user)) return null;
 
   return (

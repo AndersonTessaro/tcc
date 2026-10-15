@@ -224,7 +224,7 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
     const failed = await uploadPending(lessonId);
     if (failed.length) {
       toast.show(`Aula salva, mas ${failed.length} anexo(s) não foram enviados. Tente de novo na aula.`, "error");
-      router.replace({ pathname: "/(teacher)/lesson/[id]", params: { id: lessonId } });
+      router.replace({ pathname: "/teacher/lesson/[id]", params: { id: lessonId } });
       return;
     }
     if (attendanceError) {

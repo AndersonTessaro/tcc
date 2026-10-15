@@ -47,7 +47,7 @@ export default function TeacherDashboard() {
   const withRecorded = (lesson: TeacherLesson): TeacherLesson => ({ ...lesson, attendance: recorded[lesson.id] ?? lesson.attendance });
 
   const data = dashboard.data;
-  const openSchedule = (date?: string) => router.push(date ? scheduleHref(date) : "/(teacher)/schedule");
+  const openSchedule = (date?: string) => router.push(date ? scheduleHref(date) : "/teacher/schedule");
 
   return (
     <View style={styles.screen}>
@@ -96,9 +96,9 @@ export default function TeacherDashboard() {
               </Pressable>
 
               <View style={styles.metrics}>
-                <MetricCard title="Alunos" value={String(data.totalStudents)} action="Ver todos" icon="people-outline" onPress={() => router.push("/(teacher)/students")} />
+                <MetricCard title="Alunos" value={String(data.totalStudents)} action="Ver todos" icon="people-outline" onPress={() => router.push("/teacher/students")} />
                 <MetricCard title="Aulas hoje" value={String(data.todayLessons.length)} action="Ver agenda" icon="calendar-outline" onPress={() => openSchedule()} />
-                <MetricCard title="Frequência média" value={`${data.attendancePercent}%`} action="Ver relatórios" icon="document-text-outline" onPress={() => router.push("/(teacher)/reports")} />
+                <MetricCard title="Frequência média" value={`${data.attendancePercent}%`} action="Ver relatórios" icon="document-text-outline" onPress={() => router.push("/teacher/reports")} />
                 <MetricCard title="Prática (semana)" value={formatMinutes(data.weeklyPracticeMin)} icon="time-outline" />
               </View>
 

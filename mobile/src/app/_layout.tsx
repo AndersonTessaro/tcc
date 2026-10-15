@@ -20,8 +20,8 @@ function Guard() {
       return;
     }
     const teacher = isTeacher(user);
-    if (group !== (teacher ? "(teacher)" : "(student)")) {
-      router.replace(teacher ? "/(teacher)/dashboard" : "/(student)/dashboard");
+    if (group !== (teacher ? "teacher" : "(student)")) {
+      router.replace(teacher ? "/teacher/dashboard" : "/(student)/dashboard");
     }
   }, [user, restoring, segments, router]);
 

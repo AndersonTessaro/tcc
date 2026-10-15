@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import TeacherDashboard from "@/features/teacher/TeacherDashboard";
-import Notifications from "@/app/(teacher)/notifications";
+import Notifications from "@/app/teacher/notifications";
 import { notificationService, type Notification, type NotificationType } from "@/features/notifications/notificationService";
 import { notificationTime } from "@/features/notifications/NotificationsScreen";
 import { teacherService, type TeacherDashboardData } from "@/features/teacher/teacherService";
@@ -55,7 +55,7 @@ it.each([[1, "1", "1 não lida"], [3, "3", "3 não lidas"], [10, "9+", "10 não 
   const bell = await screen.findByRole("button", { name: `Notificações, ${unread}` });
   expect(screen.getByText(badge, { includeHiddenElements: true })).toHaveTextContent(badge);
   await fireEvent.press(bell);
-  expect(mockPush).toHaveBeenCalledWith("/(teacher)/notifications");
+  expect(mockPush).toHaveBeenCalledWith("/teacher/notifications");
 });
 
 it("keeps the dashboard usable without a badge when fetching the count fails", async () => {
@@ -98,10 +98,10 @@ it("distinguishes read and unread notifications with text as well as styling", a
 });
 
 it.each([
-  ["PRACTICE_RECORDED", { pathname: "/(teacher)/practice/[id]", params: { id: "practice-1", practiceId: "practice-1", studentId: "student-1" } }],
-  ["ATTENDANCE_MISSING", { pathname: "/(teacher)/lesson/[id]", params: { id: "lesson-1" } }],
-  ["GOAL_COMPLETED", { pathname: "/(teacher)/student/[id]", params: { id: "student-1" } }],
-  ["LESSONS_TODAY", "/(teacher)/(tabs)/schedule"],
+  ["PRACTICE_RECORDED", { pathname: "/teacher/practice/[id]", params: { id: "practice-1", practiceId: "practice-1", studentId: "student-1" } }],
+  ["ATTENDANCE_MISSING", { pathname: "/teacher/lesson/[id]", params: { id: "lesson-1" } }],
+  ["GOAL_COMPLETED", { pathname: "/teacher/student/[id]", params: { id: "student-1" } }],
+  ["LESSONS_TODAY", "/teacher/(tabs)/schedule"],
 ] as const)("marks %s as read and navigates with its required parameters", async (type, route) => {
   service.list.mockResolvedValue({ unreadCount: 1, items: [item(type)] });
   await render(<Notifications />);
@@ -116,7 +116,7 @@ it("opens an already read notification without another write", async () => {
   await render(<Notifications />);
   await fireEvent.press(await screen.findByRole("button", { name: /Meta concluída.*Lida/ }));
   expect(service.markRead).not.toHaveBeenCalled();
-  expect(mockPush).toHaveBeenCalledWith({ pathname: "/(teacher)/student/[id]", params: { id: "student-1" } });
+  expect(mockPush).toHaveBeenCalledWith({ pathname: "/teacher/student/[id]", params: { id: "student-1" } });
 });
 
 it("marks optimistically, prevents overlapping writes, then restores the unread state and shows an error on failure", async () => {

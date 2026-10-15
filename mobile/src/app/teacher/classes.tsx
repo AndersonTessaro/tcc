@@ -23,7 +23,7 @@ export default function Classes() {
           <Text accessibilityRole="header" style={styles.heading}>{name}</Text>
           <Text style={styles.caption}>{students.size} {students.size === 1 ? "aluno" : "alunos"}</Text>
           {[...students].sort((a, b) => a[1].localeCompare(b[1], "pt-BR")).map(([id, studentName]) => (
-            <ListRow key={id} title={studentName} accessibilityLabel={studentName} onPress={() => router.push(`/(teacher)/student/${id}`)} />
+            <ListRow key={id} title={studentName} accessibilityLabel={studentName} onPress={() => router.push(`/teacher/student/${id}`)} />
           ))}
         </Card>
       ))}

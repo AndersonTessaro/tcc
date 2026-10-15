@@ -28,11 +28,11 @@ const activeTabs: Record<string, string> = {
 export default function TeacherLayout() {
   const router = useRouter();
   const segments = useSegments();
-  const route = segments[segments.indexOf("(teacher)") + 1];
+  const route = segments[segments.indexOf("teacher") + 1];
   const { user } = useAuth();
   const onSelect = (name: string) => {
     haptics.select();
-    router.dismissTo(`/(teacher)/(tabs)/${name}`);
+    router.dismissTo(`/teacher/(tabs)/${name}`);
   };
 
   if (!user || !isTeacher(user)) return null;

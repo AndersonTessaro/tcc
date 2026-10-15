@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
-import History from "@/app/(teacher)/history";
+import History from "@/app/teacher/history";
 import { teacherService, type TeacherLesson } from "@/features/teacher/teacherService";
 import { addDays, todayIso } from "@/lib/format";
 
@@ -45,7 +45,7 @@ it("shows lessons from the last 30 days and opens one in the agenda", async () =
   expect(service.history).toHaveBeenCalledWith(addDays(today, -29), today);
 
   await fireEvent.press(screen.getByText("Ana Souza · Piano"));
-  expect(mockPush).toHaveBeenCalledWith({ pathname: "/(teacher)/schedule", params: expect.objectContaining({ date: "2026-09-22" }) });
+  expect(mockPush).toHaveBeenCalledWith({ pathname: "/teacher/schedule", params: expect.objectContaining({ date: "2026-09-22" }) });
 });
 
 it("switches period with presets", async () => {

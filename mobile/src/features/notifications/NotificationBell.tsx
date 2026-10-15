@@ -9,7 +9,7 @@ export function NotificationBell({ unreadCount }: { unreadCount: number }) {
     <View>
       <IconButton icon="notifications-outline" color={colors.onBrand}
         label={unreadCount === 0 ? "Notificações" : `Notificações, ${unreadCount} ${unreadCount === 1 ? "não lida" : "não lidas"}`}
-        onPress={() => router.push("/(teacher)/notifications")} />
+        onPress={() => router.push("/teacher/notifications")} />
       {unreadCount > 0 ? (
         <View pointerEvents="none" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.badge}>
           <Text style={styles.count}>{unreadCount > 9 ? "9+" : unreadCount}</Text>

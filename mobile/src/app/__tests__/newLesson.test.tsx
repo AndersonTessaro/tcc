@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
-import NewLesson from "@/app/(teacher)/new-lesson";
+import NewLesson from "@/app/teacher/new-lesson";
 import { teacherService, type LessonAvailability, type TeacherLesson } from "@/features/teacher/teacherService";
 import { confirm } from "@/lib/confirm";
 import { ApiError } from "@/lib/http/apiError";
@@ -258,7 +258,7 @@ describe("NewLesson screen", () => {
       await waitFor(() => expect(screen.getByRole("button", { name: "Salvar aula" })).toBeEnabled());
       await fireEvent.press(screen.getByRole("button", { name: "Salvar aula" }));
 
-      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith({ pathname: "/(teacher)/lesson/[id]", params: { id: "lesson-1" } }));
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith({ pathname: "/teacher/lesson/[id]", params: { id: "lesson-1" } }));
       expect(mockShow).toHaveBeenCalledWith("Aula salva, mas 1 anexo(s) não foram enviados. Tente de novo na aula.", "error");
       expect(mockBack).not.toHaveBeenCalled();
     });

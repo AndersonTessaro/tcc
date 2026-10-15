@@ -26,8 +26,8 @@ beforeEach(() => {
 
 it.each([
   ["a restored student at the root", student, [], "/(student)/dashboard"],
-  ["a restored teacher at the root", teacher, [], "/(teacher)/dashboard"],
-  ["a teacher inside the student area", teacher, ["(student)", "(tabs)", "dashboard"], "/(teacher)/dashboard"],
+  ["a restored teacher at the root", teacher, [], "/teacher/dashboard"],
+  ["a teacher inside the student area", teacher, ["(student)", "(tabs)", "dashboard"], "/teacher/dashboard"],
   ["a signed-in student on the login screen", student, ["(auth)", "login"], "/(student)/dashboard"],
   ["a visitor at the root", null, [], "/(auth)/login"],
 ])("redirects %s", async (_case, user, segments, target) => {
