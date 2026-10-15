@@ -38,7 +38,7 @@ export default function More() {
       <StatusBar style="dark" />
       <ScreenHeader title="Mais" />
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Ver perfil" onPress={() => router.push("/(teacher)/profile")}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Ver perfil" onPress={() => router.push("/teacher/profile")}>
           <Card variant="outlined" style={styles.profile}>
             <Image source={avatarImage} style={styles.avatar} accessible={false} />
             <View style={styles.profileText}>
@@ -50,13 +50,13 @@ export default function More() {
         </Pressable>
 
         <View>
-          <ListRow variant="plain" title="Turmas" accessibilityLabel="Turmas" leading={icon("people-outline")} onPress={() => router.push("/(teacher)/classes")} />
-          <ListRow variant="plain" title="Horários" accessibilityLabel="Horários" leading={icon("time-outline")} onPress={() => router.push("/(teacher)/schedules")} />
-          <ListRow variant="plain" title="Reposições" accessibilityLabel="Reposições" leading={icon("repeat")} onPress={() => router.push("/(teacher)/makeups")} />
-          <ListRow variant="plain" title="Histórico de aulas" accessibilityLabel="Histórico de aulas" leading={icon("document-text-outline")} onPress={() => router.push("/(teacher)/history")} />
-          <ListRow variant="plain" title="Financeiro" accessibilityLabel="Financeiro" leading={icon("wallet-outline")} onPress={() => router.push("/(teacher)/finance")} />
-          <ListRow variant="plain" title="Configurações" accessibilityLabel="Configurações" leading={icon("settings-outline")} onPress={() => router.push("/(teacher)/settings")} />
-          <ListRow variant="plain" title="Ajuda" accessibilityLabel="Ajuda" leading={icon("help-circle-outline")} onPress={() => router.push("/(teacher)/help")} />
+          <ListRow variant="plain" title="Turmas" accessibilityLabel="Turmas" leading={icon("people-outline")} onPress={() => router.push("/teacher/classes")} />
+          <ListRow variant="plain" title="Horários" accessibilityLabel="Horários" leading={icon("time-outline")} onPress={() => router.push("/teacher/schedules")} />
+          <ListRow variant="plain" title="Reposições" accessibilityLabel="Reposições" leading={icon("repeat")} onPress={() => router.push("/teacher/makeups")} />
+          <ListRow variant="plain" title="Histórico de aulas" accessibilityLabel="Histórico de aulas" leading={icon("document-text-outline")} onPress={() => router.push("/teacher/history")} />
+          <ListRow variant="plain" title="Financeiro" accessibilityLabel="Financeiro" leading={icon("wallet-outline")} onPress={() => router.push("/teacher/finance")} />
+          <ListRow variant="plain" title="Configurações" accessibilityLabel="Configurações" leading={icon("settings-outline")} onPress={() => router.push("/teacher/settings")} />
+          <ListRow variant="plain" title="Ajuda" accessibilityLabel="Ajuda" leading={icon("help-circle-outline")} onPress={() => router.push("/teacher/help")} />
           <ListRow variant="plain" title="Sair" accessibilityLabel="Sair" leading={icon("log-out-outline")} onPress={signOut} />
         </View>
       </ScrollView>

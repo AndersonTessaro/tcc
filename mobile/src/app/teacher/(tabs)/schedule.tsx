@@ -38,10 +38,10 @@ export default function Schedule() {
   const onSuccess = useCallback(() => void reload(), [reload]);
   const { busy, errors, markAttendance, changeStatus } = useLessonActions({ applyLesson, onSuccess });
 
-  const newLesson = () => router.push({ pathname: "/(teacher)/new-lesson", params: { date } });
+  const newLesson = () => router.push({ pathname: "/teacher/new-lesson", params: { date } });
   const replace = (lesson: TeacherLesson) =>
-    router.push({ pathname: "/(teacher)/makeup/[lessonId]", params: { lessonId: lesson.id, studentName: lesson.studentName, instrument: lesson.instrument, originalDate: lesson.date } });
-  const edit = (lesson: TeacherLesson) => router.push({ pathname: "/(teacher)/lesson/[id]", params: { id: lesson.id } });
+    router.push({ pathname: "/teacher/makeup/[lessonId]", params: { lessonId: lesson.id, studentName: lesson.studentName, instrument: lesson.instrument, originalDate: lesson.date } });
+  const edit = (lesson: TeacherLesson) => router.push({ pathname: "/teacher/lesson/[id]", params: { id: lesson.id } });
 
   const header = (
     <View style={styles.headerBlock}>

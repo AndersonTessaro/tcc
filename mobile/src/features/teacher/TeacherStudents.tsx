@@ -61,7 +61,7 @@ export default function TeacherStudents() {
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
-      <ScreenHeader title="Alunos" action={canRegister ? <IconButton icon="add" label="Novo aluno" onPress={() => router.push("/(teacher)/student-form")} /> : null} />
+      <ScreenHeader title="Alunos" action={canRegister ? <IconButton icon="add" label="Novo aluno" onPress={() => router.push("/teacher/student-form")} /> : null} />
       <View style={styles.search}>
         <TextField
           accessibilityLabel="Buscar aluno"
@@ -88,7 +88,7 @@ export default function TeacherStudents() {
             variant="outlined"
             style={styles.rowCard}
             accessibilityLabel={`${item.name}, ${instruments.get(item.id)?.join(", ") || "instrumento não informado"}`}
-            onPress={() => router.push(`/(teacher)/student/${item.id}`)}
+            onPress={() => router.push(`/teacher/student/${item.id}`)}
           >
             <Image source={avatarImage} style={styles.avatar} accessible={false} />
             <View style={styles.identity}>

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
-import Reports from "@/app/(teacher)/(tabs)/reports";
+import Reports from "@/app/teacher/(tabs)/reports";
 import { rangeDates } from "@/features/teacher/reports/ReportScreen";
 import { teacherService, type AttendanceCounts, type AttendanceReport, type PracticeReport } from "@/features/teacher/teacherService";
 
@@ -63,7 +63,7 @@ it("shows attendance with RN09 absences, flags low rates and reloads for a new p
   await waitFor(() => expect(teacher.attendanceReport).toHaveBeenLastCalledWith(last90.from, last90.to));
 
   await fireEvent.press(await screen.findByRole("button", { name: "Frequência de Ana Souza: 67%" }));
-  expect(mockPush).toHaveBeenCalledWith("/(teacher)/student/student-1");
+  expect(mockPush).toHaveBeenCalledWith("/teacher/student/student-1");
 });
 
 it("shows practice totals, weekly bars and students without practice", async () => {

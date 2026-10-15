@@ -63,7 +63,7 @@ export default function TeacherStudentDetail() {
 
   const addMaterial = (material: TeacherStudentMaterial) =>
     setData((current) => current && { ...current, materials: [material, ...current.materials.filter((item) => item.id !== material.id)] });
-  const newLesson = () => router.push({ pathname: "/(teacher)/new-lesson", params: { studentId: id } });
+  const newLesson = () => router.push({ pathname: "/teacher/new-lesson", params: { studentId: id } });
 
   const renderTab = () => {
     if (!data) return null;
@@ -103,7 +103,7 @@ export default function TeacherStudentDetail() {
                 key={lesson.id}
                 style={styles.lessonCard}
                 accessibilityLabel={"Aula de " + formatFullDate(lesson.date) + " às " + hhmm(lesson.startTime) + ", " + lessonStatusLabel(lesson.status) + ". Abrir aula"}
-                onPress={() => router.push({ pathname: "/(teacher)/lesson/[id]", params: { id: lesson.id } })}
+                onPress={() => router.push({ pathname: "/teacher/lesson/[id]", params: { id: lesson.id } })}
               >
                 <View style={styles.lessonDateRow}>
                   <Text style={styles.infoText}>{formatFullDate(lesson.date)} · {hhmm(lesson.startTime)}</Text>
@@ -141,7 +141,7 @@ export default function TeacherStudentDetail() {
               <Card style={styles.listCard}>
                 {practices.slice(0, 10).map((item) => (
                   <View key={item.id}>
-                    <ListRow title={`${formatFullDate(item.date)} · ${formatMinutes(item.durationMin)}`} subtitle={item.notes || "Sem observações"} onPress={() => router.push({ pathname: "/(teacher)/practice/[id]", params: { id: item.id, practiceId: item.id, studentId: id } })} />
+                    <ListRow title={`${formatFullDate(item.date)} · ${formatMinutes(item.durationMin)}`} subtitle={item.notes || "Sem observações"} onPress={() => router.push({ pathname: "/teacher/practice/[id]", params: { id: item.id, practiceId: item.id, studentId: id } })} />
                     <PracticeRecordingDownload practice={item} download={teacherService.downloadPracticeRecording} prefix="Gravação: " />
                   </View>
                 ))}
@@ -198,7 +198,7 @@ export default function TeacherStudentDetail() {
           </ScrollView>
           {tab === "lessons" || (tab === "summary" && canUpdate) ? (
             <View style={styles.footer}>
-              <Button label={tab === "summary" ? "Editar aluno" : "Nova aula"} onPress={tab === "summary" ? () => router.push({ pathname: "/(teacher)/student-form", params: { id } }) : newLesson} style={styles.newLesson} />
+              <Button label={tab === "summary" ? "Editar aluno" : "Nova aula"} onPress={tab === "summary" ? () => router.push({ pathname: "/teacher/student-form", params: { id } }) : newLesson} style={styles.newLesson} />
             </View>
           ) : null}
         </>

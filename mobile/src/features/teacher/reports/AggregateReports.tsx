@@ -39,7 +39,7 @@ export function AttendanceReportView({ onBack }: Props) {
               detail={attendance.due
                 ? `${attendance.present} de ${count(attendance.due, "aula", "aulas")} · ${count(attendance.absent + attendance.unrecorded, "falta", "faltas")} · ${count(attendance.excused, "justificada", "justificadas")}`
                 : "Nenhuma aula no período"}
-              onPress={() => router.push(`/(teacher)/student/${studentId}`)}
+              onPress={() => router.push(`/teacher/student/${studentId}`)}
             />
           ))}
         </>
@@ -94,7 +94,7 @@ export function PracticeReportView({ onBack }: Props) {
                 detail={student.sessions
                   ? `${count(student.sessions, "sessão", "sessões")} em ${count(student.practiceDays, "dia", "dias")} · última em ${formatDayMonth(student.lastPractice ?? "")} · avaliação ${ratingLabel(student.avgRating)}`
                   : "Sem prática no período"}
-                onPress={() => router.push(`/(teacher)/student/${student.studentId}`)}
+                onPress={() => router.push(`/teacher/student/${student.studentId}`)}
               />
             ))}
           </>

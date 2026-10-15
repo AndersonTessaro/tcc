@@ -9,14 +9,14 @@ function notificationRoute(item: Notification): Href | undefined {
   switch (item.type) {
     case "PRACTICE_RECORDED":
       return item.practiceId && item.studentId ? {
-        pathname: "/(teacher)/practice/[id]", params: { id: item.practiceId, practiceId: item.practiceId, studentId: item.studentId },
+        pathname: "/teacher/practice/[id]", params: { id: item.practiceId, practiceId: item.practiceId, studentId: item.studentId },
       } : undefined;
     case "ATTENDANCE_MISSING":
-      return item.lessonId ? { pathname: "/(teacher)/lesson/[id]", params: { id: item.lessonId } } : undefined;
+      return item.lessonId ? { pathname: "/teacher/lesson/[id]", params: { id: item.lessonId } } : undefined;
     case "GOAL_COMPLETED":
-      return item.studentId ? { pathname: "/(teacher)/student/[id]", params: { id: item.studentId } } : undefined;
+      return item.studentId ? { pathname: "/teacher/student/[id]", params: { id: item.studentId } } : undefined;
     case "LESSONS_TODAY":
-      return "/(teacher)/(tabs)/schedule";
+      return "/teacher/(tabs)/schedule";
   }
 }
 

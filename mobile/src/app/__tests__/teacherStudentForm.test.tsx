@@ -1,6 +1,6 @@
 import { ScrollView, TextInput } from "react-native";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
-import StudentFormRoute from "@/app/(teacher)/student-form";
+import StudentFormRoute from "@/app/teacher/student-form";
 import { teacherService } from "@/features/teacher/teacherService";
 import { ApiError } from "@/lib/http/apiError";
 import { confirm } from "@/lib/confirm";
@@ -51,7 +51,7 @@ it("creates with a single preselected instrument, trims fields and preserves the
   await fireEvent.changeText(screen.getByLabelText("Anotações do professor"), " Revisar postura ");
   await save();
   expect(service.createStudent).toHaveBeenCalledWith({ name: "Ana", email: "ana@example.com", username: "ana", password: " Senha123 ", phone: "45999991234", instrumentId: "i1", sharedNotes: "Estude escalas", privateNotes: "Revisar postura" });
-  expect(mockReplace).toHaveBeenCalledWith({ pathname: "/(teacher)/student/[id]", params: { id: "s1" } });
+  expect(mockReplace).toHaveBeenCalledWith({ pathname: "/teacher/student/[id]", params: { id: "s1" } });
   expect(mockToast).toHaveBeenCalledWith("Aluno cadastrado.", "success");
   const event = { preventDefault: jest.fn(), data: { action: { type: "GO_BACK" } } };
   await act(() => mockBeforeRemove(event));

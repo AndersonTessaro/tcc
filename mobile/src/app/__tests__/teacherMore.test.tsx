@@ -1,11 +1,11 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
-import More from "@/app/(teacher)/(tabs)/more";
-import Profile from "@/app/(teacher)/profile";
-import Classes from "@/app/(teacher)/classes";
-import Makeups from "@/app/(teacher)/makeups";
-import Finance from "@/app/(teacher)/finance";
-import Settings from "@/app/(teacher)/settings";
-import Help from "@/app/(teacher)/help";
+import More from "@/app/teacher/(tabs)/more";
+import Profile from "@/app/teacher/profile";
+import Classes from "@/app/teacher/classes";
+import Makeups from "@/app/teacher/makeups";
+import Finance from "@/app/teacher/finance";
+import Settings from "@/app/teacher/settings";
+import Help from "@/app/teacher/help";
 import { accountService, type Account } from "@/features/account/accountService";
 import { teacherService, type TeacherMakeup } from "@/features/teacher/teacherService";
 import { addDays, todayIso } from "@/lib/format";
@@ -67,7 +67,7 @@ it("shows the Figma menu in order and navigates to every screen", async () => {
     ["Financeiro", "finance"], ["Configurações", "settings"], ["Ajuda", "help"],
   ]) {
     await fireEvent.press(screen.getByRole("button", { name: label }));
-    expect(mockPush).toHaveBeenLastCalledWith(`/(teacher)/${route}`);
+    expect(mockPush).toHaveBeenLastCalledWith(`/teacher/${route}`);
   }
   await fireEvent.press(screen.getByRole("button", { name: "Sair" }));
   expect(authService.logout).toHaveBeenCalled();
@@ -123,7 +123,7 @@ it("groups enrollments by classLabel, counts unique students and opens a student
   expect(screen.getByText("1 aluno")).toBeVisible();
   expect(screen.getByText("Violão")).toBeVisible();
   await fireEvent.press(screen.getByRole("button", { name: "Ana" }));
-  expect(mockPush).toHaveBeenCalledWith("/(teacher)/student/ana");
+  expect(mockPush).toHaveBeenCalledWith("/teacher/student/ana");
 });
 
 it("shows finance totals, defined and undefined fees as read only", async () => {

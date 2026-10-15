@@ -96,7 +96,7 @@ export default function TeacherStudentForm({ id }: { id?: string }) {
       markSaved();
       toast.show(id ? "Alterações salvas." : "Aluno cadastrado.", "success");
       if (id) router.back();
-      else router.replace({ pathname: "/(teacher)/student/[id]", params: { id: student.id } });
+      else router.replace({ pathname: "/teacher/student/[id]", params: { id: student.id } });
     } catch (error) {
       if (!mounted.current) return;
       const field = fieldFromApiError(error);

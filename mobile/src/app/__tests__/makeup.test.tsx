@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
-import Makeup from "@/app/(teacher)/makeup/[lessonId]";
+import Makeup from "@/app/teacher/makeup/[lessonId]";
 import { teacherService } from "@/features/teacher/teacherService";
 import { ApiError } from "@/lib/http/apiError";
 
@@ -33,7 +33,7 @@ describe("Makeup screen", () => {
     expect(await screen.findByText("Esta aula já tem uma reposição em 20/10/2026 às 14:00.")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Agendar reposição" })).toBeNull();
     await fireEvent.press(screen.getByRole("button", { name: "Voltar à agenda" }));
-    expect(mockReplace).toHaveBeenCalledWith({ pathname: "/(teacher)/schedule", params: expect.objectContaining({ date: "2026-10-20" }) });
+    expect(mockReplace).toHaveBeenCalledWith({ pathname: "/teacher/schedule", params: expect.objectContaining({ date: "2026-10-20" }) });
     expect(service.makeup).not.toHaveBeenCalled();
   });
 
@@ -57,7 +57,7 @@ describe("Makeup screen", () => {
     expect(await screen.findByText("Reposição agendada para 30/09/2026 às 15:00.")).toBeVisible();
     expect(mockShow).toHaveBeenCalledWith("Reposição agendada", "success");
     await fireEvent.press(screen.getByRole("button", { name: "Voltar à agenda" }));
-    expect(mockReplace).toHaveBeenCalledWith({ pathname: "/(teacher)/schedule", params: expect.objectContaining({ date: "2026-09-30" }) });
+    expect(mockReplace).toHaveBeenCalledWith({ pathname: "/teacher/schedule", params: expect.objectContaining({ date: "2026-09-30" }) });
   });
 
   it("explains why the lesson cannot be replaced", async () => {
