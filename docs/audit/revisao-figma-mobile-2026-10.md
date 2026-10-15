@@ -84,7 +84,7 @@ Revisão Codex em 31 achados. Gate 1:
 | T-028 | 29 relatórios | ACEITO | Menu com as 4 categorias, todas com dados (frequência, prática em casa, evolução por aluno, desempenho de turmas). O Figma só desenha o menu; as telas internas seguem o estilo do app |
 | T-029 | 30 mais | ACEITO | "Ver perfil" abre a conta real; nome e bio editáveis, e-mail/usuário e instrumentos somente leitura |
 | T-030–031 | 30, 23 | ACEITO | Lista de "Mais" sem blocos; números com `Intl` pt-BR |
-| ADD-08 | 30 mais | ACEITO (dono) | Menu completo na ordem Perfil → Turmas → Horários → Reposições → Financeiro → Configurações → Ajuda → Sair; telas internas seguem o estilo do app, financeiro próprio somente leitura e troca da senha com encerramento da sessão |
+| ADD-08 | 30 mais | ACEITO (dono) | Menu completo na ordem Perfil → Turmas → Horários → Reposições → Histórico de aulas → Financeiro → Configurações → Ajuda → Sair; telas internas seguem o estilo do app, financeiro próprio somente leitura e troca da senha com encerramento da sessão |
 
 O Figma de "Mais" do professor mostra por engano a tab bar do aluno; mantida a do professor.
 
@@ -131,7 +131,7 @@ Adições do Figma do professor que exigem backend: anexos e edição de aula (�
 
 ## Menu Mais do professor (2026-10-15)
 
-Plano: `docs/superpowers/plans/2026-10-15-teacher-more-menu.md`. Perfil, Turmas, Reposições, Financeiro, Configurações e Ajuda implementados no Stack, com a aba Mais ativa. O menu segue a ordem da tela 30. Nova aula mantém acesso pela Agenda; o histórico continua nas aulas do aluno. Nome e bio são editáveis; identidade e instrumentos permanecem somente leitura. Financeiro mostra as mensalidades das matrículas ativas do próprio professor; troca de senha revoga todos os refresh tokens e encerra a sessão local.
+Plano: `docs/superpowers/plans/2026-10-15-teacher-more-menu.md`. Perfil, Turmas, Reposições, Financeiro, Configurações e Ajuda implementados no Stack, com a aba Mais ativa. O menu segue a ordem da tela 30. Nova aula mantém acesso pela Agenda; "Histórico de aulas" segue no menu (RF15, sem outro acesso). Nome e bio são editáveis; identidade e instrumentos permanecem somente leitura. Financeiro mostra as mensalidades das matrículas ativas do próprio professor; troca de senha revoga todos os refresh tokens e encerra a sessão local.
 
 Resultado final:
 
@@ -141,3 +141,7 @@ Resultado final:
 | Jest | verde (334 testes / 47 suítes) |
 | Backend unitários | verde (`./mvnw verify`) |
 | Backend IT/ST | verde (`./mvnw verify`) |
+
+Gate 2 (revisão do diff): use cases importavam DTOs de `presentation.response` → records movidos para `application` (reposições: use case devolve entidade e o controller mapeia, como no `MakeupController`); histórico de aulas tinha ficado sem acesso → volta ao menu.
+
+Gate 3 (captura, API reiniciada com V17/V18, `prof.figma`, capturas `app-after/30*.png`): e-mail e usuário pareciam campos editáveis → viram texto só leitura; Ajuda citava "RN09" para o usuário → texto sem o código. Senha atual errada mostra o erro no próprio campo e a senha não muda. Mensalidade de R$ 250 definida pelo admin em duas matrículas do João (dados de dev) para conferir o total.

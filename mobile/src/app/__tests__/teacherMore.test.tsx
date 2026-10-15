@@ -85,8 +85,9 @@ it("honors a canceled logout confirmation", async () => {
 it("loads profile identity and instruments and saves name and bio", async () => {
   await render(<Profile />);
   expect(await screen.findByDisplayValue("Maria Souza")).toBeVisible();
-  expect(screen.getByLabelText("E-mail")).toHaveProp("editable", false);
-  expect(screen.getByLabelText("Usuário")).toHaveProp("editable", false);
+  expect(screen.getByLabelText("E-mail: teacher@h.local")).toBeVisible();
+  expect(screen.getByLabelText("Usuário: teacher")).toBeVisible();
+  expect(screen.queryByDisplayValue("teacher@h.local")).toBeNull();
   expect(screen.getByText("Para alterar, fale com a secretaria")).toBeVisible();
   expect(screen.getByText("Piano")).toBeVisible();
   await fireEvent.changeText(screen.getByLabelText("Nome"), "Maria Atualizada");
@@ -227,9 +228,9 @@ it.each([
   expect(screen.queryByText("Sem conexão com o servidor")).toBeNull();
 });
 
-it("shows the FAQ, RN09 and school contact guidance", async () => {
+it("shows the FAQ, the unrecorded-absence rule and school contact guidance", async () => {
   await render(<Help />);
-  expect(screen.getByText(/Pela RN09/)).toBeVisible();
+  expect(screen.getByText(/sem presença registrada conta como falta/)).toBeVisible();
   expect(screen.getByText("Dúvidas? Fale com a secretaria da escola")).toBeVisible();
   expect(screen.getByRole("header", { name: "Como adicionar anexos?" })).toBeVisible();
 });
