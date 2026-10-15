@@ -5,7 +5,9 @@ import br.com.harmonia.application.lesson.AttendanceUseCase;
 import br.com.harmonia.application.lesson.LessonAttachmentUseCase;
 import br.com.harmonia.application.lesson.TeacherLessonUseCase;
 import br.com.harmonia.application.material.TeacherMaterialUseCase;
+import br.com.harmonia.application.teacher.TeacherReportUseCase;
 import br.com.harmonia.application.teacher.TeacherUseCase;
+import br.com.harmonia.domain.report.ReportPeriod;
 import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
 import br.com.harmonia.presentation.response.AttendanceResponse;
 import br.com.harmonia.presentation.response.AttachmentResponse;
@@ -42,16 +44,19 @@ public class TeacherController {
     private final TeacherMaterialUseCase material;
     private final PracticeRecordingUseCase recording;
     private final LessonAttachmentUseCase attachments;
+    private final TeacherReportUseCase reports;
 
     public TeacherController(TeacherUseCase teacher, TeacherLessonUseCase lesson,
                              AttendanceUseCase attendance, TeacherMaterialUseCase material,
-                             PracticeRecordingUseCase recording, LessonAttachmentUseCase attachments) {
+                             PracticeRecordingUseCase recording, LessonAttachmentUseCase attachments,
+                             TeacherReportUseCase reports) {
         this.teacher = teacher;
         this.lesson = lesson;
         this.attendance = attendance;
         this.material = material;
         this.recording = recording;
         this.attachments = attachments;
+        this.reports = reports;
     }
 
     public record NewLesson(@NotNull UUID enrollmentId, @NotNull LocalDate date,
@@ -215,5 +220,29 @@ public class TeacherController {
     @PreAuthorize("hasAuthority('report.read')")
     public Object reports(@RequestParam UUID studentId) {
         return teacher.studentDetail(studentId);
+    }
+
+    @GetMapping("/reports/attendance")
+    @PreAuthorize("hasAuthority('report.read')")
+    public TeacherReportUseCase.AttendanceReport attendanceReport(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return reports.attendance(ReportPeriod.of(from, to, LocalDate.now()));
+    }
+
+    @GetMapping("/reports/practice")
+    @PreAuthorize("hasAuthority('report.read')")
+    public TeacherReportUseCase.PracticeReport practiceReport(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return reports.practice(ReportPeriod.of(from, to, LocalDate.now()));
+    }
+
+    @GetMapping("/reports/classes")
+    @PreAuthorize("hasAuthority('report.read')")
+    public TeacherReportUseCase.ClassReport classReport(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return reports.classes(ReportPeriod.of(from, to, LocalDate.now()));
     }
 }
