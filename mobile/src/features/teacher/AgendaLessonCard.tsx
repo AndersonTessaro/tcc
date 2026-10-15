@@ -15,9 +15,10 @@ type AgendaLessonCardProps = {
   onMark: (lesson: TeacherLesson, status: AttendanceStatus, justification?: string) => Promise<boolean>;
   onChangeStatus: (lesson: TeacherLesson, status: Exclude<LessonStatus, "SCHEDULED">) => Promise<boolean>;
   onReplace: (lesson: TeacherLesson) => void;
+  onEdit: (lesson: TeacherLesson) => void;
 };
 
-export function AgendaLessonCard({ lesson, today, busy, error, onMark, onChangeStatus, onReplace }: AgendaLessonCardProps) {
+export function AgendaLessonCard({ lesson, today, busy, error, onMark, onChangeStatus, onReplace, onEdit }: AgendaLessonCardProps) {
   const actions = lessonActions(lesson, today);
   const attendanceOpen = canRecordAttendance(lesson, today);
 
@@ -42,10 +43,11 @@ export function AgendaLessonCard({ lesson, today, busy, error, onMark, onChangeS
         <Text style={styles.detail}>{lesson.status === "CANCELED" ? "Aula cancelada" : "Frequência disponível no dia da aula"}</Text>
       )}
       {error ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
-      {actions.canComplete || actions.canCancel || actions.canReplace ? (
+      {actions.canComplete || actions.canCancel || actions.canReplace || actions.canEdit ? (
         <View style={styles.actions}>
           {actions.canComplete ? <Button label="Concluir" icon="checkmark" variant="secondary" compact disabled={busy} onPress={() => onChangeStatus(lesson, "DONE")} /> : null}
           {actions.canCancel ? <Button label="Cancelar aula" variant="danger" compact disabled={busy} onPress={() => onChangeStatus(lesson, "CANCELED")} /> : null}
+          {actions.canEdit ? <Button label="Editar" icon="create-outline" variant="secondary" compact disabled={busy} onPress={() => onEdit(lesson)} /> : null}
           {actions.canReplace ? <Button label="Repor" icon="repeat" variant="secondary" compact disabled={busy} onPress={() => onReplace(lesson)} /> : null}
         </View>
       ) : null}

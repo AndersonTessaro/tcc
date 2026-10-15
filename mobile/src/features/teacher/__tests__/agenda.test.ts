@@ -19,12 +19,14 @@ describe("agenda", () => {
       canComplete: true,
       canCancel: true,
       canReplace: false,
+      canEdit: true,
     });
     expect(lessonActions({ status: "SCHEDULED", date: "2026-09-30" }, "2026-09-22").canComplete).toBe(false);
     expect(lessonActions({ status: "CANCELED", date: "2026-09-22" }, "2026-09-22")).toEqual({
       canComplete: false,
       canCancel: false,
       canReplace: true,
+      canEdit: false,
     });
   });
 

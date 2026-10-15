@@ -5,6 +5,19 @@ const response = (status: number, body: unknown) =>
   ({ status, json: () => Promise.resolve(body) }) as Response;
 
 describe("apiErrorMessage", () => {
+  it("translates lesson edit and attachment errors before the attendance ones", () => {
+    const message = (detail: string) => apiErrorMessage(new ApiError(422, "DOMAIN_VALIDATION", detail), "fb");
+    expect(message("Canceled lessons cannot be edited")).toBe("Aula cancelada não pode ser editada.");
+    expect(message("Only scheduled lessons can be rescheduled")).toBe("Só aulas agendadas podem mudar de data ou horário.");
+    expect(message("Lesson with recorded attendance cannot be rescheduled")).toBe("Aula com frequência registrada não pode mudar de data ou horário.");
+    expect(message("Attachment must be a PDF, image, audio or video file")).toBe("Escolha um PDF, imagem, áudio ou vídeo.");
+    expect(message("Lesson already has 10 attachments")).toBe("A aula já tem 10 anexos.");
+    expect(apiErrorField(new ApiError(422, "DOMAIN_VALIDATION", "Lesson cannot be moved to a past date"))).toBe("date");
+    expect(apiErrorMessage(new ApiError(503, "STORAGE_UNAVAILABLE", "File storage is unavailable"), "fb")).toBe(
+      "Armazenamento indisponível. Tente novamente em instantes.",
+    );
+  });
+
   it("reads the backend error code from the response body", async () => {
     const error = await toApiError(response(409, { code: "SCHEDULE_CONFLICT", message: "x" }));
     expect(error).toBeInstanceOf(ApiError);

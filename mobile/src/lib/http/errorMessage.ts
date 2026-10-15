@@ -12,6 +12,7 @@ const BY_CODE: Record<string, string> = {
   ACCESS_DENIED: "Sem permissão para esta ação",
   INVALID_MAKEUP_LINK: "Esta aula não pode receber reposição",
   PROFILE_REQUIRED: "Esta ação exige um perfil de professor ou aluno",
+  STORAGE_UNAVAILABLE: "Armazenamento indisponível. Tente novamente em instantes.",
 };
 
 // Backend domain messages are in English; only the ones a user can trigger are translated.
@@ -21,6 +22,14 @@ const BY_DETAIL: [RegExp, string][] = [
   [/Recording must be an audio or video file/i, "Escolha um arquivo de áudio ou vídeo."],
   [/Recording is empty/i, "O arquivo está vazio."],
   [/Recording exceeds 50 MB/i, "O arquivo passa de 50 MB. Grave um vídeo mais curto ou envie só o áudio."],
+  [/Canceled lessons cannot be edited/i, "Aula cancelada não pode ser editada."],
+  [/Only scheduled lessons can be rescheduled/i, "Só aulas agendadas podem mudar de data ou horário."],
+  [/Lesson cannot be moved to a past date/i, "A aula não pode ir para uma data passada."],
+  [/Lesson with recorded attendance cannot be rescheduled/i, "Aula com frequência registrada não pode mudar de data ou horário."],
+  [/Attachment must be a PDF, image, audio or video file/i, "Escolha um PDF, imagem, áudio ou vídeo."],
+  [/Attachment is empty/i, "O arquivo está vazio."],
+  [/Attachment exceeds 50 MB/i, "O arquivo passa de 50 MB."],
+  [/Lesson already has 10 attachments/i, "A aula já tem 10 anexos."],
   [/Lesson already has a makeup linked/i, "Esta aula já tem uma reposição"],
   [/Only a completed or canceled lesson can receive a makeup/i, "Conclua ou cancele a aula antes de agendar reposição"],
   [/canceled lesson/i, "Aula cancelada não recebe frequência"],

@@ -114,6 +114,18 @@ describe("apiClient", () => {
     const api = createApiClient({ ...deps, fetchFn: fetchMock as any });
     await expect(api.post("/auth/logout")).resolves.toBeUndefined();
   });
+
+  it("sends DELETE with the bearer token and accepts 204", async () => {
+    const fetchMock = jest.fn().mockReturnValueOnce(
+      Promise.resolve({ status: 204, ok: true, json: () => Promise.reject(new Error("no body")) } as unknown as Response),
+    );
+    const api = createApiClient({ ...deps, fetchFn: fetchMock as any });
+    await expect(api.del("/teacher/lessons/l1/attachments/a1")).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith("http://x/teacher/lessons/l1/attachments/a1", expect.objectContaining({
+      method: "DELETE",
+      headers: expect.objectContaining({ Authorization: "Bearer a1" }),
+    }));
+  });
 });
 
 describe("apiClient timeout", () => {

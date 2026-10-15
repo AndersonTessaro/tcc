@@ -3,6 +3,7 @@ import NewLesson from "@/app/(teacher)/new-lesson";
 import { teacherService, type LessonAvailability, type TeacherLesson } from "@/features/teacher/teacherService";
 import { confirm } from "@/lib/confirm";
 import { ApiError } from "@/lib/http/apiError";
+import * as DocumentPicker from "expo-document-picker";
 
 const mockBack = jest.fn();
 type RemoveEvent = { preventDefault: () => void; data: { action: { type: string } } };
@@ -16,6 +17,7 @@ const mockNavigation = {
   dispatch: mockBack,
 };
 const mockShow = jest.fn();
+const mockReplace = jest.fn();
 let mockParams: Record<string, string> = {};
 jest.mock("expo-router", () => ({
   useNavigation: () => mockNavigation,
@@ -23,15 +25,16 @@ jest.mock("expo-router", () => ({
     let prevented = false;
     mockBeforeRemove?.({ preventDefault: () => { prevented = true; }, data: { action: { type: "GO_BACK" } } });
     if (!prevented) mockBack();
-  } }),
+  }, replace: mockReplace }),
   useLocalSearchParams: () => mockParams,
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
 jest.mock("@/features/teacher/teacherService", () => ({
-  teacherService: { enrollments: jest.fn(), newLesson: jest.fn(), availability: jest.fn(), attendance: jest.fn() },
+  teacherService: { enrollments: jest.fn(), newLesson: jest.fn(), availability: jest.fn(), attendance: jest.fn(), uploadLessonAttachment: jest.fn() },
 }));
 jest.mock("@/ui/DateTimeField", () => require("@/features/teacher/__tests__/dateTimeFieldStub"));
 jest.mock("@/ui/Toast", () => ({ useToast: () => ({ show: mockShow }) }));
+jest.mock("expo-document-picker", () => ({ getDocumentAsync: jest.fn() }));
 jest.mock("@/lib/confirm", () => ({ confirm: jest.fn().mockResolvedValue(true) }));
 
 const service = teacherService as jest.Mocked<typeof teacherService>;
@@ -103,7 +106,7 @@ describe("NewLesson screen", () => {
 
     expect(await screen.findByText("2 conflitos neste horário")).toBeVisible();
     expect(screen.getByText(/10:30–11:30 · Bia · Canto/)).toBeVisible();
-    await waitFor(() => expect(service.availability).toHaveBeenLastCalledWith("enr-1", FUTURE_DATE, "10:00", "11:00"));
+    await waitFor(() => expect(service.availability).toHaveBeenLastCalledWith("enr-1", FUTURE_DATE, "10:00", "11:00", undefined));
     expect(screen.getByRole("button", { name: "Agendar aula" })).toBeDisabled();
   });
 
@@ -214,6 +217,63 @@ describe("NewLesson screen", () => {
     await waitFor(() => expect(confirmMock).toHaveBeenCalledWith(expect.objectContaining({ destructive: true })));
     expect(mockBack).not.toHaveBeenCalled();
   });
+  describe("attachments", () => {
+    const pickerMock = DocumentPicker.getDocumentAsync as jest.Mock;
+    const asset = (name: string) => ({ canceled: false, assets: [{ uri: `file:///${name}`, name, size: 2048, mimeType: "application/pdf" }] });
+
+    async function addAttachments(...names: string[]) {
+      for (const name of names) {
+        pickerMock.mockResolvedValueOnce(asset(name));
+        await fireEvent.press(screen.getByRole("button", { name: "Adicionar anexo" }));
+        await screen.findByText(new RegExp(name.replace(".", "\\.")));
+      }
+    }
+
+    it("creates the lesson and then uploads each pending file in order", async () => {
+      service.uploadLessonAttachment.mockResolvedValue({ id: "a", fileName: "x", contentType: "application/pdf", sizeBytes: 1 });
+      await render(<NewLesson />);
+      await pickAna();
+      await fireEvent.changeText(screen.getByLabelText("Data"), PAST_DATE);
+      await addAttachments("partitura.pdf", "exercicio.pdf");
+      await waitFor(() => expect(screen.getByRole("button", { name: "Salvar aula" })).toBeEnabled());
+      await fireEvent.press(screen.getByRole("button", { name: "Salvar aula" }));
+
+      await waitFor(() => expect(service.uploadLessonAttachment).toHaveBeenCalledTimes(2));
+      expect(service.newLesson).toHaveBeenCalledTimes(1);
+      expect(service.uploadLessonAttachment.mock.calls.map(([lessonId, file]) => [lessonId, file.name])).toEqual([
+        ["lesson-1", "partitura.pdf"],
+        ["lesson-1", "exercicio.pdf"],
+      ]);
+      expect(mockBack).toHaveBeenCalled();
+    });
+
+    it("keeps the lesson and opens it when an upload fails", async () => {
+      service.uploadLessonAttachment
+        .mockResolvedValueOnce({ id: "a", fileName: "x", contentType: "application/pdf", sizeBytes: 1 })
+        .mockRejectedValueOnce(new ApiError(503, "STORAGE_UNAVAILABLE", "File storage is unavailable"));
+      await render(<NewLesson />);
+      await pickAna();
+      await fireEvent.changeText(screen.getByLabelText("Data"), PAST_DATE);
+      await addAttachments("partitura.pdf", "exercicio.pdf");
+      await waitFor(() => expect(screen.getByRole("button", { name: "Salvar aula" })).toBeEnabled());
+      await fireEvent.press(screen.getByRole("button", { name: "Salvar aula" }));
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith({ pathname: "/(teacher)/lesson/[id]", params: { id: "lesson-1" } }));
+      expect(mockShow).toHaveBeenCalledWith("Aula salva, mas 1 anexo(s) não foram enviados. Tente de novo na aula.", "error");
+      expect(mockBack).not.toHaveBeenCalled();
+    });
+
+    it("refuses a file type the server would reject", async () => {
+      pickerMock.mockResolvedValueOnce({ canceled: false, assets: [{ uri: "file:///setup.exe", name: "setup.exe", size: 10 }] });
+      await render(<NewLesson />);
+      await pickAna();
+      await fireEvent.press(screen.getByRole("button", { name: "Adicionar anexo" }));
+
+      expect(await screen.findByText("Escolha um PDF, imagem, áudio ou vídeo.")).toBeVisible();
+      expect(screen.queryByText(/setup\.exe/)).toBeNull();
+    });
+  });
+
 });
 
 it("blocks submission while checking a new slot and discards old availability", async () => {
@@ -228,4 +288,5 @@ it("blocks submission while checking a new slot and discards old availability", 
   expect(screen.getByRole("button", { name: "Agendar aula" })).toBeDisabled();
   await fireEvent.press(screen.getByRole("button", { name: "Agendar aula" }));
   expect(service.newLesson).not.toHaveBeenCalled();
+
 });
