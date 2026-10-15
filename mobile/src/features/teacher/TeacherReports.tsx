@@ -16,6 +16,7 @@ import { TextField } from "@/ui/TextField";
 import { colors, radius, space, type } from "@/ui/theme";
 import { teacherService, type StudentSummary, type TeacherStudentDetailData } from "./teacherService";
 import { TeacherStudentMetrics } from "./TeacherStudentMetrics";
+import { AttendanceReportView, ClassReportView, PracticeReportView } from "./reports/AggregateReports";
 import { useTabScrollToTop } from "@/hooks/use-tab-scroll-to-top";
 
 const RECENT_DAYS = 29;
@@ -26,19 +27,25 @@ function recentAttendanceRate(report: TeacherStudentDetailData | null | undefine
   return history.length ? Math.round((100 * history.filter((item) => item.status === "PRESENT").length) / history.length) : 0;
 }
 
-const REPORT_CATEGORIES: { title: string; description: string; icon: keyof typeof Ionicons.glyphMap; available?: boolean }[] = [
-  { title: "Frequência dos alunos", description: "Acompanhe a frequência geral", icon: "pulse" },
-  { title: "Prática em casa", description: "Veja o tempo de prática dos alunos", icon: "home" },
-  { title: "Evolução por aluno", description: "Acompanhe o progresso individual", icon: "trending-up", available: true },
-  { title: "Desempenho de turmas", description: "Relatório geral das turmas", icon: "speedometer" },
+type ReportKind = "attendance" | "practice" | "evolution" | "classes";
+
+const REPORT_CATEGORIES: { kind: ReportKind; title: string; description: string; hint: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { kind: "attendance", title: "Frequência dos alunos", description: "Acompanhe a frequência geral", hint: "Abre a frequência de todos os alunos no período", icon: "pulse" },
+  { kind: "practice", title: "Prática em casa", description: "Veja o tempo de prática dos alunos", hint: "Abre o tempo de prática dos alunos no período", icon: "home" },
+  { kind: "evolution", title: "Evolução por aluno", description: "Acompanhe o progresso individual", hint: "Escolha um aluno para ver seu relatório individual", icon: "trending-up" },
+  { kind: "classes", title: "Desempenho de turmas", description: "Relatório geral das turmas", hint: "Abre frequência e prática agrupadas por turma", icon: "speedometer" },
 ];
 
 export default function TeacherReports() {
-  const [individualOpen, setIndividualOpen] = useState(false);
+  const [open, setOpen] = useState<ReportKind | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   useTabScrollToTop(scrollRef);
 
-  if (individualOpen) return <IndividualReports onBack={() => setIndividualOpen(false)} />;
+  const close = () => setOpen(null);
+  if (open === "evolution") return <IndividualReports onBack={close} />;
+  if (open === "attendance") return <AttendanceReportView onBack={close} />;
+  if (open === "practice") return <PracticeReportView onBack={close} />;
+  if (open === "classes") return <ClassReportView onBack={close} />;
 
   return (
     <View style={styles.screen}>
@@ -47,13 +54,11 @@ export default function TeacherReports() {
       <ScrollView ref={scrollRef} contentContainerStyle={styles.categories}>
         {REPORT_CATEGORIES.map((category) => (
           <Pressable
-            key={category.title}
+            key={category.kind}
             accessibilityRole="button"
             accessibilityLabel={category.title}
-            accessibilityHint={category.available ? "Escolha um aluno para ver seu relatório individual" : "Em breve. Este relatório ainda não está disponível"}
-            aria-disabled={!category.available}
-            disabled={!category.available}
-            onPress={() => setIndividualOpen(true)}
+            accessibilityHint={category.hint}
+            onPress={() => setOpen(category.kind)}
             style={({ pressed }) => pressed && styles.pressed}
           >
             <Card variant="outlined" style={styles.category}>
@@ -61,7 +66,6 @@ export default function TeacherReports() {
               <View style={styles.categoryText}>
                 <Text style={styles.categoryTitle}>{category.title}</Text>
                 <Text style={styles.categoryDescription}>{category.description}</Text>
-                {!category.available ? <Text style={styles.comingSoon}>Em breve</Text> : null}
               </View>
             </Card>
           </Pressable>
@@ -188,7 +192,6 @@ const styles = StyleSheet.create({
   categoryText: { flex: 1, gap: space.xs },
   categoryTitle: { ...type.label, fontSize: 14, fontWeight: "700" },
   categoryDescription: { ...type.caption, fontSize: 12 },
-  comingSoon: { ...type.caption, fontSize: 12, color: colors.muted },
   pressed: { opacity: 0.85 },
   search: { paddingHorizontal: space.lg, paddingBottom: space.sm },
   list: { paddingHorizontal: space.lg, paddingBottom: space.xxxl, gap: space.sm, flexGrow: 1 },
