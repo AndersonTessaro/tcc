@@ -32,7 +32,14 @@ app:
     access-ttl-minutes: 15
     refresh-ttl-days: 7
   storage:
+    provider: ${APP_STORAGE_PROVIDER:local}
     local-dir: ./storage
+    google-drive:
+      folder-id: ${APP_STORAGE_GOOGLE_DRIVE_FOLDER_ID:}
+      credentials-file: ${APP_STORAGE_GOOGLE_DRIVE_CREDENTIALS_FILE:}
+      client-id: ${APP_STORAGE_GOOGLE_DRIVE_CLIENT_ID:}
+      client-secret: ${APP_STORAGE_GOOGLE_DRIVE_CLIENT_SECRET:}
+      refresh-token: ${APP_STORAGE_GOOGLE_DRIVE_REFRESH_TOKEN:}
   cookie:
     # Refresh-token cookie Secure flag. false for local http dev (no active
     # profile infra exists yet - see BUG-C01 commit); MUST be true behind HTTPS

@@ -1,17 +1,17 @@
 package br.com.harmonia.infrastructure.storage;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.UUID;
 
 @Component
+@ConditionalOnProperty(name = "app.storage.provider", havingValue = "local", matchIfMissing = true)
 public class LocalStorageAdapter implements FileStoragePort {
-    private static final int MAX_KEY_NAME_LENGTH = 218;
     private final Path root;
 
     public LocalStorageAdapter(@Value("${app.storage.local-dir:./storage}") String dir) throws IOException {
@@ -22,8 +22,7 @@ public class LocalStorageAdapter implements FileStoragePort {
     @Override
     public String save(String fileName, byte[] content) {
         try {
-            String safe = (fileName == null ? "file" : fileName).replaceAll("[^A-Za-z0-9._-]", "_");
-            String key = UUID.randomUUID() + "_" + safe.substring(Math.max(0, safe.length() - MAX_KEY_NAME_LENGTH));
+            String key = FileStoragePort.uniqueName(fileName);
             Files.write(root.resolve(key), content);
             return key;
         } catch (IOException e) {
