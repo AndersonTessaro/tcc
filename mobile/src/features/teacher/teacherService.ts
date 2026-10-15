@@ -6,6 +6,7 @@ import { attachmentMimeType } from "./lessonAttachments";
 export type MaterialFile = PickedFile;
 
 export type TeacherEnrollment = {
+  classLabel: string;
   id: string;
   studentId: string;
   studentName: string;
@@ -143,7 +144,28 @@ export type ClassReport = {
   groups: { name: string; students: number; attendance: AttendanceCounts; practiceMinutes: number; avgPracticeMinPerStudent: number; avgRating: number | null }[];
 };
 
+export type TeacherFinance = {
+  monthlyTotal: number;
+  withoutFee: number;
+  items: { enrollmentId: string; studentId: string; studentName: string; classLabel: string; monthlyFee: number | null }[];
+};
+export type TeacherMakeup = {
+  id: string;
+  reason: string | null;
+  original: { lessonId: string; date: string; startTime: string; status: LessonStatus };
+  makeup: { lessonId: string; date: string; startTime: string; endTime: string; status: LessonStatus };
+  studentName: string;
+  instrument: string;
+};
+
 export const teacherService = {
+  finance: () => api.get<TeacherFinance>("/teacher/finance"),
+  makeups: (from?: string, to?: string) => {
+    const query = new URLSearchParams();
+    if (from) query.set("from", from);
+    if (to) query.set("to", to);
+    return api.get<TeacherMakeup[]>(`/teacher/makeups?${query}`);
+  },
   instruments: () => api.get<TeacherInstrument[]>("/teacher/instruments"),
   createStudent: (body: NewTeacherStudent) => api.post<TeacherStudentProfile>("/teacher/students", body),
   studentProfile: (id: string) => api.get<TeacherStudentProfile>(`/teacher/students/${id}/profile`),

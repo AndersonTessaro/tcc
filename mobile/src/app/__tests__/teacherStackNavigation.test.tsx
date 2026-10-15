@@ -39,6 +39,12 @@ const routes = {
   "(teacher)/history": () => <Text>Histórico</Text>,
   "(teacher)/makeup/[id]": () => <Text>Reposição</Text>,
   "(teacher)/schedules": () => <Text>Horários fixos</Text>,
+  "(teacher)/profile": () => <Text>Perfil</Text>,
+  "(teacher)/classes": () => <Text>Turmas</Text>,
+  "(teacher)/makeups": () => <Text>Reposições</Text>,
+  "(teacher)/finance": () => <Text>Financeiro</Text>,
+  "(teacher)/settings": () => <Text>Configurações</Text>,
+  "(teacher)/help": () => <Text>Ajuda</Text>,
 };
 
 beforeEach(() => {
@@ -55,6 +61,12 @@ it.each([
   ["/(teacher)/history", "Aulas"],
   ["/(teacher)/makeup/lesson-1", "Aulas"],
   ["/(teacher)/schedules", "Mais"],
+  ["/(teacher)/profile", "Mais"],
+  ["/(teacher)/classes", "Mais"],
+  ["/(teacher)/makeups", "Mais"],
+  ["/(teacher)/finance", "Mais"],
+  ["/(teacher)/settings", "Mais"],
+  ["/(teacher)/help", "Mais"],
 ])("shows one bar with the right active tab on %s", async (initialUrl, activeTab) => {
   await renderRouter(routes, { initialUrl });
   expect(screen.getAllByRole("tab")).toHaveLength(5);
