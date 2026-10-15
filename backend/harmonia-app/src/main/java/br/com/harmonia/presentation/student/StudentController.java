@@ -15,7 +15,7 @@ import br.com.harmonia.infrastructure.persistence.gamification.Progress;
 import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
 import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
 import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
-import br.com.harmonia.presentation.response.AttachmentResponse;
+import br.com.harmonia.presentation.response.LessonDetailResponse;
 import br.com.harmonia.presentation.response.GoalResponse;
 import br.com.harmonia.presentation.response.LessonResponse;
 import br.com.harmonia.presentation.response.MaterialResponse;
@@ -103,9 +103,8 @@ public class StudentController {
 
     @GetMapping("/lessons/{id}")
     @PreAuthorize("hasAuthority('lesson.read')")
-    public Map<String, Object> lessonDetail(@PathVariable UUID id) {
-        return Map.of("lesson", LessonResponse.of(lesson.detail(id)),
-            "attachments", lesson.attachments(id).stream().map(AttachmentResponse::of).toList());
+    public LessonDetailResponse lessonDetail(@PathVariable UUID id) {
+        return LessonDetailResponse.of(lesson.detail(id), lesson.attachments(id));
     }
 
     @GetMapping("/materials")

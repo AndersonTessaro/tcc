@@ -37,10 +37,15 @@ public class LessonSchedulingGuard {
 
     public void assertSlotIsFree(Enrollment enrollment, LocalDate date, LocalTime startTime,
                                  LocalTime endTime, SessionStatus status) {
+        assertSlotIsFree(enrollment, UUID.randomUUID(), date, startTime, endTime, status);
+    }
+
+    public void assertSlotIsFree(Enrollment enrollment, UUID lessonId, LocalDate date, LocalTime startTime,
+                                 LocalTime endTime, SessionStatus status) {
         UUID teacherId = enrollment.getTeacher().getId();
         UUID studentId = enrollment.getStudent().getId();
         slotLock.acquire(teacherId, studentId);
-        LessonSlot candidate = new LessonSlot(UUID.randomUUID(), teacherId, studentId, date,
+        LessonSlot candidate = new LessonSlot(lessonId, teacherId, studentId, date,
             new TimeRange(startTime, endTime), status);
         policy.validateLessonSlot(candidate, slotsOn(teacherId, studentId, date));
         policy.validateLessonAgainstWeeklySchedules(candidate, recurringSlotsOn(teacherId, studentId, date));
@@ -49,12 +54,18 @@ public class LessonSchedulingGuard {
     // Checks each commitment separately because the policy stops at the first conflict; the preview lists them all.
     public SlotAvailability availability(Enrollment enrollment, LocalDate date, LocalTime startTime,
                                          LocalTime endTime, SessionStatus initialStatus) {
+        return availability(enrollment, date, startTime, endTime, initialStatus, null);
+    }
+
+    public SlotAvailability availability(Enrollment enrollment, LocalDate date, LocalTime startTime,
+                                         LocalTime endTime, SessionStatus initialStatus, UUID excludeLessonId) {
         UUID teacherId = enrollment.getTeacher().getId();
         UUID studentId = enrollment.getStudent().getId();
         List<Lesson> dayLessons = Stream.concat(
                 lessons.findByEnrollmentTeacherIdAndDate(teacherId, date).stream(),
                 lessons.findByEnrollmentStudentIdAndDate(studentId, date).stream())
             .distinct()
+            .filter(lesson -> !lesson.getId().equals(excludeLessonId))
             .filter(lesson -> LessonStatuses.toSessionStatus(lesson.getStatus()) != SessionStatus.CANCELED)
             .sorted(Comparator.comparing(Lesson::getStartTime))
             .toList();

@@ -3,12 +3,14 @@ package br.com.harmonia.application.lesson;
 import br.com.harmonia.domain.common.ResourceNotFoundException;
 import br.com.harmonia.application.lesson.port.AttendanceRepository;
 import br.com.harmonia.application.lesson.port.LessonRepository;
+import br.com.harmonia.application.lesson.port.LessonAttachmentRepository;
 import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.application.profile.EnrollmentRules;
 import br.com.harmonia.application.profile.port.EnrollmentRepository;
 import br.com.harmonia.infrastructure.persistence.lesson.Attendance;
 import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
 import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
+import br.com.harmonia.infrastructure.persistence.lesson.LessonAttachment;
 import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
 import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
 import br.com.harmonia.lessoncore.LessonLifecyclePolicy;
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
 @Service
 public class TeacherLessonUseCase {
     private final LessonRepository lessons;
+    private final LessonAttachmentRepository attachments;
     private final AttendanceRepository attendances;
     private final EnrollmentRepository enrollments;
     private final CurrentUserService current;
@@ -34,8 +37,9 @@ public class TeacherLessonUseCase {
 
     public TeacherLessonUseCase(LessonRepository lessons, AttendanceRepository attendances,
                                 EnrollmentRepository enrollments, CurrentUserService current,
-                                LessonSchedulingGuard schedulingGuard) {
+                                LessonSchedulingGuard schedulingGuard, LessonAttachmentRepository attachments) {
         this.lessons = lessons;
+        this.attachments = attachments;
         this.attendances = attendances;
         this.enrollments = enrollments;
         this.current = current;
@@ -45,6 +49,37 @@ public class TeacherLessonUseCase {
     private Enrollment teacherEnrollment(UUID enrollmentId) {
         return current.assertOwnedByCurrentTeacher(enrollments.findById(enrollmentId)
             .orElseThrow(() -> new ResourceNotFoundException("Enrollment")));
+    }
+
+    public record Detail(Lesson lesson, List<LessonAttachment> attachments) {}
+
+    @Transactional(readOnly = true)
+    public Detail detail(UUID lessonId) {
+        Lesson lesson = lessons.findById(lessonId).orElseThrow(() -> new ResourceNotFoundException("Lesson"));
+        current.assertOwnedByCurrentTeacher(lesson.getEnrollment());
+        return new Detail(lesson, attachments.findByLessonId(lessonId));
+    }
+
+    @Transactional
+    public Lesson update(UUID id, LocalDate date, LocalTime start, LocalTime end, String content, String homework) {
+        Lesson lesson = lessons.findById(id).orElseThrow(() -> new ResourceNotFoundException("Lesson"));
+        Enrollment enrollment = lesson.getEnrollment();
+        current.assertOwnedByCurrentTeacher(enrollment);
+        SessionStatus status = LessonStatuses.toSessionStatus(lesson.getStatus());
+        lifecyclePolicy.validateContentEdit(status);
+        boolean rescheduled = !lesson.getDate().equals(date) || !lesson.getStartTime().equals(start)
+            || !lesson.getEndTime().equals(end);
+        if (rescheduled) {
+            EnrollmentRules.requireActive(enrollment);
+            lifecyclePolicy.validateReschedule(status, date, LocalDate.now(), attendances.findByLessonId(id).isPresent());
+            schedulingGuard.assertSlotIsFree(enrollment, id, date, start, end, SessionStatus.SCHEDULED);
+        }
+        lesson.setDate(date);
+        lesson.setStartTime(start);
+        lesson.setEndTime(end);
+        lesson.setContent(content);
+        lesson.setHomework(homework);
+        return lessons.save(lesson);
     }
 
     @Transactional
@@ -66,9 +101,15 @@ public class TeacherLessonUseCase {
 
     @Transactional(readOnly = true)
     public SlotAvailability availability(UUID enrollmentId, LocalDate date, LocalTime start, LocalTime end) {
+        return availability(enrollmentId, date, start, end, null);
+    }
+
+    @Transactional(readOnly = true)
+    public SlotAvailability availability(UUID enrollmentId, LocalDate date, LocalTime start, LocalTime end,
+                                         UUID excludeLessonId) {
         Enrollment enrollment = teacherEnrollment(enrollmentId);
         SessionStatus initialStatus = lifecyclePolicy.initialStatus(date, LocalDate.now());
-        return schedulingGuard.availability(enrollment, date, start, end, initialStatus);
+        return schedulingGuard.availability(enrollment, date, start, end, initialStatus, excludeLessonId);
     }
 
     @Transactional

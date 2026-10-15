@@ -9,6 +9,7 @@ import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
 import br.com.harmonia.presentation.response.AttendanceResponse;
 import br.com.harmonia.presentation.response.AvailabilityResponse;
 import br.com.harmonia.presentation.response.LessonResponse;
+import br.com.harmonia.presentation.response.LessonDetailResponse;
 import br.com.harmonia.presentation.response.MaterialResponse;
 import br.com.harmonia.presentation.response.PersonSummary;
 import br.com.harmonia.presentation.response.PracticeResponse;
@@ -16,6 +17,7 @@ import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
 import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -50,7 +52,9 @@ public class TeacherController {
 
     public record NewLesson(@NotNull UUID enrollmentId, @NotNull LocalDate date,
                             @NotNull LocalTime startTime, @NotNull LocalTime endTime,
-                            String content, String homework) {}
+                            @Size(max = 1000) String content, @Size(max = 1000) String homework) {}
+    public record UpdateLesson(@NotNull LocalDate date, @NotNull LocalTime startTime, @NotNull LocalTime endTime,
+                               @Size(max = 1000) String content, @Size(max = 1000) String homework) {}
     public record RegisterAttendance(@NotNull AttendanceStatus status, String justification) {}
     public record ChangeLessonStatus(@NotNull LessonStatus status) {}
     public record EnrollmentOption(UUID id, UUID studentId, String studentName, String instrument) {
@@ -119,13 +123,27 @@ public class TeacherController {
             r.content(), r.homework()));
     }
 
+    @GetMapping("/lessons/{id}")
+    @PreAuthorize("hasAuthority('lesson.read')")
+    public LessonDetailResponse lessonDetail(@PathVariable UUID id) {
+        var detail = lesson.detail(id);
+        return LessonDetailResponse.of(detail.lesson(), detail.attachments());
+    }
+
+    @PutMapping("/lessons/{id}")
+    @PreAuthorize("hasAuthority('lesson.manage')")
+    public LessonResponse updateLesson(@PathVariable UUID id, @Valid @RequestBody UpdateLesson r) {
+        return LessonResponse.of(lesson.update(id, r.date(), r.startTime(), r.endTime(), r.content(), r.homework()));
+    }
+
     @GetMapping("/lessons/availability")
     @PreAuthorize("hasAuthority('lesson.manage')")
     public AvailabilityResponse availability(@RequestParam UUID enrollmentId,
                                              @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
                                              @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime startTime,
-                                             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime endTime) {
-        return AvailabilityResponse.of(lesson.availability(enrollmentId, date, startTime, endTime));
+                                             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime endTime,
+                                             @RequestParam(required = false) UUID lessonId) {
+        return AvailabilityResponse.of(lesson.availability(enrollmentId, date, startTime, endTime, lessonId));
     }
 
     @GetMapping("/lessons")
