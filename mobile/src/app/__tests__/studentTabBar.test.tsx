@@ -7,6 +7,8 @@ import { haptics } from "@/lib/haptics";
 
 let mockSegments: string[] = [];
 let mockKeyboardVisible = false;
+let mockUser: { authorities: string[] } = { authorities: ["ROLE_STUDENT"] };
+jest.mock("@/features/auth/useAuth", () => ({ useAuth: () => ({ user: mockUser }) }));
 const mockDismissTo = jest.fn();
 jest.mock("expo-router", () => ({
   Stack: () => null,
@@ -19,6 +21,7 @@ jest.mock("@/lib/haptics", () => ({ haptics: { select: jest.fn() } }));
 beforeEach(() => {
   jest.clearAllMocks();
   mockKeyboardVisible = false;
+  mockUser = { authorities: ["ROLE_STUDENT"] };
 });
 
 it.each([
@@ -43,6 +46,7 @@ it("does not duplicate the tabs navigator bar and hides the Stack bar with the k
   await screen.rerender(<StudentLayout />);
   expect(screen.queryByRole("tab", { name: "Prática" })).toBeNull();
   mockKeyboardVisible = false;
+  mockUser = { authorities: ["ROLE_STUDENT"] };
   await screen.rerender(<StudentLayout />);
   expect(screen.getByRole("tab", { name: "Prática" })).toBeVisible();
 });
@@ -75,4 +79,13 @@ it("preserves tabPress cancellation, active-tab events and haptics for the Tabs 
   await fireEvent.press(screen.getByRole("tab", { name: "Aulas" }));
   expect(navigate).toHaveBeenCalledWith("lessons");
   expect(haptics.select).toHaveBeenCalledTimes(1);
+});
+
+it("mounts no student screen for a teacher sharing the same URL", async () => {
+  mockUser = { authorities: ["ROLE_TEACHER"] };
+  mockSegments = ["(student)", "(tabs)", "dashboard"];
+
+  await render(<StudentLayout />);
+
+  expect(screen.toJSON()).toBeNull();
 });

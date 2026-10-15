@@ -3,6 +3,8 @@ import { StyleSheet, View } from "react-native";
 import { AppTabBarView } from "@/components/app-tab-bar";
 import { teacherTabs } from "@/components/teacher-tabs";
 import { haptics } from "@/lib/haptics";
+import { isTeacher } from "@/features/auth/authService";
+import { useAuth } from "@/features/auth/useAuth";
 import { colors } from "@/ui/theme";
 
 const activeTabs: Record<string, string> = {
@@ -27,10 +29,13 @@ export default function TeacherLayout() {
   const router = useRouter();
   const segments = useSegments();
   const route = segments[segments.indexOf("(teacher)") + 1];
+  const { user } = useAuth();
   const onSelect = (name: string) => {
     haptics.select();
     router.dismissTo(`/(teacher)/(tabs)/${name}`);
   };
+
+  if (!user || !isTeacher(user)) return null;
 
   return (
     <View style={styles.screen}>

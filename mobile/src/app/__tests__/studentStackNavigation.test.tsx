@@ -8,7 +8,9 @@ import StudentTabsLayout from "@/app/(student)/(tabs)/_layout";
 import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { confirm } from "@/lib/confirm";
 
+const mockUser = { authorities: ["ROLE_STUDENT"] };
 jest.unmock("expo-router");
+jest.mock("@/features/auth/useAuth", () => ({ useAuth: () => ({ user: mockUser }) }));
 jest.mock("@/lib/confirm", () => ({ confirm: jest.fn() }));
 jest.mock("@/lib/haptics", () => ({ haptics: { select: jest.fn() } }));
 
