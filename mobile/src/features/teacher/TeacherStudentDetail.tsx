@@ -13,7 +13,7 @@ import { ListRow } from "@/ui/ListRow";
 import { ScreenState } from "@/ui/ScreenState";
 import { colors, radius, space, type } from "@/ui/theme";
 import { AttendanceCalendar, attendanceSummary } from "./AttendanceCalendar";
-import { hhmm, lessonStatusLabel, scheduleHref } from "./agenda";
+import { hhmm, lessonStatusLabel } from "./agenda";
 import { MaterialUpload } from "./MaterialUpload";
 import { teacherService, type TeacherStudentMaterial } from "./teacherService";
 import { TeacherStudentMetrics } from "./TeacherStudentMetrics";
@@ -102,8 +102,8 @@ export default function TeacherStudentDetail() {
               <Card
                 key={lesson.id}
                 style={styles.lessonCard}
-                accessibilityLabel={"Aula de " + formatFullDate(lesson.date) + " às " + hhmm(lesson.startTime) + ", " + lessonStatusLabel(lesson.status) + ". Abrir na agenda"}
-                onPress={() => router.push(scheduleHref(lesson.date))}
+                accessibilityLabel={"Aula de " + formatFullDate(lesson.date) + " às " + hhmm(lesson.startTime) + ", " + lessonStatusLabel(lesson.status) + ". Abrir aula"}
+                onPress={() => router.push({ pathname: "/(teacher)/lesson/[id]", params: { id: lesson.id } })}
               >
                 <View style={styles.lessonDateRow}>
                   <Text style={styles.infoText}>{formatFullDate(lesson.date)} · {hhmm(lesson.startTime)}</Text>

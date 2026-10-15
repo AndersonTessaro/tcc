@@ -1,7 +1,8 @@
 import { useCallback, type ReactNode } from "react";
-import { Image, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { DownloadButton } from "@/features/files/DownloadButton";
 import { formatTimeRange, lessonBadge } from "@/features/student/lessonStatus";
 import { studentService, type LessonAttachment } from "@/features/student/studentService";
 import { useResource } from "@/hooks/use-resource";
@@ -12,8 +13,6 @@ import { ScreenHeader } from "@/ui/ScreenHeader";
 import { ScreenState } from "@/ui/ScreenState";
 import { StatusChip } from "@/ui/StatusChip";
 import { colors, radius, space, type } from "@/ui/theme";
-
-const fileIcon = require("@/assets/images/figma-student/file.png");
 
 export default function LessonDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -48,10 +47,7 @@ export default function LessonDetail() {
 
           <Section title="Anexos">
             {detail.data.attachments.length ? (
-              <>
-                {detail.data.attachments.map((attachment) => <AttachmentRow key={attachment.id} attachment={attachment} />)}
-                <Text style={styles.caption}>Disponível com o professor</Text>
-              </>
+              detail.data.attachments.map((attachment) => <AttachmentRow key={attachment.id} lessonId={lesson.id} attachment={attachment} />)
             ) : (
               <Text style={styles.body}>Nenhum anexo.</Text>
             )}
@@ -81,13 +77,21 @@ function ContentLines({ text, empty }: { text: string | null; empty: string }) {
   return <>{lines.map((line, index) => <Text key={`${index}-${line}`} style={styles.bullet}>•  {line}</Text>)}</>;
 }
 
-function AttachmentRow({ attachment }: { attachment: LessonAttachment }) {
+function AttachmentRow({ lessonId, attachment }: { lessonId: string; attachment: LessonAttachment }) {
   const size = formatFileSize(attachment.sizeBytes);
   return (
-    <View accessible accessibilityLabel={`Anexo ${attachment.fileName}${size ? `, ${size}` : ""}`} style={styles.attachment}>
-      <Image source={fileIcon} style={styles.fileIcon} accessible={false} />
-      <Text numberOfLines={2} style={styles.fileName}>{attachment.fileName}</Text>
-      {size ? <Text style={styles.caption}>{size}</Text> : null}
+    <View style={styles.attachment}>
+      <DownloadButton
+        variant="row"
+        label={attachment.fileName}
+        sizeLabel={size}
+        accessibilityLabel={`Baixar anexo ${attachment.fileName}${size ? `, ${size}` : ""}`}
+        fileName={attachment.fileName}
+        contentType={attachment.contentType}
+        download={() => studentService.downloadLessonAttachment(lessonId, attachment.id)}
+        failureMessage="Não foi possível baixar o anexo. Tente novamente."
+        style={styles.download}
+      />
     </View>
   );
 }
@@ -103,6 +107,5 @@ const styles = StyleSheet.create({
   bullet: { ...type.body, lineHeight: 22 },
   caption: { ...type.caption },
   attachment: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.field },
-  fileIcon: { width: 20, height: 20 },
-  fileName: { ...type.body, flex: 1 },
+  download: { flex: 1 },
 });

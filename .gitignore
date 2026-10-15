@@ -1,3 +1,4 @@
 .idea/
 *.iml
 backend/secrets/
+backend/storage/

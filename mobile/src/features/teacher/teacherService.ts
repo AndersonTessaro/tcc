@@ -1,6 +1,7 @@
 import { api, MEDIA_TIMEOUT_MS } from "../../lib/http";
 import { appendFile, type PickedFile } from "../../lib/http/formFile";
-import type { StudentPractice } from "../student/studentService";
+import type { LessonAttachment, StudentPractice } from "../student/studentService";
+import { attachmentMimeType } from "./lessonAttachments";
 
 export type MaterialFile = PickedFile;
 
@@ -71,6 +72,9 @@ export type TeacherLesson = {
   attendance: AttendanceStatus | null;
 };
 
+export type TeacherLessonDetail = { lesson: TeacherLesson; attachments: LessonAttachment[] };
+export type UpdateLesson = { date: string; startTime: string; endTime: string; content?: string; homework?: string };
+
 export type AvailabilityBlock = {
   referenceId: string;
   kind: "LESSON" | "RECURRING";
@@ -140,9 +144,20 @@ export const teacherService = {
     content?: string;
     homework?: string;
   }) => api.post<TeacherLesson>("/teacher/lessons", b),
-  availability: (enrollmentId: string, date: string, startTime?: string, endTime?: string) =>
+  lesson: (id: string) => api.get<TeacherLessonDetail>(`/teacher/lessons/${id}`),
+  updateLesson: (id: string, body: UpdateLesson) => api.put<TeacherLesson>(`/teacher/lessons/${id}`, body),
+  uploadLessonAttachment: (lessonId: string, file: PickedFile) => {
+    const form = new FormData();
+    appendFile(form, "file", { ...file, mimeType: attachmentMimeType(file.name, file.mimeType) ?? file.mimeType });
+    return api.postForm<LessonAttachment>(`/teacher/lessons/${lessonId}/attachments`, form, { timeoutMs: MEDIA_TIMEOUT_MS });
+  },
+  deleteLessonAttachment: (lessonId: string, attachmentId: string) =>
+    api.del(`/teacher/lessons/${lessonId}/attachments/${attachmentId}`),
+  downloadLessonAttachment: (lessonId: string, attachmentId: string) =>
+    api.getBytes(`/teacher/lessons/${lessonId}/attachments/${attachmentId}`, { timeoutMs: MEDIA_TIMEOUT_MS }),
+  availability: (enrollmentId: string, date: string, startTime?: string, endTime?: string, lessonId?: string) =>
     api.get<LessonAvailability>(
-      `/teacher/lessons/availability?enrollmentId=${enrollmentId}&date=${date}${startTime && endTime ? `&startTime=${startTime}&endTime=${endTime}` : ""}`,
+      `/teacher/lessons/availability?enrollmentId=${enrollmentId}&date=${date}${startTime && endTime ? `&startTime=${startTime}&endTime=${endTime}` : ""}${lessonId ? `&lessonId=${lessonId}` : ""}`,
     ),
   history: (start: string, end: string) =>
     api.get<TeacherLesson[]>(`/teacher/lessons?start=${start}&end=${end}`),

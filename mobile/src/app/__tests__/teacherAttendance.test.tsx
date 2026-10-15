@@ -53,7 +53,7 @@ it("uses attendance records from the selected calendar month for the summary", a
   expect(screen.getByText("1/2")).toBeVisible();
 });
 
-it("opens a lesson from the student's history in the agenda", async () => {
+it("opens a lesson from the student's history in the lesson editor", async () => {
   const service = teacherService as jest.Mocked<typeof teacherService>;
   service.studentLessons.mockResolvedValue([{
     id: "l1", enrollmentId: "e1", studentId: "student-1", studentName: "João Silva", teacherName: "Carlos", instrument: "Piano",
@@ -62,6 +62,6 @@ it("opens a lesson from the student's history in the agenda", async () => {
   await render(<TeacherStudentDetail />);
   await screen.findByText("Nenhuma meta ativa");
   await fireEvent.press(screen.getByRole("tab", { name: "Aulas" }));
-  await fireEvent.press(screen.getByRole("button", { name: "Aula de 22/09/2026 às 09:00, Realizada. Abrir na agenda" }));
-  await waitFor(() => expect(mockPush).toHaveBeenCalledWith({ pathname: "/(teacher)/schedule", params: expect.objectContaining({ date: "2026-09-22" }) }));
+  await fireEvent.press(screen.getByRole("button", { name: "Aula de 22/09/2026 às 09:00, Realizada. Abrir aula" }));
+  await waitFor(() => expect(mockPush).toHaveBeenCalledWith({ pathname: "/(teacher)/lesson/[id]", params: { id: "l1" } }));
 });

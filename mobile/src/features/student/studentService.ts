@@ -18,6 +18,7 @@ export type StudentLesson = {
 export type LessonAttachment = {
   id: string;
   fileName: string;
+  contentType: string | null;
   sizeBytes: number | null;
 };
 
@@ -89,6 +90,8 @@ export const studentService = {
   dashboard: () => api.get<StudentDashboard>("/me/dashboard"),
   lessons: (status: "upcoming" | "past") => api.get<StudentLesson[]>(`/me/lessons?status=${status}`),
   lesson: (id: string) => api.get<StudentLessonDetail>(`/me/lessons/${id}`),
+  downloadLessonAttachment: (lessonId: string, attachmentId: string) =>
+    api.getBytes(`/me/lessons/${lessonId}/attachments/${attachmentId}`, { timeoutMs: MEDIA_TIMEOUT_MS }),
   materials: (search?: string) =>
     api.get<StudentMaterial[]>(`/me/materials${search ? `?search=${encodeURIComponent(search)}` : ""}`),
   downloadMaterial: (id: string) => api.getBytes(`/me/materials/${id}/download`),

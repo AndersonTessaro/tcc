@@ -4,7 +4,7 @@ import { teacherService, type LessonAvailability } from "./teacherService";
 
 const DEBOUNCE_MS = 300;
 
-type SlotQuery = { enrollmentId: string; date: string; startTime: string; endTime: string };
+type SlotQuery = { enrollmentId: string; date: string; startTime: string; endTime: string; lessonId?: string };
 
 export type SlotAvailabilityState = {
   data: LessonAvailability | undefined;
@@ -18,7 +18,7 @@ export const slotKey = ({ enrollmentId, date, startTime, endTime }: SlotQuery) =
 export function useSlotAvailability(query: SlotQuery): SlotAvailabilityState {
   const [state, setState] = useState<SlotAvailabilityState>({ data: undefined, checking: false, error: null, checkedFor: null });
   const requestRef = useRef(0);
-  const { enrollmentId, date, startTime, endTime } = query;
+  const { enrollmentId, date, startTime, endTime, lessonId } = query;
   const key = slotKey(query);
   const validQuery = !!enrollmentId && !validateDate(date);
 
@@ -32,7 +32,7 @@ export function useSlotAvailability(query: SlotQuery): SlotAvailabilityState {
     setState({ data: undefined, checking: true, error: null, checkedFor: key });
     const timer = setTimeout(() => {
       teacherService
-        .availability(enrollmentId, date, timesValid ? startTime : undefined, timesValid ? endTime : undefined)
+        .availability(enrollmentId, date, timesValid ? startTime : undefined, timesValid ? endTime : undefined, lessonId)
         .then((data) => {
           if (request === requestRef.current) setState({ data, checking: false, error: null, checkedFor: key });
         })
@@ -41,7 +41,7 @@ export function useSlotAvailability(query: SlotQuery): SlotAvailabilityState {
         });
     }, DEBOUNCE_MS);
     return () => { clearTimeout(timer); requestRef.current++; };
-  }, [enrollmentId, date, startTime, endTime, key]);
+  }, [enrollmentId, date, startTime, endTime, lessonId, key]);
 
   return state.checkedFor === key
     ? state

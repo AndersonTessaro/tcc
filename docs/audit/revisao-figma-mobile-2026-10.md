@@ -108,6 +108,21 @@ Plano do architect: `docs/superpowers/plans/2026-10-14-teacher-student-managemen
 
 Dados de teste criados no banco dev pelo fluxo: alunos `aluno.<n>` ("Aluno Teste …") vinculados a `prof.figma`.
 
+## Adição 1 — anexos e edição de aula (2026-10-15)
+
+Plano: `docs/superpowers/plans/2026-10-14-lesson-attachments-editing.md`. Decisões do dono: Drive com conta Google dedicada (OAuth) para início/validação; tipos PDF/imagem/áudio/vídeo; aula concluída edita conteúdo/tarefa/anexos com data travada.
+
+| Fase | Escopo | Verificação |
+|---|---|---|
+| B1–B2 | regras de edição no lesson-core, `GET/PUT /teacher/lessons/{id}` | `verify` verde; IT pegou JSON path errado no próprio teste (`referenceId`) |
+| B3–B4 | anexos (regra, V16, endpoints) | `verify` verde; 10 IT + 25 unit + 22 regra |
+| B5 | storage trocável local/Google Drive | `verify` verde; adaptador testado com respostas simuladas (sem token) |
+| M1–M5 | formulário com anexos, tela de editar aula, download do aluno | 304 testes jest; fluxo Playwright real (criar com 2 anexos → agenda "Editar" → salvar → aluno baixa bytes idênticos), sem erro HTTP. Gate 3 pegou linhas de anexo como botão roxo centralizado → linha do Figma 26 (ícone, nome, tamanho à direita) (`50`–`53`) |
+
+Codex sem cota (B5) e depois com sandbox do Windows quebrado (`setup refresh had errors`) — B5 e M1–M5 implementados pelo Claude. Arquivo novo colidiu com `lessonForm.ts`/`lessonAttachments.ts` em FS case-insensitive → `LessonFormScreen.tsx`/`LessonAttachmentList.tsx`.
+
+Conhecido: no web, `/lesson/<id>` digitado resolve a rota do aluno (mesmo caminho nos dois grupos), como `/dashboard`. Dados de teste no banco dev: duas aulas de João Silva em 15 e 16/03/2027 com `partitura.pdf` e `postura.png`.
+
 ## Pendências para decisão do dono
 
 Adições do Figma do professor que exigem backend: anexos e edição de aula; os 3 relatórios agregados; perfil, turmas, financeiro, configurações e notificações.

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react-nativ
 import Lessons from "@/app/(student)/(tabs)/lessons";
 import LessonDetail from "@/app/(student)/lesson/[id]";
 import { studentService, type StudentLesson } from "@/features/student/studentService";
+import { saveDownload } from "@/lib/files/saveDownload";
 import { addDays, formatLessonWhen, todayIso } from "@/lib/format";
 
 const mockPush = jest.fn();
@@ -14,8 +15,11 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 44, right: 0, bottom: 0, left: 0 }),
 }));
 jest.mock("@/features/student/studentService", () => ({
-  studentService: { lessons: jest.fn(), lesson: jest.fn() },
+  studentService: { lessons: jest.fn(), lesson: jest.fn(), downloadLessonAttachment: jest.fn() },
 }));
+const mockShow = jest.fn();
+jest.mock("@/ui/Toast", () => ({ useToast: () => ({ show: mockShow }) }));
+jest.mock("@/lib/files/saveDownload", () => ({ saveDownload: jest.fn() }));
 
 const service = studentService as jest.Mocked<typeof studentService>;
 const lesson: StudentLesson = {
@@ -72,7 +76,7 @@ it("explains the empty state when the student has no lessons", async () => {
 it("shows lesson date and time together with attachment metadata from the detail endpoint", async () => {
   service.lesson.mockResolvedValue({
     lesson,
-    attachments: [{ id: "attachment-1", fileName: "Exercícios.pdf", sizeBytes: 1258291 }],
+    attachments: [{ id: "attachment-1", fileName: "Exercícios.pdf", contentType: "application/pdf", sizeBytes: 1258291 }],
   });
 
   await render(<LessonDetail />);
@@ -84,6 +88,21 @@ it("shows lesson date and time together with attachment metadata from the detail
   expect(screen.getByText("Praticar 15 minutos")).toBeVisible();
   expect(screen.getByText("Exercícios.pdf")).toBeVisible();
   expect(screen.getByText("1,2 MB")).toBeVisible();
-  expect(screen.getByText("Disponível com o professor")).toBeVisible();
+  expect(screen.queryByText("Disponível com o professor")).toBeNull();
   await waitFor(() => expect(service.lesson).toHaveBeenCalledWith("lesson-1"));
+});
+
+it("downloads a lesson attachment through the student endpoint", async () => {
+  const bytes = new ArrayBuffer(4);
+  service.lesson.mockResolvedValue({
+    lesson,
+    attachments: [{ id: "attachment-1", fileName: "Exercícios.pdf", contentType: "application/pdf", sizeBytes: 1258291 }],
+  });
+  service.downloadLessonAttachment.mockResolvedValue(bytes);
+
+  await render(<LessonDetail />);
+  await fireEvent.press(await screen.findByRole("button", { name: "Baixar anexo Exercícios.pdf, 1,2 MB" }));
+
+  await waitFor(() => expect(saveDownload).toHaveBeenCalledWith(bytes, "Exercícios.pdf", "application/pdf"));
+  expect(service.downloadLessonAttachment).toHaveBeenCalledWith("lesson-1", "attachment-1");
 });

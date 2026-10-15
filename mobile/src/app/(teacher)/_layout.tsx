@@ -10,6 +10,7 @@ const activeTabs: Record<string, string> = {
   "student-form": "students",
   practice: "students",
   "new-lesson": "schedule",
+  lesson: "schedule",
   history: "schedule",
   makeup: "schedule",
   schedules: "more",

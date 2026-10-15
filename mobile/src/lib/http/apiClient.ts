@@ -151,6 +151,7 @@ export function createApiClient(deps: Deps) {
     post: <T>(p: string, b?: unknown, opts?: RequestOptions) => request<T>("POST", p, b, opts),
     put: <T>(p: string, b?: unknown) => request<T>("PUT", p, b),
     patch: <T>(p: string, b?: unknown) => request<T>("PATCH", p, b),
+    del: <T = void>(p: string) => request<T>("DELETE", p),
     postForm: <T>(p: string, form: FormData, opts?: RequestOptions) => requestForm<T>(p, form, opts),
   };
 }
