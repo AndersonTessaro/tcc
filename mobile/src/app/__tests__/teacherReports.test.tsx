@@ -51,7 +51,7 @@ it("shows attendance with RN09 absences, flags low rates and reloads for a new p
   await fireEvent.press(screen.getByRole("button", { name: "Frequência dos alunos" }));
 
   expect(await screen.findByText("de presença em 3 aulas")).toBeVisible();
-  expect(screen.getByText("2 presenças · 1 faltas (1 sem registro)")).toBeVisible();
+  expect(screen.getByText("2 presenças · 1 falta (1 sem registro)")).toBeVisible();
   expect(screen.getByText("67% · atenção")).toBeVisible();
   expect(screen.getByText("Bia Lima (inativo)")).toBeVisible();
   expect(screen.getByText("—")).toBeVisible();
@@ -70,7 +70,7 @@ it("shows practice totals, weekly bars and students without practice", async () 
   await render(<Reports />);
   await fireEvent.press(screen.getByRole("button", { name: "Prática em casa" }));
 
-  expect(await screen.findByText("1 de 2 alunos praticaram")).toBeVisible();
+  expect(await screen.findByText("1 de 2 alunos praticou")).toBeVisible();
   expect(screen.getByText("Avaliação média: 4,5")).toBeVisible();
   expect(screen.getByText("Semana de 12/10")).toBeVisible();
   expect(screen.getByText("Sem prática no período")).toBeVisible();
