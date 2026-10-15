@@ -59,16 +59,10 @@ public class TeacherUseCase {
     public DashboardSummary dashboard(String requestedClass) {
         UUID teacherId = current.currentTeacher().getId();
         List<Enrollment> activeEnrollments = myActiveEnrollments();
-        List<String> classes = activeEnrollments.stream().map(e -> {
-            String instrument = e.getInstrument().getName();
-            return e.getClassGroup() == null ? instrument : instrument + " - " + e.getClassGroup().getName();
-        }).distinct().toList();
+        List<String> classes = activeEnrollments.stream().map(Enrollment::classLabel).distinct().toList();
         String selectedClass = classes.contains(requestedClass) ? requestedClass : classes.stream().findFirst().orElse("");
-        List<Enrollment> selectedEnrollments = activeEnrollments.stream().filter(e -> {
-            String instrument = e.getInstrument().getName();
-            String name = e.getClassGroup() == null ? instrument : instrument + " - " + e.getClassGroup().getName();
-            return name.equals(selectedClass);
-        }).toList();
+        List<Enrollment> selectedEnrollments = activeEnrollments.stream()
+            .filter(e -> e.classLabel().equals(selectedClass)).toList();
         List<UUID> enrollmentIds = selectedEnrollments.stream().map(Enrollment::getId).toList();
         List<UUID> studentIds = selectedEnrollments.stream().map(e -> e.getStudent().getId()).distinct().toList();
 

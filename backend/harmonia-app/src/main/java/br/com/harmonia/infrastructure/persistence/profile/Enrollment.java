@@ -36,4 +36,9 @@ public class Enrollment {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EnrollmentStatus status = EnrollmentStatus.ACTIVE;
+
+    public String classLabel() {
+        String name = instrument.getName();
+        return classGroup == null ? name : name + " - " + classGroup.getName();
+    }
 }
