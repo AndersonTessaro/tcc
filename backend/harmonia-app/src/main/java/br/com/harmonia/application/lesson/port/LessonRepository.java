@@ -17,6 +17,25 @@ public interface LessonRepository extends JpaRepository<Lesson, UUID> {
     List<Lesson> findByEnrollmentStudentIdAndDateGreaterThanEqual(UUID studentId, LocalDate from);
     long countByEnrollmentStudentId(UUID studentId);
 
+    @Query("""
+        select l from Lesson l
+        join fetch l.enrollment e join fetch e.teacher t join fetch t.user
+        join fetch e.student s join fetch s.user
+        where l.date = :today and l.status = br.com.harmonia.infrastructure.persistence.lesson.LessonStatus.SCHEDULED
+        order by l.startTime, l.id
+        """)
+    List<Lesson> scheduledForNotifications(LocalDate today);
+
+    @Query("""
+        select l from Lesson l
+        join fetch l.enrollment e join fetch e.teacher t join fetch t.user
+        join fetch e.student s join fetch s.user
+        where l.date between :from and :to
+          and l.status <> br.com.harmonia.infrastructure.persistence.lesson.LessonStatus.CANCELED
+          and not exists (select a.id from Attendance a where a.lesson = l)
+        """)
+    List<Lesson> missingAttendanceForNotifications(LocalDate from, LocalDate to);
+
     // RN09: a past lesson without attendance counts as due (and absent); today's only once recorded.
     @Query("""
         select new br.com.harmonia.application.lesson.port.EnrollmentAttendanceAggregate(

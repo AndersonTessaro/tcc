@@ -7,6 +7,8 @@ import br.com.harmonia.domain.gamification.GamificationService;
 import br.com.harmonia.infrastructure.persistence.gamification.Practice;
 import br.com.harmonia.infrastructure.persistence.gamification.Progress;
 import br.com.harmonia.infrastructure.persistence.profile.Student;
+import br.com.harmonia.domain.gamification.PracticeRecordedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,12 +23,15 @@ public class PracticeUseCase {
     private final PracticeRepository practices;
     private final ProgressRepository progresses;
     private final CurrentUserService current;
+    private final ApplicationEventPublisher events;
     private final GamificationService gamification = new GamificationService();
 
-    public PracticeUseCase(PracticeRepository practices, ProgressRepository progresses, CurrentUserService current) {
+    public PracticeUseCase(PracticeRepository practices, ProgressRepository progresses, CurrentUserService current,
+                           ApplicationEventPublisher events) {
         this.practices = practices;
         this.progresses = progresses;
         this.current = current;
+        this.events = events;
     }
 
     public record PracticeRegistration(Practice practice, Progress progress) {}
@@ -57,7 +62,9 @@ public class PracticeUseCase {
         prog.setTotalPracticeMin(prog.getTotalPracticeMin() + durationMin);
         prog.setLastPractice(date);
         prog.setUpdatedAt(LocalDateTime.now());
-        return new PracticeRegistration(savedPractice, progresses.save(prog));
+        Progress savedProgress = progresses.save(prog);
+        events.publishEvent(new PracticeRecordedEvent(student.getId(), savedPractice.getId(), durationMin, date));
+        return new PracticeRegistration(savedPractice, savedProgress);
     }
 
     public int weeklyPracticeMin(UUID studentId) {
