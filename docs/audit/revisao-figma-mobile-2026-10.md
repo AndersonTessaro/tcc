@@ -158,9 +158,9 @@ Backend: V19 cria `notification`; eventos de prática/meta notificam professores
 |---|---|
 | Backend unitários e compilação das fontes dos ITs | verde |
 | TypeScript | verde (`npx tsc --noEmit`) |
-| Jest | verde: 352 testes / 48 suítes (`npx jest --runInBand`) |
+| Jest | verde: 353 testes / 48 suítes (inclui o rótulo "1 não lida" no singular) |
 | `git diff --check` | verde |
 | Backend ITs / `verify` completo | verde (executado fora do sandbox com Docker) |
-| Captura visual / dispositivo | não realizada neste ciclo |
+| Captura visual (Playwright 390×844, API real) | `app-after/21a-prof-dashboard-sino.png` (badge 1), `21a-prof-notificacoes.png` (lista com "Não lida"), `21a-prof-notificacao-pratica.png` (toque abre a prática; ao voltar o sino fica sem badge) |
 
-Revisão de código: corrigido o encolhimento do texto da saudação para manter o sino visível com fonte ampliada. Alterações deixadas no working tree, sem commit/push.
+Revisão de código: corrigido o encolhimento do texto da saudação para manter o sino visível com fonte ampliada. Corrigido também o rótulo acessível no singular ("1 não lida"). Commits `b5c1ab0` (backend) e `564a236` (mobile).
