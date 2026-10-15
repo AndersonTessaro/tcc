@@ -2,11 +2,13 @@ package br.com.harmonia.presentation.teacher;
 
 import br.com.harmonia.application.gamification.PracticeRecordingUseCase;
 import br.com.harmonia.application.lesson.AttendanceUseCase;
+import br.com.harmonia.application.lesson.LessonAttachmentUseCase;
 import br.com.harmonia.application.lesson.TeacherLessonUseCase;
 import br.com.harmonia.application.material.TeacherMaterialUseCase;
 import br.com.harmonia.application.teacher.TeacherUseCase;
 import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
 import br.com.harmonia.presentation.response.AttendanceResponse;
+import br.com.harmonia.presentation.response.AttachmentResponse;
 import br.com.harmonia.presentation.response.AvailabilityResponse;
 import br.com.harmonia.presentation.response.LessonResponse;
 import br.com.harmonia.presentation.response.LessonDetailResponse;
@@ -39,15 +41,17 @@ public class TeacherController {
     private final AttendanceUseCase attendance;
     private final TeacherMaterialUseCase material;
     private final PracticeRecordingUseCase recording;
+    private final LessonAttachmentUseCase attachments;
 
     public TeacherController(TeacherUseCase teacher, TeacherLessonUseCase lesson,
                              AttendanceUseCase attendance, TeacherMaterialUseCase material,
-                             PracticeRecordingUseCase recording) {
+                             PracticeRecordingUseCase recording, LessonAttachmentUseCase attachments) {
         this.teacher = teacher;
         this.lesson = lesson;
         this.attendance = attendance;
         this.material = material;
         this.recording = recording;
+        this.attachments = attachments;
     }
 
     public record NewLesson(@NotNull UUID enrollmentId, @NotNull LocalDate date,
@@ -128,6 +132,26 @@ public class TeacherController {
     public LessonDetailResponse lessonDetail(@PathVariable UUID id) {
         var detail = lesson.detail(id);
         return LessonDetailResponse.of(detail.lesson(), detail.attachments());
+    }
+
+    @PostMapping(value = "/lessons/{id}/attachments", consumes = "multipart/form-data")
+    @PreAuthorize("hasAuthority('lesson.manage')")
+    public AttachmentResponse uploadLessonAttachment(@PathVariable UUID id, @RequestParam MultipartFile file) {
+        return AttachmentResponse.of(attachments.upload(id, file));
+    }
+
+    @DeleteMapping("/lessons/{id}/attachments/{attachmentId}")
+    @PreAuthorize("hasAuthority('lesson.manage')")
+    public ResponseEntity<Void> deleteLessonAttachment(@PathVariable UUID id, @PathVariable UUID attachmentId) {
+        attachments.delete(id, attachmentId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/lessons/{id}/attachments/{attachmentId}")
+    @PreAuthorize("hasAuthority('lesson.read')")
+    public ResponseEntity<byte[]> downloadLessonAttachment(@PathVariable UUID id, @PathVariable UUID attachmentId) {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM)
+            .body(attachments.downloadAsTeacher(id, attachmentId));
     }
 
     @PutMapping("/lessons/{id}")

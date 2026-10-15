@@ -24,10 +24,10 @@ public class LessonAttachment {
     @Column(name = "storage_path", nullable = false)
     private String storagePath;
 
-    @Column(name = "content_type")
+    @Column(name = "content_type", nullable = false)
     private String contentType;
 
-    @Column(name = "size_bytes")
+    @Column(name = "size_bytes", nullable = false)
     private Long sizeBytes;
 
     @Column(name = "created_at", nullable = false)

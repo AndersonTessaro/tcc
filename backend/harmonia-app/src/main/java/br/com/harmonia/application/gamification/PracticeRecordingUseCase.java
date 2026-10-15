@@ -1,6 +1,7 @@
 package br.com.harmonia.application.gamification;
 
 import br.com.harmonia.application.context.CurrentUserService;
+import br.com.harmonia.application.storage.StorageTransactions;
 import br.com.harmonia.application.gamification.port.PracticeRepository;
 import br.com.harmonia.application.profile.port.EnrollmentRepository;
 import br.com.harmonia.domain.common.OwnershipException;
@@ -11,8 +12,6 @@ import br.com.harmonia.infrastructure.persistence.gamification.PracticeRecording
 import br.com.harmonia.infrastructure.storage.FileStoragePort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -48,16 +47,8 @@ public class PracticeRecordingUseCase {
                 Arrays.copyOf(content, Math.min(content.length, PracticeRecordingRule.HEAD_BYTES)));
             String newPath = storage.save(fileName, content);
             String oldPath = practice.getRecording() == null ? null : practice.getRecording().getStoragePath();
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCompletion(int status) {
-                    if (status == STATUS_COMMITTED) {
-                        if (oldPath != null) storage.delete(oldPath);
-                    } else {
-                        storage.delete(newPath);
-                    }
-                }
-            });
+            StorageTransactions.deleteOnRollback(storage, newPath);
+            StorageTransactions.deleteAfterCommit(storage, oldPath);
             practice.setRecording(new PracticeRecording(fileName, newPath, file.getContentType(),
                 file.getSize(), LocalDateTime.now()));
             return practices.save(practice);

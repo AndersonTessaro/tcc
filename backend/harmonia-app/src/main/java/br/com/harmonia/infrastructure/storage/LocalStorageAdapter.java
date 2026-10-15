@@ -11,6 +11,7 @@ import java.util.UUID;
 
 @Component
 public class LocalStorageAdapter implements FileStoragePort {
+    private static final int MAX_KEY_NAME_LENGTH = 218;
     private final Path root;
 
     public LocalStorageAdapter(@Value("${app.storage.local-dir:./storage}") String dir) throws IOException {
@@ -22,7 +23,7 @@ public class LocalStorageAdapter implements FileStoragePort {
     public String save(String fileName, byte[] content) {
         try {
             String safe = (fileName == null ? "file" : fileName).replaceAll("[^A-Za-z0-9._-]", "_");
-            String key = UUID.randomUUID() + "_" + safe;
+            String key = UUID.randomUUID() + "_" + safe.substring(Math.max(0, safe.length() - MAX_KEY_NAME_LENGTH));
             Files.write(root.resolve(key), content);
             return key;
         } catch (IOException e) {
