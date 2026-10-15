@@ -2,18 +2,22 @@ package br.com.harmonia.presentation.admin;
 
 import br.com.harmonia.application.admin.AdminRegistrationUseCase;
 import br.com.harmonia.infrastructure.persistence.profile.Teacher;
-import br.com.harmonia.presentation.response.PersonSummary;
 import br.com.harmonia.presentation.response.InstrumentOption;
+import br.com.harmonia.presentation.response.PersonSummary;
 import br.com.harmonia.presentation.validation.Passwords;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -56,7 +60,9 @@ public class AdminController {
         }
     }
     public record NewInstrument(@NotBlank @Size(max = 80) String name) {}
-    public record NewEnrollment(@NotNull UUID studentId, @NotNull UUID teacherId, @NotNull UUID instrumentId) {}
+    public record NewEnrollment(@NotNull UUID studentId, @NotNull UUID teacherId, @NotNull UUID instrumentId,
+                                @PositiveOrZero @Digits(integer = 8, fraction = 2) BigDecimal monthlyFee) {}
+    public record EnrollmentFee(@PositiveOrZero @Digits(integer = 8, fraction = 2) BigDecimal monthlyFee) {}
 
     @GetMapping("/students")
     @PreAuthorize("hasAnyAuthority('student.manage', 'enrollment.manage')")
@@ -103,6 +109,12 @@ public class AdminController {
     @PostMapping("/enrollments")
     @PreAuthorize("hasAuthority('enrollment.manage')")
     public Map<String, UUID> enrollment(@Valid @RequestBody NewEnrollment r) {
-        return Map.of("id", uc.createEnrollment(r.studentId(), r.teacherId(), r.instrumentId()));
+        return Map.of("id", uc.createEnrollment(r.studentId(), r.teacherId(), r.instrumentId(), r.monthlyFee()));
+    }
+    @PutMapping("/enrollments/{id}/fee")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> enrollmentFee(@PathVariable UUID id, @Valid @RequestBody EnrollmentFee r) {
+        uc.setEnrollmentFee(id, r.monthlyFee());
+        return ResponseEntity.noContent().build();
     }
 }

@@ -8,7 +8,7 @@ import br.com.harmonia.application.material.TeacherMaterialUseCase;
 import br.com.harmonia.application.teacher.TeacherReportUseCase;
 import br.com.harmonia.application.teacher.TeacherUseCase;
 import br.com.harmonia.domain.report.ReportPeriod;
-import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
+import br.com.harmonia.presentation.response.EnrollmentOption;
 import br.com.harmonia.presentation.response.AttendanceResponse;
 import br.com.harmonia.presentation.response.AttachmentResponse;
 import br.com.harmonia.presentation.response.AvailabilityResponse;
@@ -66,12 +66,6 @@ public class TeacherController {
                                @Size(max = 1000) String content, @Size(max = 1000) String homework) {}
     public record RegisterAttendance(@NotNull AttendanceStatus status, String justification) {}
     public record ChangeLessonStatus(@NotNull LessonStatus status) {}
-    public record EnrollmentOption(UUID id, UUID studentId, String studentName, String instrument) {
-        static EnrollmentOption of(Enrollment e) {
-            return new EnrollmentOption(e.getId(), e.getStudent().getId(),
-                e.getStudent().getUser().nameForDisplay(), e.getInstrument().getName());
-        }
-    }
 
     @GetMapping("/dashboard")
     @PreAuthorize("hasAuthority('student.read')")

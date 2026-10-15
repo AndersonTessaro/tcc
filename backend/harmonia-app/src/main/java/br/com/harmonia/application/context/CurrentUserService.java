@@ -27,7 +27,7 @@ public class CurrentUserService {
         this.teachers = teachers;
     }
 
-    private UUID userId() {
+    public UUID userId() {
         Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return users.findByUsername(jwt.getSubject()).orElseThrow().getId();
     }
