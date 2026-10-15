@@ -29,6 +29,15 @@ class ReportPeriodTest {
     }
 
     @Test
+    void directPeriodsAllowFutureDatesButStillValidateBoundaries() {
+        assertThat(new ReportPeriod(TODAY, TODAY.plusDays(60)).to()).isEqualTo(TODAY.plusDays(60));
+        assertThatThrownBy(() -> new ReportPeriod(TODAY, TODAY.minusDays(1)))
+            .isInstanceOf(DomainValidationException.class);
+        assertThatThrownBy(() -> new ReportPeriod(TODAY, TODAY.plusDays(366)))
+            .isInstanceOf(DomainValidationException.class);
+    }
+
+    @Test
     void acceptsUpTo366Days() {
         assertThat(ReportPeriod.of(TODAY.minusDays(365), TODAY, TODAY).from()).isEqualTo(TODAY.minusDays(365));
         assertThatThrownBy(() -> ReportPeriod.of(TODAY.minusDays(366), TODAY, TODAY))

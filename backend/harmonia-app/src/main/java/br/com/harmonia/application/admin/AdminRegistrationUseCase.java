@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -105,6 +106,11 @@ public class AdminRegistrationUseCase {
 
     @Transactional
     public UUID createEnrollment(UUID studentId, UUID teacherId, UUID instrumentId) {
+        return createEnrollment(studentId, teacherId, instrumentId, null);
+    }
+
+    @Transactional
+    public UUID createEnrollment(UUID studentId, UUID teacherId, UUID instrumentId, BigDecimal monthlyFee) {
         Student student = students.findById(studentId).orElseThrow(() -> new ResourceNotFoundException("Student"));
         Teacher teacher = teachers.findById(teacherId).orElseThrow(() -> new ResourceNotFoundException("Teacher"));
         Instrument instrument = instruments.findById(instrumentId)
@@ -124,7 +130,15 @@ public class AdminRegistrationUseCase {
         e.setStudent(student);
         e.setTeacher(teacher);
         e.setInstrument(instrument);
+        e.setMonthlyFee(monthlyFee);
         return enrollments.save(e).getId();
+    }
+
+    @Transactional
+    public void setEnrollmentFee(UUID id, BigDecimal monthlyFee) {
+        Enrollment enrollment = enrollments.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Enrollment"));
+        enrollment.setMonthlyFee(monthlyFee);
     }
 
     private static void requireActive(boolean active, String resource) {

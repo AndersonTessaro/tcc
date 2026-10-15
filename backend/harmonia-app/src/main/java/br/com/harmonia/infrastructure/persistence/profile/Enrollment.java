@@ -3,6 +3,7 @@ package br.com.harmonia.infrastructure.persistence.profile;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -36,6 +37,9 @@ public class Enrollment {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EnrollmentStatus status = EnrollmentStatus.ACTIVE;
+
+    @Column(name = "monthly_fee", precision = 10, scale = 2)
+    private BigDecimal monthlyFee;
 
     public String classLabel() {
         String name = instrument.getName();
