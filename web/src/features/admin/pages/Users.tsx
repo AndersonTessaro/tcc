@@ -1,28 +1,28 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { adminService } from "../adminService";
-import type { RoleDto, UserDto } from "../adminService";
+import type { UserDto } from "../adminService";
 import { accessProfileLabel } from "../accessProfile";
-import { Button, Card, PageTitle } from "@/components/ui";
+import { Button, Card, Input, PageTitle } from "@/components/ui";
+import { ListState } from "../components/ListState";
+import { OptionSelect } from "../components/OptionSelect";
+import { useAdminList } from "../hooks/useAdminList";
+
+const loadUsers = async () => {
+  const [users, roles] = await Promise.all([adminService.users(), adminService.roles()]);
+  return { users, roles };
+};
 
 export default function Users() {
-  const [users, setUsers] = useState<UserDto[]>([]);
-  const [roles, setRoles] = useState<RoleDto[]>([]);
+  const { data: { users, roles }, loading, error, reload: load } = useAdminList(loadUsers,
+    { users: [], roles: [] }, "Erro ao carregar usuários");
   const [editing, setEditing] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const load = () => {
-    setLoading(true);
-    Promise.all([adminService.users(), adminService.roles()])
-      .then(([u, r]) => {
-        setUsers(u);
-        setRoles(r);
-      })
-      .catch(() => toast.error("Erro ao carregar usuários"))
-      .finally(() => setLoading(false));
-  };
-  useEffect(load, []);
+  const [search, setSearch] = useState("");
+  const [roleId, setRoleId] = useState("");
+  const filtered = users.filter((user) => (!roleId || user.roles.some((role) => role.id.toString() === roleId))
+    && `${user.displayName ?? ""} ${user.username} ${user.email}`.toLocaleLowerCase("pt-BR")
+      .includes(search.trim().toLocaleLowerCase("pt-BR")));
 
   const toggleStatus = async (u: UserDto) => {
     try {
@@ -58,15 +58,23 @@ export default function Users() {
     }
   };
 
-  if (loading) return <p className="text-gray-500">Carregando...</p>;
-
   return (
     <div>
       <PageTitle>Usuários</PageTitle>
+      <div className="mb-4 grid gap-3 md:grid-cols-2">
+        <label className="block text-sm text-gray-700">Buscar usuários
+          <Input className="mt-1" value={search} onChange={(event) => setSearch(event.target.value)} />
+        </label>
+        <OptionSelect label="Filtrar por perfil" value={roleId} placeholder="Todos"
+          options={roles.map((role) => ({ id: role.id.toString(), label: accessProfileLabel(role.name) }))} onChange={setRoleId} />
+      </div>
+      <ListState loading={loading} error={error} empty={!filtered.length} emptyMessage="Nenhum usuário encontrado" />
+      {!loading && !error && filtered.length > 0 && (
       <Card className="overflow-x-auto p-0">
         <table className="w-full text-sm">
           <thead className="border-b border-gray-200 text-left text-gray-500">
             <tr>
+              <th className="p-3">Nome</th>
               <th className="p-3">Usuário</th>
               <th className="p-3">E-mail</th>
               <th className="p-3">Status</th>
@@ -75,8 +83,9 @@ export default function Users() {
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
+            {filtered.map((u) => (
               <tr key={u.id} className="border-b border-gray-100 align-top">
+                <td className="p-3">{u.displayName || "—"}</td>
                 <td className="p-3 font-medium">{u.username}</td>
                 <td className="p-3 text-gray-600">{u.email}</td>
                 <td className="p-3">
@@ -122,6 +131,7 @@ export default function Users() {
           </tbody>
         </table>
       </Card>
+      )}
     </div>
   );
 }

@@ -6,7 +6,10 @@ const nav = [
   { to: "/admin/users", label: "Usuários" },
   { to: "/admin/roles", label: "Perfis de acesso" },
   { to: "/admin/permissions", label: "Permissões" },
-  { to: "/admin/registrations", label: "Cadastros" },
+  { to: "/admin/students", label: "Alunos" },
+  { to: "/admin/teachers", label: "Professores" },
+  { to: "/admin/instruments", label: "Instrumentos" },
+  { to: "/admin/enrollments", label: "Matrículas" },
   { to: "/admin/finance", label: "Financeiro" },
   { to: "/admin/settings", label: "Configurações" },
 ];

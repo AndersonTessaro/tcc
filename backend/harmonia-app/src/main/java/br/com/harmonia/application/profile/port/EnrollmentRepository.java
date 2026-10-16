@@ -9,6 +9,10 @@ import java.util.List;
 import java.util.UUID;
 
 public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {
+    @EntityGraph(attributePaths = {"student.user", "teacher.user", "instrument", "classGroup"})
+    List<Enrollment> findAllBy();
+    @EntityGraph(attributePaths = {"student.user", "teacher.user", "instrument", "classGroup"})
+    List<Enrollment> findByStatus(EnrollmentStatus status);
     @EntityGraph(attributePaths = {"student.user", "instrument", "classGroup"})
     List<Enrollment> findByTeacherId(UUID teacherId);
     List<Enrollment> findByStudentId(UUID studentId);

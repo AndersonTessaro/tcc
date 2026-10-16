@@ -7,7 +7,10 @@ import Forgot from "@/features/auth/pages/Forgot";
 import Users from "@/features/admin/pages/Users";
 import Roles from "@/features/admin/pages/Roles";
 import Permissions from "@/features/admin/pages/Permissions";
-import Registrations from "@/features/admin/pages/Registrations";
+import Students from "@/features/admin/pages/Students";
+import Teachers from "@/features/admin/pages/Teachers";
+import Instruments from "@/features/admin/pages/Instruments";
+import Enrollments from "@/features/admin/pages/Enrollments";
 import Finance from "@/features/admin/pages/Finance";
 import Settings from "@/features/admin/pages/Settings";
 import { Button } from "@/components/ui";
@@ -53,7 +56,11 @@ export default function App() {
             <Route path="users" element={<Users />} />
             <Route path="roles" element={<Roles />} />
             <Route path="permissions" element={<Permissions />} />
-            <Route path="registrations" element={<Registrations />} />
+            <Route path="registrations" element={<Navigate to="/admin/students" replace />} />
+            <Route path="students" element={<Students />} />
+            <Route path="teachers" element={<Teachers />} />
+            <Route path="instruments" element={<Instruments />} />
+            <Route path="enrollments" element={<Enrollments />} />
             <Route path="finance" element={<Finance />} />
             <Route path="settings" element={<Settings />} />
           </Route>

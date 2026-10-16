@@ -2,6 +2,8 @@ package br.com.harmonia.presentation.admin;
 
 import br.com.harmonia.application.admin.AdminRegistrationUseCase;
 import br.com.harmonia.infrastructure.persistence.profile.Teacher;
+import br.com.harmonia.infrastructure.persistence.profile.EnrollmentStatus;
+import br.com.harmonia.presentation.response.AdminEnrollmentResponse;
 import br.com.harmonia.presentation.response.InstrumentOption;
 import br.com.harmonia.presentation.response.PersonSummary;
 import br.com.harmonia.presentation.validation.Passwords;
@@ -63,6 +65,21 @@ public class AdminController {
     public record NewEnrollment(@NotNull UUID studentId, @NotNull UUID teacherId, @NotNull UUID instrumentId,
                                 @PositiveOrZero @Digits(integer = 8, fraction = 2) BigDecimal monthlyFee) {}
     public record EnrollmentFee(@PositiveOrZero @Digits(integer = 8, fraction = 2) BigDecimal monthlyFee) {}
+    public record EnrollmentStatusRequest(@NotNull EnrollmentStatus status) {}
+
+    @GetMapping("/enrollments")
+    @PreAuthorize("hasAuthority('enrollment.manage')")
+    public List<AdminEnrollmentResponse> enrollments(@RequestParam(required = false) EnrollmentStatus status) {
+        return uc.listEnrollments(status).stream().map(AdminEnrollmentResponse::of).toList();
+    }
+
+    @PutMapping("/enrollments/{id}/status")
+    @PreAuthorize("hasAuthority('enrollment.manage')")
+    public ResponseEntity<Void> enrollmentStatus(@PathVariable UUID id,
+                                                @Valid @RequestBody EnrollmentStatusRequest r) {
+        uc.setEnrollmentStatus(id, r.status());
+        return ResponseEntity.noContent().build();
+    }
 
     @GetMapping("/students")
     @PreAuthorize("hasAnyAuthority('student.manage', 'enrollment.manage')")

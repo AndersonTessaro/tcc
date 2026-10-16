@@ -37,6 +37,8 @@ const routeFetch = (input: RequestInfo | URL): Promise<Response> => {
     return Promise.resolve(jsonResponse(200, { ...ADMIN_SESSION, displayName: "Administrador" }));
   if (url.endsWith("/admin/security/users")) return Promise.resolve(jsonResponse(200, USERS));
   if (url.endsWith("/admin/security/roles")) return Promise.resolve(jsonResponse(200, USERS[0].roles));
+  if (url.endsWith("/admin/students"))
+    return Promise.resolve(jsonResponse(200, [{ id: "s-1", name: "Ana Souza", username: "ana" }]));
   return Promise.resolve(jsonResponse(404, {}));
 };
 
@@ -77,5 +79,14 @@ describe("web admin login flow", () => {
     expect(await screen.findAllByText("Usuários")).not.toHaveLength(0);
     await waitFor(() => expect(screen.getByText("admin@harmonia.local")).toBeInTheDocument());
     expect(localStorage.getItem("harmonia_access")).toBe(ADMIN_SESSION.accessToken);
+  });
+
+  it("redirects the legacy registrations URL to the student list", async () => {
+    localStorage.setItem("harmonia_access", ADMIN_SESSION.accessToken);
+    window.history.pushState({}, "", "/admin/registrations");
+    await renderApp();
+    expect(await screen.findByRole("heading", { name: "Alunos" })).toBeInTheDocument();
+    expect(await screen.findByText("Ana Souza")).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/admin/students");
   });
 });
