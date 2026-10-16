@@ -141,6 +141,26 @@ public class AdminRegistrationUseCase {
         enrollment.setMonthlyFee(monthlyFee);
     }
 
+    @Transactional(readOnly = true)
+    public List<Enrollment> listEnrollments(EnrollmentStatus status) {
+        List<Enrollment> found = status == null ? enrollments.findAllBy() : enrollments.findByStatus(status);
+        return found.stream().sorted(Comparator.comparing(e -> e.getStudent().getUser().nameForDisplay())).toList();
+    }
+
+    @Transactional
+    public void setEnrollmentStatus(UUID id, EnrollmentStatus status) {
+        Enrollment enrollment = enrollments.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Enrollment"));
+        if (status == EnrollmentStatus.ACTIVE && enrollment.getStatus() != EnrollmentStatus.ACTIVE
+            && enrollments.existsByStudentIdAndTeacherIdAndInstrumentIdAndStatus(
+                enrollment.getStudent().getId(), enrollment.getTeacher().getId(), enrollment.getInstrument().getId(),
+                EnrollmentStatus.ACTIVE)) {
+            throw new DuplicateResourceException(
+                "Student already has an active enrollment with this teacher and instrument");
+        }
+        enrollment.setStatus(status);
+    }
+
     private static void requireActive(boolean active, String resource) {
         if (!active) {
             throw new DomainValidationException(resource + " is not active");

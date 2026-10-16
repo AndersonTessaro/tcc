@@ -14,10 +14,22 @@ export type UserDto = {
 export type PersonOption = { id: string; name: string; username: string };
 export type InstrumentOption = { id: string; name: string };
 export type TeacherOption = PersonOption & { instruments: InstrumentOption[] };
+export type EnrollmentStatus = "ACTIVE" | "SUSPENDED" | "CLOSED";
+export type EnrollmentDto = {
+  id: string;
+  student: PersonOption;
+  teacher: PersonOption;
+  instrument: InstrumentOption;
+  classLabel: string;
+  status: EnrollmentStatus;
+  monthlyFee: number | null;
+};
 
 export const adminService = {
   users: () => api.get<UserDto[]>("/admin/security/users"),
   roles: () => api.get<RoleDto[]>("/admin/security/roles"),
+  createRole: (name: string, description: string) =>
+    api.post<RoleDto>("/admin/security/roles", { name, description }),
   permissions: () => api.get<Permission[]>("/admin/security/permissions"),
   setRoles: (userId: string, roleIds: number[]) =>
     api.put<UserDto>(`/admin/security/users/${userId}/roles`, { roleIds }),
@@ -36,7 +48,13 @@ export const adminService = {
   students: () => api.get<PersonOption[]>("/admin/students"),
   teachers: () => api.get<TeacherOption[]>("/admin/teachers"),
   instruments: () => api.get<InstrumentOption[]>("/admin/instruments"),
-  createEnrollment: (b: { studentId: string; teacherId: string; instrumentId: string }) =>
+  enrollments: (status?: EnrollmentStatus) =>
+    api.get<EnrollmentDto[]>(`/admin/enrollments${status ? `?status=${status}` : ""}`),
+  setEnrollmentStatus: (id: string, status: EnrollmentStatus) =>
+    api.put<void>(`/admin/enrollments/${id}/status`, { status }),
+  setEnrollmentFee: (id: string, monthlyFee: number | null) =>
+    api.put<void>(`/admin/enrollments/${id}/fee`, { monthlyFee }),
+  createEnrollment: (b: { studentId: string; teacherId: string; instrumentId: string; monthlyFee?: number | null }) =>
     api.post<{ id: string }>("/admin/enrollments", b),
   // settings (RF29)
   settings: () => api.get<SettingDto[]>("/admin/settings"),
