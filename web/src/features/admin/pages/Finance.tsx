@@ -5,6 +5,8 @@ import { adminService } from "../adminService";
 import type { TransactionDto, TransactionType } from "../adminService";
 import { Button, Card, Input, PageTitle } from "@/components/ui";
 
+const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
 export default function Finance() {
   const [items, setItems] = useState<TransactionDto[]>([]);
   const [balance, setBalance] = useState<number>(0);
@@ -51,7 +53,7 @@ export default function Finance() {
       <Card className="mb-6">
         <p className="text-sm text-gray-500">Saldo</p>
         <p className={`text-2xl font-bold ${balance >= 0 ? "text-accent" : "text-red-500"}`}>
-          R$ {balance.toFixed(2)}
+          {brl.format(balance)}
         </p>
       </Card>
 
@@ -59,6 +61,7 @@ export default function Finance() {
         <p className="mb-3 font-medium">Novo lançamento</p>
         <div className="flex flex-wrap items-center gap-2">
           <select
+            aria-label="Tipo"
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
             value={type}
             onChange={(e) => setType(e.target.value as TransactionType)}
@@ -91,7 +94,7 @@ export default function Finance() {
                     {t.type === "INCOME" ? "Receita" : "Despesa"}
                   </span>
                 </td>
-                <td className="p-3">R$ {Number(t.amount).toFixed(2)}</td>
+                <td className="p-3">{brl.format(Number(t.amount))}</td>
                 <td className="p-3 text-gray-600">{t.description ?? "—"}</td>
               </tr>
             ))}
