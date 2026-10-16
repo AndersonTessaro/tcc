@@ -7,6 +7,7 @@ import br.com.harmonia.domain.common.DuplicateResourceException;
 import br.com.harmonia.domain.common.ResourceNotFoundException;
 import br.com.harmonia.infrastructure.persistence.profile.*;
 import br.com.harmonia.infrastructure.persistence.security.User;
+import br.com.harmonia.lessoncore.DomainValidationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -75,6 +76,24 @@ class AdminEnrollmentsUseCaseTest {
     }
 
     @Test
+    void reactivationRejectsInactiveTeacher() {
+        Enrollment enrollment = enrollment(EnrollmentStatus.SUSPENDED);
+        enrollment.getTeacher().setActive(false);
+        assertThatThrownBy(() -> uc.setEnrollmentStatus(enrollment.getId(), EnrollmentStatus.ACTIVE))
+            .isInstanceOf(DomainValidationException.class);
+        assertThat(enrollment.getStatus()).isEqualTo(EnrollmentStatus.SUSPENDED);
+    }
+
+    @Test
+    void reactivationRejectsInstrumentTeacherNoLongerTeaches() {
+        Enrollment enrollment = enrollment(EnrollmentStatus.CLOSED);
+        enrollment.getTeacher().getInstruments().clear();
+        assertThatThrownBy(() -> uc.setEnrollmentStatus(enrollment.getId(), EnrollmentStatus.ACTIVE))
+            .isInstanceOf(DomainValidationException.class);
+        assertThat(enrollment.getStatus()).isEqualTo(EnrollmentStatus.CLOSED);
+    }
+
+    @Test
     void activeEnrollmentCanSuspendOrClose() {
         Enrollment enrollment = enrollment(EnrollmentStatus.ACTIVE);
         uc.setEnrollmentStatus(enrollment.getId(), EnrollmentStatus.SUSPENDED);
@@ -90,6 +109,7 @@ class AdminEnrollmentsUseCaseTest {
         teacher.setId(UUID.randomUUID());
         Instrument instrument = new Instrument();
         instrument.setId(UUID.randomUUID());
+        teacher.getInstruments().add(instrument);
         Enrollment enrollment = new Enrollment();
         enrollment.setId(UUID.randomUUID());
         enrollment.setStudent(student);

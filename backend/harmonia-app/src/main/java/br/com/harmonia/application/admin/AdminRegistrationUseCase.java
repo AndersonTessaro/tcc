@@ -115,17 +115,7 @@ public class AdminRegistrationUseCase {
         Teacher teacher = teachers.findById(teacherId).orElseThrow(() -> new ResourceNotFoundException("Teacher"));
         Instrument instrument = instruments.findById(instrumentId)
             .orElseThrow(() -> new ResourceNotFoundException("Instrument"));
-        requireActive(student.getActive(), "Student");
-        requireActive(teacher.getActive(), "Teacher");
-        requireActive(instrument.getActive(), "Instrument");
-        if (teacher.getInstruments().stream().noneMatch(i -> i.getId().equals(instrumentId))) {
-            throw new DomainValidationException("Teacher does not teach this instrument");
-        }
-        if (enrollments.existsByStudentIdAndTeacherIdAndInstrumentIdAndStatus(studentId, teacherId, instrumentId,
-                EnrollmentStatus.ACTIVE)) {
-            throw new DuplicateResourceException(
-                "Student already has an active enrollment with this teacher and instrument");
-        }
+        requireEnrollable(student, teacher, instrument);
         Enrollment e = new Enrollment();
         e.setStudent(student);
         e.setTeacher(teacher);
@@ -151,14 +141,24 @@ public class AdminRegistrationUseCase {
     public void setEnrollmentStatus(UUID id, EnrollmentStatus status) {
         Enrollment enrollment = enrollments.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Enrollment"));
-        if (status == EnrollmentStatus.ACTIVE && enrollment.getStatus() != EnrollmentStatus.ACTIVE
-            && enrollments.existsByStudentIdAndTeacherIdAndInstrumentIdAndStatus(
-                enrollment.getStudent().getId(), enrollment.getTeacher().getId(), enrollment.getInstrument().getId(),
-                EnrollmentStatus.ACTIVE)) {
+        if (status == EnrollmentStatus.ACTIVE && enrollment.getStatus() != EnrollmentStatus.ACTIVE) {
+            requireEnrollable(enrollment.getStudent(), enrollment.getTeacher(), enrollment.getInstrument());
+        }
+        enrollment.setStatus(status);
+    }
+
+    private void requireEnrollable(Student student, Teacher teacher, Instrument instrument) {
+        requireActive(student.getActive(), "Student");
+        requireActive(teacher.getActive(), "Teacher");
+        requireActive(instrument.getActive(), "Instrument");
+        if (teacher.getInstruments().stream().noneMatch(i -> i.getId().equals(instrument.getId()))) {
+            throw new DomainValidationException("Teacher does not teach this instrument");
+        }
+        if (enrollments.existsByStudentIdAndTeacherIdAndInstrumentIdAndStatus(student.getId(), teacher.getId(),
+                instrument.getId(), EnrollmentStatus.ACTIVE)) {
             throw new DuplicateResourceException(
                 "Student already has an active enrollment with this teacher and instrument");
         }
-        enrollment.setStatus(status);
     }
 
     private static void requireActive(boolean active, String resource) {
