@@ -20,7 +20,7 @@ jest.mock("expo-router", () => ({
 }));
 jest.mock("@/features/teacher/teacherService", () => ({
   teacherService: {
-    student: jest.fn(), studentProfile: jest.fn(), students: jest.fn(), enrollments: jest.fn(),
+    student: jest.fn(), studentProfile: jest.fn(), updateStudentProfile: jest.fn(), students: jest.fn(), enrollments: jest.fn(),
     studentLessons: jest.fn(), studentMaterials: jest.fn(), studentGoals: jest.fn().mockResolvedValue([]), createGoal: jest.fn(), endGoal: jest.fn(), studentPractices: jest.fn(),
     downloadPracticeRecording: jest.fn(), downloadMaterial: jest.fn(),
   },
@@ -207,10 +207,10 @@ it("loads profile instead of the student list, shows separate visibility cards a
   await screen.findByText("João");
   expect(service.studentProfile).toHaveBeenCalledWith("student-1");
   expect(service.students).not.toHaveBeenCalled();
-  expect(screen.getByText("Observações")).toBeVisible();
+  expect(screen.getByText("Observação para o aluno")).toBeVisible();
   expect(screen.getByText("O aluno vê esta observação.")).toBeVisible();
   expect(screen.getByText("Pratique escalas")).toBeVisible();
-  expect(screen.getByText("Anotações")).toBeVisible();
+  expect(screen.getByText("Anotações do professor")).toBeVisible();
   expect(screen.getByText("Visível só para você.")).toBeVisible();
   expect(screen.getByText("Revisar postura")).toBeVisible();
   expect(screen.queryByRole("button", { name: "Nova aula" })).toBeNull();
@@ -221,13 +221,26 @@ it("loads profile instead of the student list, shows separate visibility cards a
   await fireEvent.press(screen.getByRole("button", { name: "Nova aula" }));
   expect(mockPush).toHaveBeenCalledWith({ pathname: "/teacher/new-lesson", params: { studentId: "student-1" } });
 });
+it("writes a private note straight from the Resumo card keeping the other note", async () => {
+  service.updateStudentProfile.mockResolvedValue({} as never);
+  await render(<TeacherStudentDetail />);
+  await screen.findByText("João");
+  await fireEvent.press(screen.getByRole("button", { name: "Editar anotações do professor" }));
+  await fireEvent.changeText(screen.getByLabelText("Anotações do professor"), " Trabalhar dinâmica ");
+  await fireEvent.press(screen.getByRole("button", { name: "Salvar" }));
+  expect(service.updateStudentProfile).toHaveBeenCalledWith("student-1",
+    { name: "João", phone: null, sharedNotes: "Pratique escalas", privateNotes: "Trabalhar dinâmica" });
+  expect(await screen.findByText("Trabalhar dinâmica")).toBeVisible();
+  expect(mockToast).toHaveBeenCalledWith("Anotação salva", "success");
+});
 it("hides editing without student.update and shows empty notes", async () => {
   mockAuthorities = [];
   service.studentProfile.mockResolvedValue({ id: "student-1", name: "João", username: "joao", email: "joao@example.com", phone: null, sharedNotes: null, privateNotes: null });
   await render(<TeacherStudentDetail />);
   await screen.findByText("João");
-  expect(screen.getAllByText("Nenhuma observação")).toHaveLength(2);
+  expect(screen.getAllByText("Nenhuma anotação")).toHaveLength(2);
   expect(screen.queryByRole("button", { name: "Editar aluno" })).toBeNull();
+  expect(screen.queryByRole("button", { name: /anotações do professor/ })).toBeNull();
   await fireEvent.press(screen.getByRole("tab", { name: "Aulas" }));
   expect(screen.getByRole("button", { name: "Nova aula" })).toBeVisible();
 });

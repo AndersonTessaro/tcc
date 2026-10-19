@@ -23,9 +23,16 @@ import { teacherService, type TeacherStudentMaterial } from "./teacherService";
 import { TeacherStudentMetrics } from "./TeacherStudentMetrics";
 import { TeacherStackHeader } from "./TeacherStackHeader";
 import { TeacherStudentIdentity } from "./TeacherStudentIdentity";
+import { StudentNoteEditor } from "./StudentNoteEditor";
 import { TeacherStudentSections, type StudentSection } from "./TeacherStudentSections";
 
 const RECENT_DAYS = 29;
+
+type NoteKind = "sharedNotes" | "privateNotes";
+const NOTES: Record<NoteKind, { title: string; hint: string }> = {
+  sharedNotes: { title: "Observação para o aluno", hint: "O aluno vê esta observação." },
+  privateNotes: { title: "Anotações do professor", hint: "Visível só para você." },
+};
 
 async function loadStudent(id: string) {
   const [detail, profile, enrollments, lessons, materials, practices] = await Promise.all([
@@ -39,6 +46,7 @@ async function loadStudent(id: string) {
   return {
     detail,
     name: profile.name,
+    phone: profile.phone,
     sharedNotes: profile.sharedNotes,
     privateNotes: profile.privateNotes,
     instruments: [...new Set(enrollments.filter((item) => item.studentId === id).map((item) => item.instrument))],
@@ -53,6 +61,7 @@ export default function TeacherStudentDetail() {
   const router = useRouter();
   const toast = useToast();
   const [creatingGoal, setCreatingGoal] = useState(false);
+  const [editingNote, setEditingNote] = useState<NoteKind | null>(null);
   const { user } = useAuth();
   const canManageGoals = user?.authorities.includes("goal.manage") || user?.authorities.includes("ROLE_ADMIN");
   const canUpdate = user?.authorities.includes("student.update");
@@ -72,6 +81,16 @@ export default function TeacherStudentDetail() {
 
   const addMaterial = (material: TeacherStudentMaterial) =>
     setData((current) => current && { ...current, materials: [material, ...current.materials.filter((item) => item.id !== material.id)] });
+  const saveNote = (kind: NoteKind, value: string) => {
+    if (!data) return Promise.resolve();
+    const notes = { sharedNotes: data.sharedNotes ?? "", privateNotes: data.privateNotes ?? "", [kind]: value };
+    return teacherService.updateStudentProfile(id, { name: data.name, phone: data.phone, ...notes });
+  };
+  const noteSaved = (kind: NoteKind, value: string) => {
+    setEditingNote(null);
+    setData((current) => current && { ...current, [kind]: value });
+    toast.show("Anotação salva", "success");
+  };
   const newLesson = () => router.push({ pathname: "/teacher/new-lesson", params: { studentId: id } });
 
   const renderTab = () => {
@@ -83,16 +102,16 @@ export default function TeacherStudentDetail() {
           <>
             <TeacherStudentMetrics attendanceRate={recentRate} weeklyPracticeMin={detail.weeklyPracticeMin} xp={detail.progress?.xpTotal ?? 0} level={detail.progress?.level ?? 1} />
             <View style={styles.information}>
-              <Card style={styles.info}>
-                <Text style={styles.infoLabel}>Observações</Text>
-                <Text style={styles.caption}>O aluno vê esta observação.</Text>
-                <Text style={styles.infoText}>{data.sharedNotes || "Nenhuma observação"}</Text>
-              </Card>
-              <Card style={styles.info}>
-                <Text style={styles.infoLabel}>Anotações</Text>
-                <Text style={styles.caption}>Visível só para você.</Text>
-                <Text style={styles.infoText}>{data.privateNotes || "Nenhuma observação"}</Text>
-              </Card>
+              {(Object.keys(NOTES) as NoteKind[]).map((kind) => (
+                <Card key={kind} style={styles.info}>
+                  <Text style={styles.infoLabel}>{NOTES[kind].title}</Text>
+                  <Text style={styles.caption}>{NOTES[kind].hint}</Text>
+                  <Text style={styles.infoText}>{data[kind] || "Nenhuma anotação"}</Text>
+                  {canUpdate ? (
+                    <Button label={data[kind] ? "Editar" : "Escrever"} variant="ghost" compact icon="create-outline" accessibilityLabel={`${data[kind] ? "Editar" : "Escrever"} ${NOTES[kind].title.toLowerCase()}`} onPress={() => setEditingNote(kind)} style={styles.noteAction} />
+                  ) : null}
+                </Card>
+              ))}
               <Card style={styles.info}>
                 <Text style={styles.infoLabel}>Data da matrícula</Text>
                 <Text style={styles.infoText}>{formatFullDate(detail.enrollmentDate.slice(0, 10))}</Text>
@@ -229,6 +248,16 @@ export default function TeacherStudentDetail() {
           ) : null}
         </>
       )}
+      {editingNote && data ? (
+        <StudentNoteEditor
+          title={NOTES[editingNote].title}
+          hint={NOTES[editingNote].hint}
+          initialValue={data[editingNote] ?? ""}
+          onSubmit={(value) => saveNote(editingNote, value)}
+          onClose={() => setEditingNote(null)}
+          onSaved={(value) => noteSaved(editingNote, value)}
+        />
+      ) : null}
       {creatingGoal ? <GoalForm onSubmit={(body) => teacherService.createGoal(id, body)} onClose={() => setCreatingGoal(false)} onSaved={() => { setCreatingGoal(false); toast.show("Meta criada", "success"); void goals.reload(); }} /> : null}
     </KeyboardAvoidingView>
   );
@@ -248,6 +277,7 @@ const styles = StyleSheet.create({
   lessonTitle: { ...type.body, fontWeight: "700" },
   caption: { ...type.caption },
   info: { gap: space.xs, borderRadius: radius.sm, padding: 10, minHeight: 56 },
+  noteAction: { alignSelf: "flex-start", paddingHorizontal: 0 },
   infoLabel: { ...type.label },
   infoText: { ...type.body },
   sectionTitle: { ...type.heading, marginTop: space.sm },
