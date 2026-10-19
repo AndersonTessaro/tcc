@@ -39,7 +39,8 @@ export function goalProgressText(goal: Goal): string {
 
 export function goalPeriodText(goal: Goal): string | null {
   if (!goal.period || !goal.periodStart || !goal.periodEnd) return null;
-  const label = { DAILY: "Hoje", WEEKLY: "Esta semana", MONTHLY: "Este mês" }[goal.period];
+  const label = goal.status !== "ACTIVE" ? "Encerrada"
+    : { DAILY: "Hoje", WEEKLY: "Esta semana", MONTHLY: "Este mês" }[goal.period];
   const start = formatDayMonth(goal.periodStart);
   const end = formatDayMonth(goal.periodEnd);
   const dates = goal.periodStart === goal.periodEnd ? start

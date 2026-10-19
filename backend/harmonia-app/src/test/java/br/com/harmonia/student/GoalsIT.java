@@ -54,9 +54,12 @@ class GoalsIT extends MoreMenuITSupport {
             .andExpect(jsonPath("$[0].student").doesNotHaveJsonPath());
 
         mvc.perform(patch("/me/goals/" + goal + "/end").header("Authorization", "Bearer " + studentToken))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.status", is("ENDED")));
+            .andExpect(status().isOk()).andExpect(jsonPath("$.status", is("ENDED")))
+            .andExpect(jsonPath("$.currentProgress", is(90)));
         mvc.perform(get("/me/goals?status=ENDED").header("Authorization", "Bearer " + studentToken))
-            .andExpect(jsonPath("$[0].id", is(goal))).andExpect(jsonPath("$[0].canEnd", is(false)));
+            .andExpect(jsonPath("$[0].id", is(goal))).andExpect(jsonPath("$[0].canEnd", is(false)))
+            .andExpect(jsonPath("$[0].currentProgress", is(90)))
+            .andExpect(jsonPath("$[0].periodStart", is(today.with(DayOfWeek.MONDAY).toString())));
         mvc.perform(get("/me/goals?status=ACTIVE").header("Authorization", "Bearer " + studentToken))
             .andExpect(jsonPath("$", hasSize(0)));
     }

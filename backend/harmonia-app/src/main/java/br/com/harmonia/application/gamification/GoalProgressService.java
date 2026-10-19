@@ -44,8 +44,11 @@ public class GoalProgressService {
         Map<UUID, Progress> result = new HashMap<>();
         if (tracked.isEmpty()) return result;
         LocalDate today = LocalDate.now();
-        Facts facts = facts(studentId, earliest(tracked, today), today);
-        tracked.forEach(goal -> result.put(goal.getId(), calculate(goal, facts, today)));
+        LocalDate from = tracked.stream()
+            .map(goal -> calculator.earliestNeeded(goal.getPeriod(), goal.getCreatedAt().toLocalDate(), referenceDay(goal, today)))
+            .min(LocalDate::compareTo).orElse(today);
+        Facts facts = facts(studentId, from, today);
+        tracked.forEach(goal -> result.put(goal.getId(), calculate(goal, facts, referenceDay(goal, today))));
         return result;
     }
 
@@ -62,7 +65,11 @@ public class GoalProgressService {
     }
 
     private static boolean isTracked(Goal goal) {
-        return goal.getStatus() == GoalStatus.ACTIVE && !goal.isLegacy();
+        return !goal.isLegacy() && (goal.getStatus() == GoalStatus.ACTIVE || goal.getEndedAt() != null);
+    }
+
+    private static LocalDate referenceDay(Goal goal, LocalDate today) {
+        return goal.getStatus() == GoalStatus.ACTIVE ? today : goal.getEndedAt().toLocalDate();
     }
 
     private Progress calculate(Goal goal, Facts facts, LocalDate today) {
