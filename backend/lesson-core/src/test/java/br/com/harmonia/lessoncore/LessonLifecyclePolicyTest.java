@@ -3,6 +3,8 @@ package br.com.harmonia.lessoncore;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -104,9 +106,23 @@ class LessonLifecyclePolicyTest {
 
     @Test
     void futureLesson_startsScheduled_otherwiseDone() {
-        LocalDate today = LocalDate.of(2026, 9, 22);
-        assertThat(new LessonLifecyclePolicy().initialStatus(today.plusDays(1), today)).isEqualTo(SessionStatus.SCHEDULED);
-        assertThat(new LessonLifecyclePolicy().initialStatus(today, today)).isEqualTo(SessionStatus.DONE);
-        assertThat(new LessonLifecyclePolicy().initialStatus(today.minusDays(7), today)).isEqualTo(SessionStatus.DONE);
+        LocalDateTime now = LocalDateTime.of(2026, 9, 22, 10, 0);
+        LocalDate today = now.toLocalDate();
+        assertThat(policy.initialStatus(today.plusDays(1), LocalTime.of(9, 0), now)).isEqualTo(SessionStatus.SCHEDULED);
+        assertThat(policy.initialStatus(today, LocalTime.of(15, 0), now)).isEqualTo(SessionStatus.SCHEDULED);
+        assertThat(policy.initialStatus(today, LocalTime.of(9, 0), now)).isEqualTo(SessionStatus.DONE);
+        assertThat(policy.initialStatus(today, now.toLocalTime(), now)).isEqualTo(SessionStatus.DONE);
+        assertThat(policy.initialStatus(today, null, now)).isEqualTo(SessionStatus.DONE);
+        assertThat(policy.initialStatus(today.plusDays(1), null, now)).isEqualTo(SessionStatus.SCHEDULED);
+        assertThat(policy.initialStatus(today.minusDays(7), LocalTime.of(15, 0), now)).isEqualTo(SessionStatus.DONE);
+    }
+
+    @Test
+    void initialStatus_requiresDateAndNow() {
+        LocalDateTime now = LocalDateTime.of(2026, 9, 22, 10, 0);
+        assertThatThrownBy(() -> policy.initialStatus(null, null, now))
+            .isInstanceOf(NullPointerException.class).hasMessage("lessonDate is required");
+        assertThatThrownBy(() -> policy.initialStatus(now.toLocalDate(), null, null))
+            .isInstanceOf(NullPointerException.class).hasMessage("now is required");
     }
 }

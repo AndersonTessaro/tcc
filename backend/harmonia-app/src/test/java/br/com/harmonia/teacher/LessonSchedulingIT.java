@@ -10,9 +10,13 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -156,7 +160,8 @@ class LessonSchedulingIT {
         String t = login("teacherLif", TEACHER_PASSWORD);
         String today = LocalDate.now().toString();
 
-        String original = postId(t, "/teacher/lessons", lessonBody(enrollment, today, "09:00", "10:00"));
+        String original = postId(t, "/teacher/lessons",
+            lessonBody(enrollment, LocalDate.now().minusDays(1).toString(), "09:00", "10:00"));
         String makeupLesson = makeupOf(t, original, today, "11:00", "12:00");
 
         mvc.perform(patch("/teacher/lessons/" + makeupLesson + "/status").header("Authorization", "Bearer " + t)
@@ -190,7 +195,8 @@ class LessonSchedulingIT {
         String t = login("teacherAtC", TEACHER_PASSWORD);
         String today = LocalDate.now().toString();
 
-        String original = postId(t, "/teacher/lessons", lessonBody(enrollment, today, "09:00", "10:00"));
+        String original = postId(t, "/teacher/lessons",
+            lessonBody(enrollment, LocalDate.now().minusDays(1).toString(), "09:00", "10:00"));
         String makeupLesson = makeupOf(t, original, today, "11:00", "12:00");
         mvc.perform(patch("/teacher/lessons/" + makeupLesson + "/status").header("Authorization", "Bearer " + t)
                 .contentType("application/json").content("{\"status\":\"CANCELED\"}"))
@@ -206,7 +212,8 @@ class LessonSchedulingIT {
         String t = login("teacherAtF", TEACHER_PASSWORD);
         LocalDate today = LocalDate.now();
 
-        String original = postId(t, "/teacher/lessons", lessonBody(enrollment, today.toString(), "09:00", "10:00"));
+        String original = postId(t, "/teacher/lessons",
+            lessonBody(enrollment, LocalDate.now().minusDays(1).toString(), "09:00", "10:00"));
         String makeupLesson = makeupOf(t, original, today.plusDays(1).toString(), "09:00", "10:00");
 
         attendance(t, makeupLesson, 422);
@@ -242,7 +249,8 @@ class LessonSchedulingIT {
         LocalDate today = LocalDate.now();
         LocalDate nextWeek = today.plusDays(7);
 
-        String original = postId(t, "/teacher/lessons", lessonBody(enrollments[0], today.toString(), "08:00", "09:00"));
+        String original = postId(t, "/teacher/lessons",
+            lessonBody(enrollments[0], LocalDate.now().minusDays(1).toString(), "08:00", "09:00"));
         makeupOf(t, original, nextWeek.toString(), "10:00", "11:00");
 
         mvc.perform(post("/teacher/schedules").header("Authorization", "Bearer " + t)
@@ -259,7 +267,8 @@ class LessonSchedulingIT {
         String today = LocalDate.now().toString();
 
         String body = mvc.perform(post("/teacher/lessons").header("Authorization", "Bearer " + t)
-                .contentType("application/json").content(lessonBody(enrollment, today, "09:00", "10:00")))
+                .contentType("application/json")
+                .content(lessonBody(enrollment, LocalDate.now().minusDays(1).toString(), "09:00", "10:00")))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.enrollment").doesNotExist())
             .andExpect(jsonPath("$.enrollmentId", is(enrollment)))
@@ -314,6 +323,27 @@ class LessonSchedulingIT {
     }
 
     @Test
+    void todayLessonWithFutureStart_isRegisteredAsScheduled() throws Exception {
+        String enrollment = enrollmentFor("FutToday");
+        String t = login("teacherFutToday", TEACHER_PASSWORD);
+        LocalDateTime now = LocalDateTime.now();
+        assumeTrue(now.toLocalTime().isBefore(LocalTime.of(22, 0)));
+        LocalTime start = now.toLocalTime().plusHours(1).truncatedTo(ChronoUnit.MINUTES);
+        LocalTime end = start.plusMinutes(30);
+
+        mvc.perform(get(availabilityUrl(enrollment, now.toLocalDate().toString(), start.toString(), end.toString()))
+                .header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.initialStatus", is("SCHEDULED")));
+
+        mvc.perform(post("/teacher/lessons").header("Authorization", "Bearer " + t)
+                .contentType("application/json")
+                .content(lessonBody(enrollment, now.toLocalDate().toString(), start.toString(), end.toString())))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status", is("SCHEDULED")));
+    }
+
+    @Test
     void canceledLesson_canReceiveMakeup() throws Exception {
         String enrollment = enrollmentFor("MkC");
         String t = login("teacherMkC", TEACHER_PASSWORD);
@@ -334,7 +364,8 @@ class LessonSchedulingIT {
         String t = login("teacherCnl", TEACHER_PASSWORD);
         String today = LocalDate.now().toString();
 
-        String original = postId(t, "/teacher/lessons", lessonBody(enrollment, today, "09:00", "10:00"));
+        String original = postId(t, "/teacher/lessons",
+            lessonBody(enrollment, LocalDate.now().minusDays(1).toString(), "09:00", "10:00"));
         String makeupLesson = makeupOf(t, original, today, "14:00", "15:00");
 
         mvc.perform(patch("/teacher/lessons/" + makeupLesson + "/status").header("Authorization", "Bearer " + t)
@@ -403,10 +434,10 @@ class LessonSchedulingIT {
         String[] enrollments = studentSharedByTwoTeachers("Av2");
         String other = login("teacherAv21", TEACHER_PASSWORD);
         String t = login("teacherAv20", TEACHER_PASSWORD);
-        String today = LocalDate.now().toString();
-        postId(other, "/teacher/lessons", lessonBody(enrollments[1], today, "14:00", "15:00"));
+        String yesterday = LocalDate.now().minusDays(1).toString();
+        postId(other, "/teacher/lessons", lessonBody(enrollments[1], yesterday, "14:00", "15:00"));
 
-        mvc.perform(get(availabilityUrl(enrollments[0], today, "14:30", "15:30"))
+        mvc.perform(get(availabilityUrl(enrollments[0], yesterday, "14:30", "15:30"))
                 .header("Authorization", "Bearer " + t))
             .andExpect(jsonPath("$.initialStatus", is("DONE")))
             .andExpect(jsonPath("$.conflicts.length()", is(1)))

@@ -51,9 +51,10 @@ class MakeupIT {
 
         String t = login("teacherMk", "Teach@1234");
         String today = LocalDate.now().toString();
+        String yesterday = LocalDate.now().minusDays(1).toString();
 
         String originalLesson = postId(t, "/teacher/lessons",
-            "{\"enrollmentId\":\"" + enrollment + "\",\"date\":\"" + today + "\",\"startTime\":\"09:00\",\"endTime\":\"10:00\",\"content\":\"Bow\"}");
+            "{\"enrollmentId\":\"" + enrollment + "\",\"date\":\"" + yesterday + "\",\"startTime\":\"09:00\",\"endTime\":\"10:00\",\"content\":\"Bow\"}");
 
         mvc.perform(post("/teacher/lessons/" + originalLesson + "/makeup").header("Authorization", "Bearer " + t)
                 .contentType("application/json")
@@ -85,9 +86,10 @@ class MakeupIT {
 
         String t = login("teacherMk2", "Teach@1234");
         String today = LocalDate.now().toString();
+        String yesterday = LocalDate.now().minusDays(1).toString();
 
         String originalLesson = postId(t, "/teacher/lessons",
-            "{\"enrollmentId\":\"" + enrollment + "\",\"date\":\"" + today + "\",\"startTime\":\"09:00\",\"endTime\":\"10:00\",\"content\":\"Scales\"}");
+            "{\"enrollmentId\":\"" + enrollment + "\",\"date\":\"" + yesterday + "\",\"startTime\":\"09:00\",\"endTime\":\"10:00\",\"content\":\"Scales\"}");
 
         String makeupBody = "{\"date\":\"" + today + "\",\"startTime\":\"11:00\",\"endTime\":\"12:00\",\"reason\":\"Aluno faltou\"}";
         mvc.perform(post("/teacher/lessons/" + originalLesson + "/makeup").header("Authorization", "Bearer " + t)

@@ -1,6 +1,8 @@
 package br.com.harmonia.lessoncore;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Objects;
@@ -12,10 +14,13 @@ public final class LessonLifecyclePolicy {
         SessionStatus.CANCELED, EnumSet.noneOf(SessionStatus.class)
     );
 
-    public SessionStatus initialStatus(LocalDate lessonDate, LocalDate today) {
+    public SessionStatus initialStatus(LocalDate lessonDate, LocalTime startTime, LocalDateTime now) {
         Objects.requireNonNull(lessonDate, "lessonDate is required");
-        Objects.requireNonNull(today, "today is required");
-        return lessonDate.isAfter(today) ? SessionStatus.SCHEDULED : SessionStatus.DONE;
+        Objects.requireNonNull(now, "now is required");
+        LocalDate today = now.toLocalDate();
+        boolean future = lessonDate.isAfter(today)
+            || (lessonDate.equals(today) && startTime != null && startTime.isAfter(now.toLocalTime()));
+        return future ? SessionStatus.SCHEDULED : SessionStatus.DONE;
     }
 
     public void validateContentEdit(SessionStatus current) {
