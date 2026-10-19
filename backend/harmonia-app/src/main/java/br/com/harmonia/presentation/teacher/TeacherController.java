@@ -202,6 +202,12 @@ public class TeacherController {
         return material.forStudent(id).stream().map(MaterialResponse::of).toList();
     }
 
+    @GetMapping("/materials/{id}/download")
+    @PreAuthorize("hasAuthority('student.read')")
+    public ResponseEntity<byte[]> downloadMaterial(@PathVariable UUID id) {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM).body(material.download(id));
+    }
+
     @GetMapping("/schedule")
     @PreAuthorize("hasAuthority('lesson.read')")
     public List<LessonResponse> schedule(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {

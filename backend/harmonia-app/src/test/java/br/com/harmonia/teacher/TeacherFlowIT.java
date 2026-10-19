@@ -139,12 +139,27 @@ class TeacherFlowIT {
         postId(admin, "/admin/enrollments",
             "{\"studentId\":\"" + student + "\",\"teacherId\":\"" + teacher + "\",\"instrumentId\":\"" + inst + "\"}");
 
-        String t = login("teacherIdorR", "Teach@1234");
-        var file = new MockMultipartFile("file", "a.pdf", "application/pdf", new byte[] {1});
+        postId(admin, "/admin/teachers",
+            "{\"username\":\"teacherIdorS\",\"email\":\"teacherIdorS@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher IdorS\",\"instrumentIds\":[\"" + inst + "\"]}");
 
-        mvc.perform(multipart("/teacher/students/" + student + "/materials")
+        String t = login("teacherIdorR", "Teach@1234");
+        byte[] pdf = "%PDF-1.4 material".getBytes();
+        var file = new MockMultipartFile("file", "a.pdf", "application/pdf", pdf);
+
+        String body = mvc.perform(multipart("/teacher/students/" + student + "/materials")
                 .file(file).param("title", "Aula 1")
                 .header("Authorization", "Bearer " + t))
-            .andExpect(status().isOk());
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        String material = JsonPath.read(body, "$.id");
+
+        mvc.perform(get("/teacher/materials/" + material + "/download").header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(content().bytes(pdf));
+        mvc.perform(get("/teacher/materials/" + material + "/download")
+                .header("Authorization", "Bearer " + login("teacherIdorS", "Teach@1234")))
+            .andExpect(status().isForbidden());
+        mvc.perform(get("/teacher/materials/" + UUID.randomUUID() + "/download").header("Authorization", "Bearer " + t))
+            .andExpect(status().isNotFound());
     }
 }

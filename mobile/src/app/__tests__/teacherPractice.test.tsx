@@ -22,7 +22,7 @@ jest.mock("@/features/teacher/teacherService", () => ({
   teacherService: {
     student: jest.fn(), studentProfile: jest.fn(), students: jest.fn(), enrollments: jest.fn(),
     studentLessons: jest.fn(), studentMaterials: jest.fn(), studentGoals: jest.fn().mockResolvedValue([]), createGoal: jest.fn(), endGoal: jest.fn(), studentPractices: jest.fn(),
-    downloadPracticeRecording: jest.fn(),
+    downloadPracticeRecording: jest.fn(), downloadMaterial: jest.fn(),
   },
 }));
 const service = jest.mocked(teacherService);
@@ -65,6 +65,19 @@ it("uses the new practice endpoint, shows ten records and downloads using the te
   expect(service.downloadPracticeRecording).toHaveBeenCalledWith("practice-0");
   expect(saveDownload).toHaveBeenCalledWith(bytes, "Prática.mp4", "video/mp4");
   expect(mockToast).toHaveBeenCalledWith("Prática.mp4 pronto para salvar", "success");
+});
+
+it("downloads an attached material through the teacher endpoint", async () => {
+  const bytes = new ArrayBuffer(8);
+  service.studentMaterials.mockResolvedValue([{ id: "material-1", title: "Escalas", description: null, fileName: "escalas.pdf",
+    contentType: "application/pdf", sizeBytes: 8, createdAt: "2026-10-12T10:00:00" }]);
+  service.downloadMaterial.mockResolvedValue(bytes);
+  await render(<TeacherStudentDetail />);
+  await screen.findByText("João");
+  await fireEvent.press(screen.getByRole("tab", { name: "Materiais" }));
+  await fireEvent.press(screen.getByRole("button", { name: "Baixar material Escalas" }));
+  expect(service.downloadMaterial).toHaveBeenCalledWith("material-1");
+  expect(saveDownload).toHaveBeenCalledWith(bytes, "escalas.pdf", "application/pdf");
 });
 
 it("shows raw activity notes and uses the empty-note subtitle without parsing feedback", async () => {

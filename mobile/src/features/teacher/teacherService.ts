@@ -122,6 +122,8 @@ export type TeacherStudentMaterial = {
   title: string;
   description: string | null;
   fileName: string;
+  contentType: string | null;
+  sizeBytes: number | null;
   createdAt: string;
 };
 
@@ -181,6 +183,7 @@ export const teacherService = {
   downloadPracticeRecording: (id: string) => api.getBytes(`/teacher/practices/${id}/recording`, { timeoutMs: MEDIA_TIMEOUT_MS }),
   studentLessons: (id: string) => api.get<TeacherLesson[]>(`/teacher/students/${id}/lessons`),
   studentMaterials: (id: string) => api.get<TeacherStudentMaterial[]>(`/teacher/students/${id}/materials`),
+  downloadMaterial: (id: string) => api.getBytes(`/teacher/materials/${id}/download`, { timeoutMs: MEDIA_TIMEOUT_MS }),
   enrollments: () => api.get<TeacherEnrollment[]>("/teacher/enrollments"),
   newLesson: (b: {
     enrollmentId: string;
