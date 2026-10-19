@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
@@ -86,7 +87,7 @@ public class TeacherLessonUseCase {
     public Lesson register(UUID enrollmentId, LocalDate date, LocalTime start, LocalTime end,
                            String content, String homework) {
         Enrollment enrollment = EnrollmentRules.requireActive(teacherEnrollment(enrollmentId));
-        SessionStatus initialStatus = lifecyclePolicy.initialStatus(date, LocalDate.now());
+        SessionStatus initialStatus = lifecyclePolicy.initialStatus(date, start, LocalDateTime.now());
         schedulingGuard.assertSlotIsFree(enrollment, date, start, end, initialStatus);
         Lesson l = new Lesson();
         l.setEnrollment(enrollment);
@@ -108,7 +109,7 @@ public class TeacherLessonUseCase {
     public SlotAvailability availability(UUID enrollmentId, LocalDate date, LocalTime start, LocalTime end,
                                          UUID excludeLessonId) {
         Enrollment enrollment = teacherEnrollment(enrollmentId);
-        SessionStatus initialStatus = lifecyclePolicy.initialStatus(date, LocalDate.now());
+        SessionStatus initialStatus = lifecyclePolicy.initialStatus(date, start, LocalDateTime.now());
         return schedulingGuard.availability(enrollment, date, start, end, initialStatus, excludeLessonId);
     }
 

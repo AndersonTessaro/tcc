@@ -155,6 +155,32 @@ describe("NewLesson screen", () => {
     expect(service.attendance).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["15:00", "Agendar aula", false],
+    ["09:00", "Salvar aula", true],
+    ["10:00", "Salvar aula", true],
+  ])("previews today's %s lesson before availability answers", async (start, label, completed) => {
+    jest.useFakeTimers({
+      now: new Date(2026, 8, 22, 10, 0),
+      doNotFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "setImmediate", "clearImmediate", "nextTick", "queueMicrotask", "performance"],
+    });
+    try {
+      service.availability.mockImplementation(() => new Promise(() => {}));
+      await render(<NewLesson />);
+      await pickAna();
+      await fireEvent.changeText(screen.getByLabelText("Início"), start);
+
+      expect(screen.getByRole("button", { name: label })).toBeVisible();
+      if (completed) {
+        expect(screen.getByRole("radio", { name: "Presente" })).toBeVisible();
+      } else {
+        expect(screen.queryByRole("radio", { name: "Presente" })).toBeNull();
+      }
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it("keeps a custom lesson length when the start moves", async () => {
     await render(<NewLesson />);
     await pickAna();

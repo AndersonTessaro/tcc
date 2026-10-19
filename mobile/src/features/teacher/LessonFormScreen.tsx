@@ -42,7 +42,13 @@ const durationOptions = [
 ];
 
 // Mirrors lesson-core LessonLifecyclePolicy.initialStatus until the server answers.
-const localInitialStatus = (date: string) => (date > todayIso() ? "SCHEDULED" : "DONE");
+const localInitialStatus = (date: string, startTime: string) => {
+  const now = new Date();
+  const today = todayIso(now);
+  const [hours, minutes] = startTime.split(":").map(Number);
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+  return date > today || (date === today && start > now) ? "SCHEDULED" : "DONE";
+};
 
 function initialSchedule(lesson?: TeacherLessonDetail["lesson"]) {
   if (!lesson) return { start: DEFAULT_START, duration: DEFAULT_DURATION, customEnd: addMinutes(DEFAULT_START, 60) };
@@ -118,7 +124,7 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
   const rescheduled = !lesson || date !== lesson.date || startTime !== hhmm(lesson.startTime) || endTime !== hhmm(lesson.endTime);
   const hasConflict = canSchedule && rescheduled && verified && !!slot.data && !slot.data.available;
   const checking = canSchedule && slot.checking;
-  const completed = editing ? lesson.status === "DONE" : (slot.data?.initialStatus ?? localInitialStatus(date)) === "DONE";
+  const completed = editing ? lesson.status === "DONE" : (slot.data?.initialStatus ?? localInitialStatus(date, startTime)) === "DONE";
 
   const studentEnrollments = enrollments.data?.filter((item) => item.studentId === params.studentId) ?? [];
   const preselectedId = editing ? enrollmentId : studentEnrollments.length === 1 ? studentEnrollments[0].id : "";
