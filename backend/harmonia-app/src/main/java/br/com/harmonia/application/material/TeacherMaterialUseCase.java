@@ -39,10 +39,21 @@ public class TeacherMaterialUseCase {
 
     @Transactional(readOnly = true)
     public List<Material> forStudent(UUID studentId) {
+        assertLinked(studentId);
+        return materials.findByStudentId(studentId);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] download(UUID materialId) {
+        Material m = materials.findById(materialId).orElseThrow(() -> new ResourceNotFoundException("Material"));
+        assertLinked(m.getStudent().getId());
+        return storage.read(m.getStoragePath());
+    }
+
+    private void assertLinked(UUID studentId) {
         if (!current.isAdmin() && enrollments.findByTeacherIdAndStudentId(
             current.currentTeacher().getId(), studentId).isEmpty())
             throw new OwnershipException("Student is not linked to this teacher");
-        return materials.findByStudentId(studentId);
     }
 
     @Transactional

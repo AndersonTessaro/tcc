@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { DownloadButton } from "@/features/files/DownloadButton";
 import { GoalCard } from "@/features/goals/GoalCard";
 import { GoalForm } from "@/features/goals/GoalForm";
 import { useToast } from "@/ui/Toast";
@@ -177,6 +178,16 @@ export default function TeacherStudentDetail() {
                     title={item.title}
                     subtitle={[item.description, `${item.fileName} · ${formatFullDate(item.createdAt.slice(0, 10))}`].filter(Boolean).join("\n")}
                     leading={<Ionicons name="document-text-outline" size={22} color={colors.primary} />}
+                    trailing={
+                      <DownloadButton
+                        label="Baixar"
+                        accessibilityLabel={`Baixar material ${item.title}`}
+                        fileName={item.fileName}
+                        contentType={item.contentType}
+                        download={() => teacherService.downloadMaterial(item.id)}
+                        failureMessage="Não foi possível baixar o material. Tente novamente."
+                      />
+                    }
                   />
                 ))}
               </Card>
