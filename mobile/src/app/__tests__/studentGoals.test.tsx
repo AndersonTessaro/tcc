@@ -20,13 +20,14 @@ const activeGoal: StudentGoal = {
   id: "goal-1", title: "Praticar 3h", description: null, type: "PRACTICE_TIME", target: 180, currentProgress: 90, status: "ACTIVE",
   period: "WEEKLY", periodStart: "2026-10-13", periodEnd: "2026-10-19", legacy: false, createdByTeacher: null, canEnd: true, achieved: false, streak: 2,
 };
+const endedGoal: StudentGoal = { ...activeGoal, id: "goal-3", title: "Praticar 2h", target: 120, currentProgress: 150, status: "ENDED", canEnd: false, achieved: true };
 const oldGoal: StudentGoal = { ...activeGoal, id: "goal-2", title: "Ler partitura", type: "OTHER", target: 5, currentProgress: 5, status: "COMPLETED", period: null, periodStart: null, periodEnd: null, legacy: true, canEnd: true };
 
 beforeEach(() => {
   jest.clearAllMocks();
   service.endGoal.mockReset();
   confirmation.mockResolvedValue(true);
-  service.goals.mockImplementation((status) => Promise.resolve(status === "ENDED" ? [oldGoal] : [activeGoal]));
+  service.goals.mockImplementation((status) => Promise.resolve(status === "ENDED" ? [endedGoal, oldGoal] : [activeGoal]));
   service.endGoal.mockResolvedValue({ ...activeGoal, status: "ENDED", canEnd: false });
   service.createGoal.mockResolvedValue(activeGoal);
 });
@@ -40,6 +41,9 @@ it("switches cached active and ended lists and shows server progress and streak"
   await fireEvent.press(screen.getByRole("tab", { name: "Encerradas" }));
   expect(screen.getByText("Ler partitura")).toBeVisible();
   expect(screen.getByText("Meta antiga")).toBeVisible();
+  expect(screen.getByText("2 h 30 min de 2 h")).toBeVisible();
+  expect(screen.getByText("Encerrada · 13–19/10")).toBeVisible();
+  expect(screen.getByText("Cumprida")).toBeVisible();
   expect(screen.queryByRole("button", { name: /Encerrar meta/ })).toBeNull();
   expect(service.goals).toHaveBeenCalledTimes(2);
   expect(service.goals).toHaveBeenCalledWith("ACTIVE");
