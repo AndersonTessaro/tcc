@@ -72,7 +72,7 @@ public class GoalUseCase {
 
     @Transactional
     public GoalView createForStudent(UUID studentId, NewGoal command) {
-        links.assertLinked(studentId);
+        assertCanManage(studentId);
         Student student = students.findById(studentId).orElseThrow(() -> new ResourceNotFoundException("Student"));
         Teacher author = current.isAdmin() ? null : current.currentTeacher();
         return view(create(student, author, command), this::teacherCanEnd);
@@ -80,12 +80,16 @@ public class GoalUseCase {
 
     @Transactional
     public GoalView endForStudent(UUID studentId, UUID goalId) {
-        links.assertLinked(studentId);
+        assertCanManage(studentId);
         Goal goal = find(goalId);
         if (!goal.getStudent().getId().equals(studentId)) throw new ResourceNotFoundException("Goal");
         if (goal.getStatus() == GoalStatus.ACTIVE && !teacherCanEnd(goal))
             throw new OwnershipException("Goal set by someone else");
         return view(end(goal), this::teacherCanEnd);
+    }
+
+    private void assertCanManage(UUID studentId) {
+        if (!current.isAdmin()) links.assertActivelyLinked(studentId);
     }
 
     private Goal create(Student student, Teacher author, NewGoal command) {
