@@ -88,6 +88,14 @@ class GoalsIT extends MoreMenuITSupport {
                 .contentType("application/json").content(body))
             .andExpect(status().isForbidden());
         String goal = postId(teacherToken, "/teacher/students/" + studentId + "/goals", body);
+        jdbc.update("UPDATE enrollment SET status = 'CLOSED' WHERE id = ?", UUID.fromString(enrollment));
+        mvc.perform(post("/teacher/students/" + studentId + "/goals").header("Authorization", "Bearer " + teacherToken)
+                .contentType("application/json").content(body))
+            .andExpect(status().isForbidden());
+        mvc.perform(patch("/teacher/students/" + studentId + "/goals/" + goal + "/end")
+                .header("Authorization", "Bearer " + teacherToken))
+            .andExpect(status().isForbidden());
+        jdbc.update("UPDATE enrollment SET status = 'ACTIVE' WHERE id = ?", UUID.fromString(enrollment));
 
         mvc.perform(get("/me/goals").header("Authorization", "Bearer " + studentToken))
             .andExpect(jsonPath("$[0].createdByTeacher", is("goalT")))

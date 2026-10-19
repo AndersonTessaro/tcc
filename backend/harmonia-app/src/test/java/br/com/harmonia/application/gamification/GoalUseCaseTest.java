@@ -123,6 +123,6 @@ class GoalUseCaseTest {
 
         assertThatThrownBy(() -> useCase.endForStudent(student.getId(), goal.getId()))
             .isInstanceOf(OwnershipException.class);
-        verify(links).assertLinked(student.getId());
+        verify(links).assertActivelyLinked(student.getId());
     }
 }
