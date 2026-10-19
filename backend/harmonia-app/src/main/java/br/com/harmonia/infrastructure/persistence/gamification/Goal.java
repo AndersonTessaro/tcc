@@ -1,5 +1,6 @@
 package br.com.harmonia.infrastructure.persistence.gamification;
 
+import br.com.harmonia.domain.gamification.GoalPeriod;
 import br.com.harmonia.infrastructure.persistence.profile.Student;
 import br.com.harmonia.infrastructure.persistence.profile.Teacher;
 import jakarta.persistence.*;
@@ -34,6 +35,9 @@ public class Goal {
     @Column(nullable = false)
     private GoalType type;
 
+    @Enumerated(EnumType.STRING)
+    private GoalPeriod period;
+
     @Column(nullable = false)
     private Integer target;
 
@@ -51,4 +55,11 @@ public class Goal {
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
+
+    @Column(name = "ended_at")
+    private LocalDateTime endedAt;
+
+    public boolean isLegacy() {
+        return period == null;
+    }
 }

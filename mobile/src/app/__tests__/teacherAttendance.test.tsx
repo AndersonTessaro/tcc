@@ -10,7 +10,7 @@ jest.mock("expo-router", () => ({
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
 jest.mock("@/features/teacher/teacherService", () => ({
-  teacherService: { student: jest.fn(), studentProfile: jest.fn(), enrollments: jest.fn(), studentLessons: jest.fn(), studentMaterials: jest.fn(), studentPractices: jest.fn() },
+  teacherService: { student: jest.fn(), studentProfile: jest.fn(), enrollments: jest.fn(), studentLessons: jest.fn(), studentMaterials: jest.fn(), studentGoals: jest.fn().mockResolvedValue([]), createGoal: jest.fn(), endGoal: jest.fn(), studentPractices: jest.fn() },
 }));
 
 it("uses attendance records from the selected calendar month for the summary", async () => {
@@ -38,7 +38,7 @@ it("uses attendance records from the selected calendar month for the summary", a
   service.studentPractices.mockResolvedValue([]);
 
   await render(<TeacherStudentDetail />);
-  await screen.findByText("Nenhuma meta ativa");
+  await screen.findByText("João Silva");
   expect(screen.getByRole("header", { name: "João Silva" })).toBeVisible();
   expect(screen.queryByRole("button", { name: "Mais opções" })).toBeNull();
   expect(screen.queryByText("Editar aluno")).toBeNull();
@@ -60,7 +60,7 @@ it("opens a lesson from the student's history in the lesson editor", async () =>
     date: "2026-09-22", startTime: "09:00:00", endTime: "10:00:00", status: "DONE", content: "Escalas", homework: null, attendance: "PRESENT",
   }]);
   await render(<TeacherStudentDetail />);
-  await screen.findByText("Nenhuma meta ativa");
+  await screen.findByText("João Silva");
   await fireEvent.press(screen.getByRole("tab", { name: "Aulas" }));
   await fireEvent.press(screen.getByRole("button", { name: "Aula de 22/09/2026 às 09:00, Realizada. Abrir aula" }));
   await waitFor(() => expect(mockPush).toHaveBeenCalledWith({ pathname: "/teacher/lesson/[id]", params: { id: "l1" } }));

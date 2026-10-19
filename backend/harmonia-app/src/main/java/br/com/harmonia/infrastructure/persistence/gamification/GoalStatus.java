@@ -1,3 +1,3 @@
 package br.com.harmonia.infrastructure.persistence.gamification;
 
-public enum GoalStatus { ACTIVE, COMPLETED }
+public enum GoalStatus { ACTIVE, COMPLETED, ENDED }

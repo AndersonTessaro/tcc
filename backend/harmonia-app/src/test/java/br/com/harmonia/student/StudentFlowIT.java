@@ -85,37 +85,24 @@ class StudentFlowIT {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()", is(0)));
 
-        // goal: create (target 2) -> complete
         String goalBody = mvc.perform(post("/me/goals").header("Authorization", "Bearer " + t)
                 .contentType("application/json")
-                .content("{\"title\":\"Study\",\"type\":\"LESSONS\",\"target\":2}"))
+                .content("{\"title\":\"Study\",\"type\":\"PRACTICE_DAYS\",\"period\":\"DAILY\",\"target\":1}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.title", is("Study")))
-            .andExpect(jsonPath("$.type", is("LESSONS")))
-            .andExpect(jsonPath("$.target", is(2)))
-            .andExpect(jsonPath("$.currentProgress", is(0)))
+            .andExpect(jsonPath("$.type", is("PRACTICE_DAYS")))
+            .andExpect(jsonPath("$.target", is(1)))
             .andExpect(jsonPath("$.status", is("ACTIVE")))
             .andExpect(jsonPath("$.student").doesNotHaveJsonPath())
-            .andExpect(jsonPath("$.createdByTeacher").doesNotHaveJsonPath())
             .andReturn().getResponse().getContentAsString();
         String goal = JsonPath.read(goalBody, "$.id");
         mvc.perform(get("/me/goals?status=ACTIVE").header("Authorization", "Bearer " + t))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].id", is(goal)))
-            .andExpect(jsonPath("$[0].student").doesNotHaveJsonPath())
-            .andExpect(jsonPath("$[0].createdByTeacher").doesNotHaveJsonPath());
-        mvc.perform(put("/me/goals/" + goal + "?progress=-1").header("Authorization", "Bearer " + t))
-            .andExpect(status().isBadRequest());
-        mvc.perform(put("/me/goals/" + goal + "?progress=2").header("Authorization", "Bearer " + t))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status", is("COMPLETED")))
-            .andExpect(jsonPath("$.currentProgress", is(2)))
-            .andExpect(jsonPath("$.student").doesNotHaveJsonPath())
-            .andExpect(jsonPath("$.createdByTeacher").doesNotHaveJsonPath());
-        mvc.perform(get("/me/goals?status=COMPLETED").header("Authorization", "Bearer " + t))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].id", is(goal)))
             .andExpect(jsonPath("$[0].student").doesNotHaveJsonPath());
+        mvc.perform(patch("/me/goals/" + goal + "/end").header("Authorization", "Bearer " + t))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status", is("ENDED")));
 
         // upcoming lessons (empty, no lesson) -> 200
         mvc.perform(get("/me/lessons?status=upcoming").header("Authorization", "Bearer " + t))

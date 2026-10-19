@@ -16,6 +16,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.endsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -74,24 +75,19 @@ class NotificationsIT extends MoreMenuITSupport {
     }
 
     @Test
-    void goalNotifiesOnlyWhenTransitioningFromActiveToCompleted() throws Exception {
-        String goal = postId(studentToken, "/me/goals", """
-            {"title":"Escalas","type":"OTHER","target":10}
+    void goalNotifiesOnceWhenThePracticeCrossesTheDailyTarget() throws Exception {
+        postId(studentToken, "/me/goals", """
+            {"title":"Escalas","type":"PRACTICE_TIME","period":"DAILY","target":60}
             """);
-        updateGoal(goal, 9);
-        assertCount(teacherToken, 0);
-        updateGoal(goal, 10);
-        updateGoal(goal, 12);
-        updateGoal(goal, 1);
-        updateGoal(goal, 10);
+        registerPractice();
+        assertGoalNotifications(teacherToken, 0);
+        registerPractice();
+        registerPractice();
+        assertGoalNotifications(teacherToken, 1);
         mvc.perform(get("/notifications").header("Authorization", "Bearer " + teacherToken))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(1))
-            .andExpect(jsonPath("$.items[0].type").value("GOAL_COMPLETED"))
-            .andExpect(jsonPath("$.items[0].title").value("Meta concluída"))
-            .andExpect(jsonPath("$.items[0].body").value("NotifyAna concluiu a meta \"Escalas\""))
-            .andExpect(jsonPath("$.items[0].studentId").value(studentId));
-        assertCount(otherToken, 0);
-        assertCount(closedToken, 0);
+            .andExpect(jsonPath("$.items[?(@.type == 'GOAL_COMPLETED')].body").value(hasItem("NotifyAna concluiu a meta \"Escalas\"")));
+        assertGoalNotifications(otherToken, 0);
+        assertGoalNotifications(closedToken, 0);
     }
 
     @Test
@@ -198,9 +194,9 @@ class NotificationsIT extends MoreMenuITSupport {
         return JsonPath.read(body, "$.practiceId");
     }
 
-    private void updateGoal(String id, int progress) throws Exception {
-        mvc.perform(put("/me/goals/" + id).param("progress", String.valueOf(progress))
-            .header("Authorization", "Bearer " + studentToken)).andExpect(status().isOk());
+    private void assertGoalNotifications(String token, int count) throws Exception {
+        mvc.perform(get("/notifications").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.items[?(@.type == 'GOAL_COMPLETED')]", hasSize(count)));
     }
 
     private void assertCount(String token, int count) throws Exception {

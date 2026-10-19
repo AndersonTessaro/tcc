@@ -10,6 +10,7 @@ import br.com.harmonia.application.gamification.PracticeRecordingUseCase;
 import br.com.harmonia.application.gamification.ProgressUseCase;
 import br.com.harmonia.application.material.StudentMaterialUseCase;
 import br.com.harmonia.domain.gamification.GamificationService;
+import br.com.harmonia.domain.gamification.GoalPeriod;
 import br.com.harmonia.infrastructure.persistence.gamification.GoalStatus;
 import br.com.harmonia.infrastructure.persistence.gamification.GoalType;
 import br.com.harmonia.infrastructure.persistence.gamification.Progress;
@@ -72,7 +73,12 @@ public class StudentController {
     public record RegisterPractice(@Min(1) int durationMin, LocalDate date, @Size(max = 500) String notes,
                                    @Size(max = 255) String difficulty, @Min(1) @Max(5) Integer rating) {}
     public record AttendanceResponse(LocalDate date, AttendanceStatus status) {}
-    public record NewGoal(@NotBlank String title, String description, @NotNull GoalType type, @Min(1) int target) {}
+    public record NewGoal(@NotBlank @Size(max = 150) String title, @Size(max = 500) String description,
+                          @NotNull GoalType type, @NotNull GoalPeriod period, @Min(1) int target) {
+        GoalUseCase.NewGoal toCommand() {
+            return new GoalUseCase.NewGoal(title, description, type, period, target);
+        }
+    }
 
     @GetMapping("/teacher-notes")
     @PreAuthorize("hasAuthority('note.read')")
@@ -172,18 +178,18 @@ public class StudentController {
     @GetMapping("/goals")
     @PreAuthorize("hasAuthority('goal.read')")
     public List<GoalResponse> goals(@RequestParam(required = false) GoalStatus status) {
-        return goal.list(status).stream().map(GoalResponse::of).toList();
+        return goal.listMine(status).stream().map(GoalResponse::of).toList();
     }
 
     @PostMapping("/goals")
     @PreAuthorize("hasAuthority('goal.manage')")
     public GoalResponse createGoal(@Valid @RequestBody NewGoal r) {
-        return GoalResponse.of(goal.create(r.title(), r.description(), r.type(), r.target()));
+        return GoalResponse.of(goal.createForMe(r.toCommand()));
     }
 
-    @PutMapping("/goals/{id}")
+    @PatchMapping("/goals/{id}/end")
     @PreAuthorize("hasAuthority('goal.manage')")
-    public GoalResponse updateGoalProgress(@PathVariable UUID id, @RequestParam @Min(0) int progress) {
-        return GoalResponse.of(goal.updateProgress(id, progress));
+    public GoalResponse endGoal(@PathVariable UUID id) {
+        return GoalResponse.of(goal.endMine(id));
     }
 }

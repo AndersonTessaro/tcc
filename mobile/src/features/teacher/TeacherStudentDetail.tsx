@@ -2,6 +2,9 @@ import { useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { GoalCard } from "@/features/goals/GoalCard";
+import { GoalForm } from "@/features/goals/GoalForm";
+import { useToast } from "@/ui/Toast";
 import { PracticeRecordingDownload } from "@/features/student/PracticeRecordingDownload";
 import { useAuth } from "@/features/auth/useAuth";
 import { useResource } from "@/hooks/use-resource";
@@ -47,12 +50,17 @@ async function loadStudent(id: string) {
 export default function TeacherStudentDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const toast = useToast();
+  const [creatingGoal, setCreatingGoal] = useState(false);
   const { user } = useAuth();
+  const canManageGoals = user?.authorities.includes("goal.manage") || user?.authorities.includes("ROLE_ADMIN");
   const canUpdate = user?.authorities.includes("student.update");
   const [tab, setTab] = useState<StudentSection>("summary");
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const resource = useResource(() => loadStudent(id), id ?? "");
   const { data, setData } = resource;
+  const goals = useResource(() => canManageGoals ? teacherService.studentGoals(id) : Promise.resolve([]), id + ":" + !!canManageGoals);
+  const refresh = async () => { await Promise.all([resource.refresh(), goals.refresh()]); };
 
   const recentRate = useMemo(() => {
     const cutoff = addDays(todayIso(), -RECENT_DAYS);
@@ -85,14 +93,21 @@ export default function TeacherStudentDetail() {
                 <Text style={styles.infoText}>{data.privateNotes || "Nenhuma observação"}</Text>
               </Card>
               <Card style={styles.info}>
-                <Text style={styles.infoLabel}>Próxima meta</Text>
-                <Text style={styles.infoText}>{detail.nextGoal || "Nenhuma meta ativa"}</Text>
-              </Card>
-              <Card style={styles.info}>
                 <Text style={styles.infoLabel}>Data da matrícula</Text>
                 <Text style={styles.infoText}>{formatFullDate(detail.enrollmentDate.slice(0, 10))}</Text>
               </Card>
             </View>
+            {canManageGoals ? (
+              <>
+                <Text accessibilityRole="header" style={styles.sectionTitle}>Metas</Text>
+                {goals.data ? goals.data.length ? goals.data.map((goal) => (
+                  <GoalCard key={goal.id} goal={goal} onEnd={(goalId) => teacherService.endGoal(id, goalId)} onEnded={() => void goals.reload()} />
+                )) : <ScreenState icon="flag-outline" title="Nenhuma meta ativa" /> : goals.error ? (
+                  <ScreenState message={apiErrorMessage(goals.error, "Não foi possível carregar as metas.")} retry={goals.reload} />
+                ) : <ScreenState loading skeleton />}
+                <Button label="Nova meta" variant="secondary" onPress={() => setCreatingGoal(true)} />
+              </>
+            ) : null}
           </>
         );
       case "lessons":
@@ -192,7 +207,7 @@ export default function TeacherStudentDetail() {
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled"
             automaticallyAdjustKeyboardInsets
-            refreshControl={<RefreshControl refreshing={resource.refreshing} onRefresh={resource.refresh} tintColor={colors.primary} colors={[colors.primary]} />}
+            refreshControl={<RefreshControl refreshing={resource.refreshing || goals.refreshing} onRefresh={refresh} tintColor={colors.primary} colors={[colors.primary]} />}
           >
             {renderTab()}
           </ScrollView>
@@ -203,6 +218,7 @@ export default function TeacherStudentDetail() {
           ) : null}
         </>
       )}
+      {creatingGoal ? <GoalForm onSubmit={(body) => teacherService.createGoal(id, body)} onClose={() => setCreatingGoal(false)} onSaved={() => { setCreatingGoal(false); toast.show("Meta criada", "success"); void goals.reload(); }} /> : null}
     </KeyboardAvoidingView>
   );
 }

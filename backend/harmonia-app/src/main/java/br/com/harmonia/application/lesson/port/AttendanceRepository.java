@@ -4,6 +4,7 @@ import br.com.harmonia.infrastructure.persistence.lesson.Attendance;
 import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -16,4 +17,6 @@ public interface AttendanceRepository extends JpaRepository<Attendance, UUID> {
     long countByLessonEnrollmentStudentIdAndStatus(UUID studentId, AttendanceStatus status);
     long countByLessonEnrollmentIdInAndStatus(Collection<UUID> enrollmentIds, AttendanceStatus status);
     List<Attendance> findTop100ByLessonEnrollmentStudentIdOrderByLessonDateDesc(UUID studentId);
+    List<Attendance> findByLessonEnrollmentStudentIdAndStatusAndLessonDateBetween(UUID studentId, AttendanceStatus status,
+                                                                                   LocalDate from, LocalDate to);
 }

@@ -180,22 +180,40 @@ it("renders the real students, recurring schedules and lesson history", async ()
   expect(await screen.findAllByText("Realizada")).not.toHaveLength(0);
 });
 
-it("creates and completes a goal through the rendered screen and real services", async () => {
+it("creates, achieves through real practice and ends a recurring goal", async () => {
   await login("student");
   const title = `Meta audit ${Date.now()}`;
+  const date = localIsoDate();
+  const before = (await studentService.practices()).filter((practice) => practice.date === date).reduce((total, practice) => total + practice.durationMin, 0);
+  const target = before + 30;
   await render(<Goals />);
   await screen.findByText("Ativas");
   await fireEvent.press(screen.getByRole("button", { name: "Nova meta" }));
-  await fireEvent.changeText(screen.getByLabelText("Título da meta"), title);
-  await fireEvent.changeText(screen.getByLabelText("Objetivo da meta"), "30");
+  await fireEvent.press(screen.getByRole("radio", { name: "Diária" }));
+  await fireEvent.changeText(screen.getByLabelText("Título (opcional)"), title);
+  await fireEvent.changeText(screen.getByLabelText("Horas"), String(Math.floor(target / 60)));
+  await fireEvent.changeText(screen.getByLabelText("Minutos"), String(target % 60));
   await fireEvent.press(screen.getByRole("button", { name: "Salvar meta" }));
-  await fireEvent.press(await screen.findByRole("button", { name: `Atualizar ${title}` }));
-  await fireEvent.changeText(screen.getByLabelText("Progresso da meta"), "30");
-  await fireEvent.press(screen.getByRole("button", { name: "Salvar meta" }));
-  await waitFor(() => expect(screen.queryByText(title)).toBeNull());
-  await fireEvent.press(screen.getByRole("tab", { name: "Concluídas" }));
-  expect(await screen.findByText(title)).toBeVisible();
-  expect((await studentService.goals("COMPLETED")).find((goal) => goal.title === title)?.currentProgress).toBe(30);
+  await screen.findByText(title);
+  const created = (await studentService.goals("ACTIVE")).find((goal) => goal.title === title)!;
+  expect(created.currentProgress).toBe(before);
+  expect(created.achieved).toBe(false);
+  await studentService.registerPractice({ date, durationMin: 30 });
+  const achieved = (await studentService.goals("ACTIVE")).find((goal) => goal.id === created.id)!;
+  expect(achieved.currentProgress).toBe(target);
+  expect(achieved.achieved).toBe(true);
+  expect(achieved.status).toBe("ACTIVE");
+  await cleanup();
+  await render(<Goals />);
+  const confirmation = jest.spyOn(require("@/lib/confirm") as typeof import("@/lib/confirm"), "confirm").mockResolvedValueOnce(true);
+  try {
+    await fireEvent.press(await screen.findByRole("button", { name: `Encerrar meta ${title}` }));
+    await fireEvent.press(screen.getByRole("tab", { name: "Encerradas" }));
+    expect(await screen.findByText(title)).toBeVisible();
+    expect((await studentService.goals("ENDED")).find((goal) => goal.id === created.id)?.status).toBe("ENDED");
+  } finally {
+    confirmation.mockRestore();
+  }
 });
 
 it("uploads actual bytes as a teacher and downloads them through the student screen", async () => {
