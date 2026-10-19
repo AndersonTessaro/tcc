@@ -1,6 +1,8 @@
 import { api, MEDIA_TIMEOUT_MS } from "../../lib/http";
 
 import { appendFile, type PickedFile } from "../../lib/http/formFile";
+import { goalService } from "../goals/goalService";
+import type { Goal } from "../goals/goalService";
 import { recordingMimeType } from "./recording";
 
 export type StudentLesson = {
@@ -63,15 +65,7 @@ export type StudentAttendance = {
   status: "PRESENT" | "ABSENT" | "EXCUSED";
 };
 
-export type StudentGoal = {
-  id: string;
-  title: string;
-  type: "STREAK" | "PRACTICE_TIME" | "LESSONS" | "ATTENDANCE" | "OTHER";
-  target: number;
-  currentProgress: number;
-  description?: string | null;
-  status: "ACTIVE" | "COMPLETED";
-};
+export type StudentGoal = Goal;
 
 export type StudentMaterial = {
   id: string;
@@ -86,6 +80,7 @@ export type StudentMaterial = {
 };
 
 export const studentService = {
+  ...goalService("/me/goals"),
   teacherNotes: () => api.get<TeacherNote[]>("/me/teacher-notes"),
   dashboard: () => api.get<StudentDashboard>("/me/dashboard"),
   lessons: (status: "upcoming" | "past") => api.get<StudentLesson[]>(`/me/lessons?status=${status}`),
@@ -98,8 +93,6 @@ export const studentService = {
   progress: () => api.get<StudentProgress>("/me/progress"),
   practices: () => api.get<StudentPractice[]>("/me/practices"),
   attendance: () => api.get<StudentAttendance[]>("/me/attendance"),
-  goals: (status?: "ACTIVE" | "COMPLETED") =>
-    api.get<StudentGoal[]>(`/me/goals${status ? `?status=${status}` : ""}`),
   registerPractice: (body: { durationMin: number; date: string; notes?: string; difficulty?: string; rating?: number }) =>
     api.post<PracticeRegistration>("/me/practices", body),
   uploadPracticeRecording: (practiceId: string, file: PickedFile) => {
@@ -108,7 +101,4 @@ export const studentService = {
     return api.postForm<StudentPractice>(`/me/practices/${practiceId}/recording`, form, { timeoutMs: MEDIA_TIMEOUT_MS });
   },
   downloadPracticeRecording: (id: string) => api.getBytes(`/me/practices/${id}/recording`, { timeoutMs: MEDIA_TIMEOUT_MS }),
-  createGoal: (title: string, type: StudentGoal["type"], target: number, description?: string) =>
-    api.post<StudentGoal>("/me/goals", { title, type, target, description }),
-  updateGoal: (id: string, progress: number) => api.put<StudentGoal>(`/me/goals/${id}?progress=${progress}`),
 };

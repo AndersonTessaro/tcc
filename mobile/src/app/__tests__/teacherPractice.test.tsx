@@ -21,7 +21,7 @@ jest.mock("expo-router", () => ({
 jest.mock("@/features/teacher/teacherService", () => ({
   teacherService: {
     student: jest.fn(), studentProfile: jest.fn(), students: jest.fn(), enrollments: jest.fn(),
-    studentLessons: jest.fn(), studentMaterials: jest.fn(), studentPractices: jest.fn(),
+    studentLessons: jest.fn(), studentMaterials: jest.fn(), studentGoals: jest.fn().mockResolvedValue([]), createGoal: jest.fn(), endGoal: jest.fn(), studentPractices: jest.fn(),
     downloadPracticeRecording: jest.fn(),
   },
 }));

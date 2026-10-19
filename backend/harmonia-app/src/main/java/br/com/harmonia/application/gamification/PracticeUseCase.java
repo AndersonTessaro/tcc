@@ -24,14 +24,16 @@ public class PracticeUseCase {
     private final ProgressRepository progresses;
     private final CurrentUserService current;
     private final ApplicationEventPublisher events;
+    private final GoalProgressService goalProgress;
     private final GamificationService gamification = new GamificationService();
 
     public PracticeUseCase(PracticeRepository practices, ProgressRepository progresses, CurrentUserService current,
-                           ApplicationEventPublisher events) {
+                           ApplicationEventPublisher events, GoalProgressService goalProgress) {
         this.practices = practices;
         this.progresses = progresses;
         this.current = current;
         this.events = events;
+        this.goalProgress = goalProgress;
     }
 
     public record PracticeRegistration(Practice practice, Progress progress) {}
@@ -64,6 +66,7 @@ public class PracticeUseCase {
         prog.setUpdatedAt(LocalDateTime.now());
         Progress savedProgress = progresses.save(prog);
         events.publishEvent(new PracticeRecordedEvent(student.getId(), savedPractice.getId(), durationMin, date));
+        goalProgress.notifyReached(student.getId(), facts -> facts.withoutPractice(date, durationMin));
         return new PracticeRegistration(savedPractice, savedProgress);
     }
 

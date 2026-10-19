@@ -1,6 +1,7 @@
 import { api, MEDIA_TIMEOUT_MS } from "../../lib/http";
 import { appendFile, type PickedFile } from "../../lib/http/formFile";
 import type { LessonAttachment, StudentPractice } from "../student/studentService";
+import { goalService, type GoalFilter, type NewGoal } from "../goals/goalService";
 import { attachmentMimeType } from "./lessonAttachments";
 
 export type MaterialFile = PickedFile;
@@ -159,6 +160,9 @@ export type TeacherMakeup = {
 };
 
 export const teacherService = {
+  studentGoals: (id: string, status?: GoalFilter) => goalService("/teacher/students/" + id + "/goals").goals(status),
+  createGoal: (studentId: string, body: NewGoal) => goalService("/teacher/students/" + studentId + "/goals").createGoal(body),
+  endGoal: (studentId: string, goalId: string) => goalService("/teacher/students/" + studentId + "/goals").endGoal(goalId),
   finance: () => api.get<TeacherFinance>("/teacher/finance"),
   makeups: (from?: string, to?: string) => {
     const query = new URLSearchParams();
