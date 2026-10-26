@@ -45,6 +45,19 @@ export default function Users() {
     }
   };
 
+  const deleteUser = async (u: UserDto) => {
+    const confirmed = window.confirm(`Excluir ${u.username} definitivamente? Matrículas, aulas, práticas, metas e `
+      + "materiais ligados a este usuário também serão apagados. Esta ação não pode ser desfeita.");
+    if (!confirmed) return;
+    try {
+      await adminService.deleteUser(u.id);
+      toast.success(`${u.username} excluído`);
+      load();
+    } catch (error) {
+      toast.error(apiErrorMessage(error, "Erro ao excluir usuário"));
+    }
+  };
+
   const toggleRole = async (u: UserDto, roleId: number) => {
     const current = new Set(u.roles.map((r) => r.id));
     if (current.has(roleId)) current.delete(roleId);
@@ -123,6 +136,9 @@ export default function Users() {
                     </Button>
                     <Button variant="ghost" onClick={() => resetPassword(u)}>
                       Senha
+                    </Button>
+                    <Button variant="danger" onClick={() => deleteUser(u)}>
+                      Excluir
                     </Button>
                   </div>
                 </td>

@@ -37,4 +37,22 @@ describe("apiClient", () => {
     await expect(api.get("/me/dashboard")).rejects.toBeTruthy();
     expect(deps.onAuthFailure).toHaveBeenCalled();
   });
+
+  it("sends login without the stale token and does not refresh on 401", async () => {
+    store.access = "stale";
+    const f = vi.fn().mockReturnValueOnce(json(401, { code: "INVALID_CREDENTIALS" }));
+    const api = createApiClient({ ...deps, fetchFn: f as unknown as typeof fetch });
+    await expect(api.post("/auth/login", { login: "admin", password: "x" })).rejects.toMatchObject({ status: 401 });
+    expect(f).toHaveBeenCalledTimes(1);
+    expect(f.mock.calls[0][1].headers).not.toHaveProperty("Authorization");
+    expect(store.access).toBe("stale");
+  });
+
+  it("keeps the token on /auth/me", async () => {
+    store.access = "a1";
+    const f = vi.fn().mockReturnValueOnce(json(200, { username: "admin" }));
+    const api = createApiClient({ ...deps, fetchFn: f as unknown as typeof fetch });
+    await api.get("/auth/me");
+    expect(f.mock.calls[0][1].headers.Authorization).toBe("Bearer a1");
+  });
 });

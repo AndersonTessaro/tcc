@@ -9,7 +9,7 @@ import { adminService } from "../adminService";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("../adminService", () => ({ adminService: {
-  users: vi.fn(), roles: vi.fn(), permissions: vi.fn(), createRole: vi.fn(),
+  users: vi.fn(), roles: vi.fn(), deleteUser: vi.fn(), permissions: vi.fn(), createRole: vi.fn(),
   transactions: vi.fn(), balance: vi.fn(), createTransaction: vi.fn(),
   settings: vi.fn(), upsertSetting: vi.fn(),
 } }));
@@ -46,6 +46,20 @@ describe("Admin management improvements", () => {
     fireEvent.change(screen.getByLabelText("Buscar usuários"), { target: { value: "" } });
     expect(screen.getByText("Gestor")).toBeInTheDocument();
     expect(screen.queryByText("Ana Souza")).toBeNull();
+  });
+
+  it("deletes a user only after confirming the cascade warning", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+    render(<Users />);
+    await screen.findByText("Ana Souza");
+    const deleteAna = () => fireEvent.click(screen.getAllByRole("button", { name: "Excluir" })[1]);
+    deleteAna();
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("Matrículas, aulas"));
+    expect(service.deleteUser).not.toHaveBeenCalled();
+    deleteAna();
+    await waitFor(() => expect(service.deleteUser).toHaveBeenCalledWith("2"));
+    await waitFor(() => expect(service.users).toHaveBeenCalledTimes(2));
+    confirm.mockRestore();
   });
 
   it("creates a role with name and description and reloads the list", async () => {

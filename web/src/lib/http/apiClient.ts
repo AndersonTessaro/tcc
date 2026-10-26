@@ -24,8 +24,10 @@ export function createApiClient(deps: Deps) {
   }
 
   async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    // Login/refresh/forgot are anonymous: a stale Bearer would make Spring answer 401 even on permitAll.
+    const anonymous = path.startsWith("/auth/") && path !== "/auth/me";
     const send = () => {
-      const access = deps.getAccessToken();
+      const access = anonymous ? null : deps.getAccessToken();
       return doFetch(`${deps.baseUrl}${path}`, {
         method,
         credentials: "include",
@@ -37,7 +39,7 @@ export function createApiClient(deps: Deps) {
       });
     };
     let res = await send();
-    if (res.status === 401) {
+    if (res.status === 401 && !anonymous) {
       if (await refresh()) {
         res = await send();
       } else {
@@ -55,5 +57,6 @@ export function createApiClient(deps: Deps) {
     get: <T>(p: string) => request<T>("GET", p),
     post: <T>(p: string, b?: unknown) => request<T>("POST", p, b),
     put: <T>(p: string, b?: unknown) => request<T>("PUT", p, b),
+    delete: <T>(p: string) => request<T>("DELETE", p),
   };
 }
