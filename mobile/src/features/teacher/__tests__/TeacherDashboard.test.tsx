@@ -47,6 +47,23 @@ it("switches class from the picker", async () => {
   await waitFor(() => expect(service.dashboard).toHaveBeenLastCalledWith("Violão"));
 });
 
+it("keeps Presente selected after the dashboard reloads with PRESENT", async () => {
+  service.dashboard.mockResolvedValueOnce(dashboard).mockResolvedValue({ ...dashboard, todayLessons: [{ ...lesson, attendance: "PRESENT" }] });
+  await render(<TeacherDashboard />);
+  await fireEvent.press(await screen.findByRole("radio", { name: "Presente" }));
+  await waitFor(() => expect(service.dashboard).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(screen.getByRole("radio", { name: "Presente" })).toBeChecked());
+  expect(screen.getByRole("radio", { name: "Falta" })).not.toBeChecked();
+});
+
+it("shows informational metrics without duplicate tab navigation", async () => {
+  await render(<TeacherDashboard />);
+  await screen.findByText("09:00–10:00 · Ana Souza");
+  for (const label of ["Ver todos", "Ver agenda", "Ver relatórios", "Ver agenda completa"]) {
+    expect(screen.queryByText(label)).toBeNull();
+  }
+});
+
 it("offers a retry when the dashboard fails", async () => {
   service.dashboard.mockRejectedValueOnce(new TypeError("Failed to fetch"));
   await render(<TeacherDashboard />);

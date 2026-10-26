@@ -5,6 +5,7 @@ import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { ProgressBar } from "@/ui/ProgressBar";
+import { StatusChip } from "@/ui/StatusChip";
 import { useToast } from "@/ui/Toast";
 import { colors, space, type } from "@/ui/theme";
 import type { Goal } from "./goalService";
@@ -41,7 +42,8 @@ export function GoalCard({ goal, onEnd, onEnded }: GoalCardProps) {
       {goal.legacy ? <Text style={styles.caption}>Meta antiga</Text> : period ? <Text style={styles.caption}>{period}</Text> : null}
       <ProgressBar value={goal.currentProgress} max={goal.target} label={"Progresso de " + goal.title} height={8} />
       <Text style={styles.progress}>{goalProgressText(goal)}</Text>
-      {goal.achieved ? <Text style={styles.achieved}>Cumprida</Text> : null}
+      {goal.completed || goal.status === "COMPLETED" ? <StatusChip label="Cumprida" tone="success" />
+        : goal.status === "ENDED" ? <StatusChip label="Encerrada" tone="neutral" /> : null}
       {!goal.legacy && goal.period && goal.streak > 0 ? <Text style={styles.caption}>{goalStreakText(goal.period, goal.streak)}</Text> : null}
       {!goal.legacy && goal.status === "ACTIVE" && goal.canEnd ? (
         <Button label="Encerrar meta" variant="ghost" compact accessibilityLabel={"Encerrar meta " + goal.title} onPress={end} loading={ending} style={styles.action} />
@@ -56,6 +58,5 @@ const styles = StyleSheet.create({
   description: { ...type.body },
   caption: { ...type.caption },
   progress: { ...type.label, color: colors.primary },
-  achieved: { ...type.label, color: colors.success },
   action: { alignSelf: "flex-start", paddingHorizontal: 0 },
 });

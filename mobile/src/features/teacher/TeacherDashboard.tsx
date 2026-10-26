@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useResource } from "@/hooks/use-resource";
 import { NotificationBell } from "@/features/notifications/NotificationBell";
 import { notificationService } from "@/features/notifications/notificationService";
@@ -12,9 +9,10 @@ import { formatLessonWhen, formatMinutes, todayIso } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
+import { TabHeader } from "@/ui/TabHeader";
 import { ScreenState } from "@/ui/ScreenState";
 import { Skeleton, SkeletonList } from "@/ui/Skeleton";
-import { brandGradient, colors, MIN_TOUCH, radius, shadow, space, type } from "@/ui/theme";
+import { colors, MIN_TOUCH, radius, shadow, space, type } from "@/ui/theme";
 import { AttendanceControl } from "./AttendanceControl";
 import { canRecordAttendance, hhmm, scheduleHref } from "./agenda";
 import { teacherService, type AttendanceStatus, type TeacherLesson } from "./teacherService";
@@ -25,7 +23,6 @@ const waveIcon = require("@/assets/images/figma-teacher/wave.png");
 
 export default function TeacherDashboard() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const today = todayIso();
   const scrollRef = useRef<ScrollView>(null);
   useTabScrollToTop(scrollRef);
@@ -51,7 +48,9 @@ export default function TeacherDashboard() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="light" />
+      <TabHeader title="Olá, Professor!" subtitle="Aqui está o resumo das suas atividades" right={<NotificationBell unreadCount={unread.data?.unreadCount ?? 0} />}>
+        <Image source={waveIcon} accessible={false} style={styles.wave} />
+      </TabHeader>
       <ScrollView
         ref={scrollRef}
         accessibilityLabel="Painel do professor"
@@ -60,15 +59,6 @@ export default function TeacherDashboard() {
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={dashboard.refreshing || unread.refreshing} onRefresh={refresh} tintColor={colors.onBrand} colors={[colors.primary]} />}
       >
-        <LinearGradient colors={brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.header, { paddingTop: insets.top + space.xxl }]}>
-          <View style={styles.helloRow}>
-            <Text accessibilityRole="header" style={styles.hello}>Olá, Professor!</Text>
-            <Image source={waveIcon} accessible={false} style={styles.wave} />
-            <View style={styles.bell}><NotificationBell unreadCount={unread.data?.unreadCount ?? 0} /></View>
-          </View>
-          <Text style={styles.subtitle}>Aqui está o resumo das suas atividades</Text>
-        </LinearGradient>
-
         <View style={styles.content}>
           {dashboard.loading ? (
             <View style={styles.skeleton}>
@@ -96,9 +86,9 @@ export default function TeacherDashboard() {
               </Pressable>
 
               <View style={styles.metrics}>
-                <MetricCard title="Alunos" value={String(data.totalStudents)} action="Ver todos" icon="people-outline" onPress={() => router.push("/teacher/students")} />
-                <MetricCard title="Aulas hoje" value={String(data.todayLessons.length)} action="Ver agenda" icon="calendar-outline" onPress={() => openSchedule()} />
-                <MetricCard title="Frequência média" value={`${data.attendancePercent}%`} action="Ver relatórios" icon="document-text-outline" onPress={() => router.push("/teacher/reports")} />
+                <MetricCard title="Alunos" value={String(data.totalStudents)} icon="people-outline" />
+                <MetricCard title="Aulas hoje" value={String(data.todayLessons.length)} icon="calendar-outline" />
+                <MetricCard title="Frequência média" value={`${data.attendancePercent}%`} icon="document-text-outline" />
                 <MetricCard title="Prática (semana)" value={formatMinutes(data.weeklyPracticeMin)} icon="time-outline" />
               </View>
 
@@ -138,7 +128,6 @@ export default function TeacherDashboard() {
                   </Pressable>
                 )) : <Text style={[styles.empty, styles.emptyPadded]}>Nenhuma aula agendada.</Text>}
               </Card>
-              <Button label="Ver agenda completa" variant="ghost" onPress={() => openSchedule()} style={styles.agendaLink} />
             </>
           )}
         </View>
@@ -183,39 +172,25 @@ type MetricCardProps = {
   title: string;
   value: string;
   icon: keyof typeof Ionicons.glyphMap;
-  action?: string;
-  onPress?: () => void;
 };
 
-function MetricCard({ title, value, icon, action, onPress }: MetricCardProps) {
-  const body = (
-    <>
+function MetricCard({ title, value, icon }: MetricCardProps) {
+  return (
+    <View accessible accessibilityLabel={`${title}: ${value}`} style={styles.metricCard}>
       <Text style={styles.caption}>{title}</Text>
       <Text numberOfLines={1} style={styles.metricValue}>{value}</Text>
       <View style={styles.metricBottom}>
-        {action ? <Text style={styles.metricAction}>{action}</Text> : <View />}
         <Ionicons name={icon} size={18} color={colors.primary} accessible={false} />
       </View>
-    </>
-  );
-  if (!onPress) return <View accessible accessibilityLabel={`${title}: ${value}`} style={styles.metricCard}>{body}</View>;
-  return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${title}: ${value}. ${action}`} onPress={onPress} style={({ pressed }) => [styles.metricCard, pressed && styles.pressed]}>
-      {body}
-    </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.screen },
   scrollContent: { flexGrow: 1, paddingBottom: space.xxxl },
-  header: { minHeight: 180, paddingHorizontal: space.xxl, paddingBottom: 64 },
-  helloRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  hello: { ...type.display, color: colors.onBrand, fontWeight: "600", flexShrink: 1 },
   wave: { width: 27, height: 27 },
-  bell: { marginLeft: "auto", flexShrink: 0 },
-  subtitle: { ...type.body, color: colors.onBrandMuted, marginTop: space.xs },
-  content: { marginTop: -44, paddingHorizontal: space.screenGutter, gap: space.md },
+  content: { paddingHorizontal: space.screenGutter, gap: space.md },
   skeleton: { gap: space.md },
   pressed: { opacity: 0.85 },
   classCard: { minHeight: 76, backgroundColor: colors.surface, borderRadius: radius.lg, paddingHorizontal: space.xl, paddingVertical: space.md, flexDirection: "row", alignItems: "center", ...shadow },
@@ -224,9 +199,8 @@ const styles = StyleSheet.create({
   classValue: { ...type.title },
   metrics: { flexDirection: "row", flexWrap: "wrap", columnGap: space.xxl, rowGap: space.xl },
   metricCard: { flexBasis: "40%", flexGrow: 1, flexShrink: 1, minWidth: 0, minHeight: 116, borderRadius: radius.lg, backgroundColor: colors.surface, padding: space.lg, gap: space.sm },
-  metricBottom: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: "auto", gap: space.xs },
+  metricBottom: { flexDirection: "row", justifyContent: "flex-end", alignItems: "center", marginTop: "auto" },
   metricValue: { ...type.title, fontVariant: ["tabular-nums"] },
-  metricAction: { ...type.label, color: colors.link },
   sectionTitle: { ...type.heading, marginTop: space.sm },
   todayCard: { gap: space.sm },
   lessonTitle: { ...type.bodyStrong },
@@ -237,7 +211,6 @@ const styles = StyleSheet.create({
   upcomingIdentity: { flex: 1, gap: space.xs },
   upcomingName: { ...type.body, fontWeight: "700" },
   upcomingInstrument: { ...type.body, flexShrink: 1, maxWidth: "30%", textAlign: "right", marginLeft: space.sm },
-  agendaLink: { alignSelf: "flex-end", minHeight: MIN_TOUCH, paddingHorizontal: 0 },
   empty: { ...type.body, color: colors.muted },
   emptyPadded: { padding: space.lg },
   backdrop: { flex: 1, backgroundColor: colors.scrim, justifyContent: "center", padding: space.xxl },

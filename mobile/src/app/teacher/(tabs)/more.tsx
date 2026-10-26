@@ -1,7 +1,6 @@
 import { useRef } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/features/auth/useAuth";
 import { accountService } from "@/features/account/accountService";
@@ -11,10 +10,10 @@ import { useTabScrollToTop } from "@/hooks/use-tab-scroll-to-top";
 import { confirm } from "@/lib/confirm";
 import { Card } from "@/ui/Card";
 import { ListRow } from "@/ui/ListRow";
-import { ScreenHeader } from "@/ui/ScreenHeader";
+import { TabHeader } from "@/ui/TabHeader";
+import { Avatar } from "@/ui/Avatar";
 import { colors, space, type } from "@/ui/theme";
 
-const avatarImage = require("@/assets/images/figma-student/menu-user.png");
 
 type MenuIcon = keyof typeof Ionicons.glyphMap;
 
@@ -35,12 +34,12 @@ export default function More() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <ScreenHeader title="Mais" />
-      <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <TabHeader title="Mais" />
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={account.refreshing} onRefresh={account.refresh} tintColor={colors.primary} />}>
         <Pressable accessibilityRole="button" accessibilityLabel="Ver perfil" onPress={() => router.push("/teacher/profile")}>
           <Card variant="outlined" style={styles.profile}>
-            <Image source={avatarImage} style={styles.avatar} accessible={false} />
+            <Avatar hasAvatar={account.data?.hasAvatar} />
             <View style={styles.profileText}>
               <Text style={styles.name}>{account.data?.displayName || user?.displayName || user?.username || "Professor"}</Text>
               <Text style={styles.role}>Ver perfil</Text>
@@ -71,5 +70,4 @@ const styles = StyleSheet.create({
   profileText: { flex: 1, gap: space.xs },
   name: { ...type.heading },
   role: { ...type.label, color: colors.link },
-  avatar: { width: 60, height: 60 },
 });

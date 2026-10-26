@@ -1,6 +1,6 @@
 import { api, MEDIA_TIMEOUT_MS } from "../../lib/http";
 import { appendFile, type PickedFile } from "../../lib/http/formFile";
-import type { LessonAttachment, StudentPractice } from "../student/studentService";
+import type { LessonAttachment, MaterialSource, StudentPractice } from "../student/studentService";
 import { goalService, type GoalFilter, type NewGoal } from "../goals/goalService";
 import { attachmentMimeType } from "./lessonAttachments";
 
@@ -37,7 +37,7 @@ export type NewTeacherStudent = UpdateTeacherStudent & {
   instrumentId: string;
 };
 
-export type StudentSummary = { id: string; name: string; username: string };
+export type StudentSummary = { id: string; name: string; username: string; userId: string; hasAvatar: boolean };
 
 export type LessonStatus = "SCHEDULED" | "DONE" | "CANCELED";
 export type Weekday = "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
@@ -106,6 +106,8 @@ export type TeacherDashboardData = {
 
 export type TeacherStudentDetailData = {
   studentId: string;
+  userId: string;
+  hasAvatar: boolean;
   progress: { xpTotal: number; level: number; streakDays: number } | null;
   lessonsCount: number;
   attendance: { present: number; absent: number; excused: number; rate: number };
@@ -125,7 +127,7 @@ export type TeacherStudentMaterial = {
   contentType: string | null;
   sizeBytes: number | null;
   createdAt: string;
-};
+} & MaterialSource;
 
 export type AttendanceCounts = { due: number; present: number; absent: number; excused: number; unrecorded: number; rate: number | null };
 export type AttendanceReport = {
@@ -184,6 +186,10 @@ export const teacherService = {
   studentLessons: (id: string) => api.get<TeacherLesson[]>(`/teacher/students/${id}/lessons`),
   studentMaterials: (id: string) => api.get<TeacherStudentMaterial[]>(`/teacher/students/${id}/materials`),
   downloadMaterial: (id: string) => api.getBytes(`/teacher/materials/${id}/download`, { timeoutMs: MEDIA_TIMEOUT_MS }),
+  downloadMaterialItem: (item: { id: string } & MaterialSource) => api.getBytes(
+    item.source === "LESSON" ? `/teacher/lessons/${item.lessonId}/attachments/${item.id}` : `/teacher/materials/${item.id}/download`,
+    { timeoutMs: MEDIA_TIMEOUT_MS },
+  ),
   enrollments: () => api.get<TeacherEnrollment[]>("/teacher/enrollments"),
   newLesson: (b: {
     enrollmentId: string;

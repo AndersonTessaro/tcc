@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet,
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { DownloadButton } from "@/features/files/DownloadButton";
+import { MaterialSourceTag } from "@/features/files/MaterialSourceTag";
 import { GoalCard } from "@/features/goals/GoalCard";
 import { GoalForm } from "@/features/goals/GoalForm";
 import { useToast } from "@/ui/Toast";
@@ -80,7 +81,7 @@ export default function TeacherStudentDetail() {
   const monthly = useMemo(() => attendanceSummary(data?.detail.attendanceHistory ?? [], month), [data, month]);
 
   const addMaterial = (material: TeacherStudentMaterial) =>
-    setData((current) => current && { ...current, materials: [material, ...current.materials.filter((item) => item.id !== material.id)] });
+    setData((current) => current && { ...current, materials: [material, ...current.materials.filter((item) => item.source !== material.source || item.id !== material.id)] });
   const saveNote = (kind: NoteKind, value: string) => {
     if (!data) return Promise.resolve();
     const notes = { sharedNotes: data.sharedNotes ?? "", privateNotes: data.privateNotes ?? "", [kind]: value };
@@ -193,17 +194,17 @@ export default function TeacherStudentDetail() {
               <Card style={styles.listCard}>
                 {materials.map((item) => (
                   <ListRow
-                    key={item.id}
+                    key={`${item.source}:${item.id}`}
                     title={item.title}
                     subtitle={[item.description, `${item.fileName} · ${formatFullDate(item.createdAt.slice(0, 10))}`].filter(Boolean).join("\n")}
-                    leading={<Ionicons name="document-text-outline" size={22} color={colors.primary} />}
+                    leading={<View style={styles.materialSource}><Ionicons name="document-text-outline" size={22} color={colors.primary} /><MaterialSourceTag item={item} /></View>}
                     trailing={
                       <DownloadButton
                         label="Baixar"
                         accessibilityLabel={`Baixar material ${item.title}`}
                         fileName={item.fileName}
                         contentType={item.contentType}
-                        download={() => teacherService.downloadMaterial(item.id)}
+                        download={() => teacherService.downloadMaterialItem(item)}
                         failureMessage="Não foi possível baixar o material. Tente novamente."
                       />
                     }
@@ -229,7 +230,7 @@ export default function TeacherStudentDetail() {
       ) : (
         <>
           <View style={styles.profile}>
-            <TeacherStudentIdentity name={data.name ?? "Aluno"} instrument={data.instruments.join(", ") || "Instrumento não informado"} />
+            <TeacherStudentIdentity name={data.name ?? "Aluno"} instrument={data.instruments.join(", ") || "Instrumento não informado"} userId={data.detail.userId} hasAvatar={data.detail.hasAvatar} />
           </View>
           <TeacherStudentSections value={tab} onChange={setTab} />
           <ScrollView
@@ -282,6 +283,7 @@ const styles = StyleSheet.create({
   infoText: { ...type.body },
   sectionTitle: { ...type.heading, marginTop: space.sm },
   listCard: { padding: 0, overflow: "hidden", borderRadius: radius.lg },
+  materialSource: { gap: space.xs, alignItems: "center" },
   monthSummary: { gap: space.sm, borderRadius: 0, padding: space.md },
   summaryRow: { flexDirection: "row", gap: space.lg, justifyContent: "space-between" },
   summaryItem: { gap: 2 },

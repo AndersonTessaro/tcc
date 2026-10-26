@@ -1,6 +1,7 @@
 import { api } from "@/lib/http";
 
 export type Account = {
+  hasAvatar: boolean;
   username: string;
   email: string;
   displayName: string;

@@ -1,5 +1,5 @@
-import { render, screen, waitFor, act } from "@testing-library/react-native";
-import { Text } from "react-native";
+import { render, screen, waitFor, act, fireEvent } from "@testing-library/react-native";
+import { Pressable, Text, View } from "react-native";
 import { AuthProvider, useAuth } from "../useAuth";
 import { authService } from "../authService";
 import { tokenStorage } from "@/lib/http/tokenStorage";
@@ -35,4 +35,17 @@ it("does not route an administrative profile into the student app", async () => 
   service.me.mockResolvedValue({ username: "admin", displayName: "Admin", authorities: ["ROLE_ADMIN"] });
   await render(<AuthProvider><Session /></AuthProvider>);
   expect(await screen.findByText("Sem sessão")).toBeVisible();
+});
+
+it("updates a saved profile name in the current session without logging in again", async () => {
+  function ProfileUpdate() {
+    const { updateProfile } = useAuth();
+    return <Pressable accessibilityRole="button" accessibilityLabel="Atualizar perfil" onPress={() => updateProfile({ displayName: "Ana Maria", hasAvatar: true })}><Text>Atualizar</Text></Pressable>;
+  }
+  service.me.mockResolvedValue({ username: "student", displayName: "Ana", authorities: ["ROLE_STUDENT"], hasAvatar: false });
+  await render(<AuthProvider><View><Session /><ProfileUpdate /></View></AuthProvider>);
+  await screen.findByText("Ana");
+  await fireEvent.press(screen.getByRole("button", { name: "Atualizar perfil" }));
+  expect(screen.getByText("Ana Maria")).toBeVisible();
+  expect(service.me).toHaveBeenCalledTimes(1);
 });

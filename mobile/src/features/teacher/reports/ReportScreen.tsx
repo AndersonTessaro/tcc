@@ -1,13 +1,14 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
+import { useTabScrollToTop } from "@/hooks/use-tab-scroll-to-top";
 import { useResource } from "@/hooks/use-resource";
 import { addDays, todayIso } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Card } from "@/ui/Card";
 import { ChipGroup, type ChipOption } from "@/ui/Chip";
 import { ProgressBar } from "@/ui/ProgressBar";
-import { ScreenHeader } from "@/ui/ScreenHeader";
+import { TabHeader } from "@/ui/TabHeader";
+import { IconButton } from "@/ui/IconButton";
 import { ScreenState } from "@/ui/ScreenState";
 import { colors, space, type } from "@/ui/theme";
 
@@ -46,6 +47,8 @@ type ReportScreenProps<T> = {
 };
 
 export function ReportScreen<T>({ title, onBack, load, isEmpty, emptyTitle, render }: ReportScreenProps<T>) {
+  const scrollRef = useRef<ScrollView>(null);
+  useTabScrollToTop(scrollRef);
   const [range, setRange] = useState<ReportRange>("30");
   const report = useResource(() => {
     const { from, to } = rangeDates(range);
@@ -61,9 +64,9 @@ export function ReportScreen<T>({ title, onBack, load, isEmpty, emptyTitle, rend
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <ScreenHeader title={title} back onBack={onBack} />
+      <TabHeader title={title} right={<IconButton icon="arrow-back" label="Voltar" color={colors.onBrand} onPress={onBack} />} />
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={report.refreshing} onRefresh={report.refresh} tintColor={colors.primary} colors={[colors.primary]} />}
       >

@@ -12,14 +12,15 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace, back: jest.fn() }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
-jest.mock("@/features/student/studentService", () => ({ studentService: { materials: jest.fn() } }));
+jest.mock("@/features/student/studentService", () => ({ studentService: { materials: jest.fn(), downloadMaterialItem: jest.fn() } }));
+jest.mock("@/lib/files/saveDownload", () => ({ saveDownload: jest.fn() }));
 jest.mock("@/features/teacher/teacherService", () => ({ teacherService: { students: jest.fn(), reports: jest.fn() } }));
 jest.mock("@/features/auth/authService", () => ({ authService: { forgot: jest.fn() } }));
 
 const student = studentService as jest.Mocked<typeof studentService>;
 const teacher = teacherService as jest.Mocked<typeof teacherService>;
 const auth = authService as jest.Mocked<typeof authService>;
-const material: StudentMaterial = { id: "material-1", studentId: "student-1", teacherName: "Maria Santos", title: "Escalas maiores", description: "Exercícios para a semana", fileName: "escalas.pdf", contentType: "application/pdf", sizeBytes: 2048, createdAt: "2026-10-03T10:00:00" };
+const material: StudentMaterial = { id: "material-1", studentId: "student-1", teacherName: "Maria Santos", title: "Escalas maiores", description: "Exercícios para a semana", fileName: "escalas.pdf", contentType: "application/pdf", sizeBytes: 2048, createdAt: "2026-10-03T10:00:00", source: "MATERIAL", lessonId: null, lessonDate: null };
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -46,6 +47,19 @@ it("ignores a materials response that arrives after the search changes", async (
   await screen.findByText("Nenhum material encontrado.");
   await act(async () => resolveOld([material]));
   expect(screen.queryByText("Escalas maiores")).toBeNull();
+});
+
+it("shows lesson attachments alongside materials with their date tag and source", async () => {
+  const attachment: StudentMaterial = { ...material, id: "attachment-1", title: "Partitura da aula", source: "LESSON", lessonId: "lesson-1", lessonDate: "2026-10-01" };
+  student.materials.mockResolvedValue([material, attachment]);
+  student.downloadMaterialItem.mockResolvedValue(new ArrayBuffer(8));
+  await render(<Materials />);
+  expect(await screen.findByText("Aula 01/10")).toBeVisible();
+  expect(screen.getByText("Escalas maiores")).toBeVisible();
+  await fireEvent.press(screen.getByRole("button", { name: "Baixar Partitura da aula" }));
+  expect(student.downloadMaterialItem).toHaveBeenCalledWith(attachment);
+  await fireEvent.press(screen.getByRole("button", { name: "Baixar Escalas maiores" }));
+  expect(student.downloadMaterialItem).toHaveBeenLastCalledWith(material);
 });
 
 it("shows a materials error and retries instead of reporting an empty list", async () => {

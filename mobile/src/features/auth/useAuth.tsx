@@ -9,6 +9,7 @@ type AuthState = {
   restoring: boolean;
   login: (l: string, s: string) => Promise<void>;
   logout: () => void;
+  updateProfile: (profile: Pick<AuthResponse, "displayName" | "hasAvatar">) => void;
 };
 
 const Ctx = createContext<AuthState>(null as unknown as AuthState);
@@ -61,8 +62,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => setUser(null);
+  const updateProfile = (profile: Pick<AuthResponse, "displayName" | "hasAvatar">) =>
+    setUser((current) => current && { ...current, ...profile });
 
-  return <Ctx.Provider value={{ user, loading, restoring, login, logout }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, loading, restoring, login, logout, updateProfile }}>{children}</Ctx.Provider>;
 }
 
 export const useAuth = () => useContext(Ctx);

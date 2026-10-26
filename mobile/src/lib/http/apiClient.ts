@@ -125,11 +125,11 @@ export function createApiClient(deps: Deps) {
   }
 
   // Multipart upload. Content-Type is left unset so fetch adds the boundary.
-  function requestForm<T>(path: string, form: FormData, opts?: RequestOptions): Promise<T> {
+  function requestForm<T>(method: "POST" | "PUT", path: string, form: FormData, opts?: RequestOptions): Promise<T> {
     return dispatch<T>(
       (access, signal) =>
         doFetch(`${deps.baseUrl}${path}`, {
-          method: "POST",
+          method,
           credentials: "include",
           signal,
           headers: access ? { Authorization: `Bearer ${access}` } : {},
@@ -152,6 +152,7 @@ export function createApiClient(deps: Deps) {
     put: <T>(p: string, b?: unknown) => request<T>("PUT", p, b),
     patch: <T>(p: string, b?: unknown) => request<T>("PATCH", p, b),
     del: <T = void>(p: string) => request<T>("DELETE", p),
-    postForm: <T>(p: string, form: FormData, opts?: RequestOptions) => requestForm<T>(p, form, opts),
+    postForm: <T>(p: string, form: FormData, opts?: RequestOptions) => requestForm<T>("POST", p, form, opts),
+    putForm: <T>(p: string, form: FormData, opts?: RequestOptions) => requestForm<T>("PUT", p, form, opts),
   };
 }

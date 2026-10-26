@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from "react";
-import { FlatList, Image, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/features/auth/useAuth";
 import { useResource } from "@/hooks/use-resource";
@@ -9,14 +8,13 @@ import { normalizeSearch } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { IconButton } from "@/ui/IconButton";
 import { Card } from "@/ui/Card";
-import { ScreenHeader } from "@/ui/ScreenHeader";
+import { Avatar } from "@/ui/Avatar";
+import { TabHeader } from "@/ui/TabHeader";
 import { ScreenState } from "@/ui/ScreenState";
 import { TextField } from "@/ui/TextField";
 import { colors, radius, space, type } from "@/ui/theme";
 import { teacherService, type StudentSummary, type TeacherEnrollment } from "./teacherService";
 import { useTabScrollToTop } from "@/hooks/use-tab-scroll-to-top";
-
-const avatarImage = require("@/assets/images/figma-student/menu-user.png");
 
 const loadStudents = async () => {
   const [students, enrollments] = await Promise.all([teacherService.students(), teacherService.enrollments()]);
@@ -60,8 +58,7 @@ export default function TeacherStudents() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <ScreenHeader title="Alunos" action={canRegister ? <IconButton icon="add" label="Novo aluno" onPress={() => router.push("/teacher/student-form")} /> : null} />
+      <TabHeader title="Alunos" right={canRegister ? <IconButton color={colors.onBrand} icon="add" label="Novo aluno" onPress={() => router.push("/teacher/student-form")} /> : null} />
       <View style={styles.search}>
         <TextField
           accessibilityLabel="Buscar aluno"
@@ -90,7 +87,7 @@ export default function TeacherStudents() {
             accessibilityLabel={`${item.name}, ${instruments.get(item.id)?.join(", ") || "instrumento não informado"}`}
             onPress={() => router.push(`/teacher/student/${item.id}`)}
           >
-            <Image source={avatarImage} style={styles.avatar} accessible={false} />
+            <Avatar userId={item.userId} hasAvatar={item.hasAvatar} />
             <View style={styles.identity}>
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.instrument}>{instruments.get(item.id)?.join(", ") || "Instrumento não informado"}</Text>
@@ -108,7 +105,6 @@ const styles = StyleSheet.create({
   search: { paddingHorizontal: space.screenGutter, paddingBottom: space.sm },
   list: { paddingHorizontal: space.screenGutter, paddingBottom: space.xxxl, gap: space.sm, flexGrow: 1 },
   rowCard: { borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radius.lg, minHeight: 98, flexDirection: "row", alignItems: "center", gap: space.xl },
-  avatar: { width: 60, height: 60 },
   identity: { flex: 1, gap: space.xs },
   name: { ...type.body, fontWeight: "700" },
   instrument: { ...type.body },

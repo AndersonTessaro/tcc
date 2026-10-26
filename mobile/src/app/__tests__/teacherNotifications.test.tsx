@@ -61,7 +61,7 @@ it.each([[1, "1", "1 não lida"], [3, "3", "3 não lidas"], [10, "9+", "10 não 
 it("keeps the dashboard usable without a badge when fetching the count fails", async () => {
   service.unreadCount.mockRejectedValue(new TypeError("Failed to fetch"));
   await render(<TeacherDashboard />);
-  expect(await screen.findByRole("button", { name: "Alunos: 4. Ver todos" })).toBeVisible();
+  expect(await screen.findByLabelText("Alunos: 4")).toBeVisible();
   expect(screen.getByRole("button", { name: "Notificações" })).toBeVisible();
   expect(screen.queryByText("9+")).toBeNull();
   expect(screen.queryByRole("button", { name: /Notificações, / })).toBeNull();

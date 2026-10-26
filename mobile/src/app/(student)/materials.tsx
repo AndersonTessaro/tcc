@@ -4,26 +4,23 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { studentService, type StudentMaterial } from "@/features/student/studentService";
 import { useResource } from "@/hooks/use-resource";
-import { saveDownload } from "@/lib/files/saveDownload";
 import { formatFileSize, formatFullDate } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
-import { Button } from "@/ui/Button";
+import { DownloadButton } from "@/features/files/DownloadButton";
+import { MaterialSourceTag } from "@/features/files/MaterialSourceTag";
 import { Card } from "@/ui/Card";
 import { IconButton } from "@/ui/IconButton";
 import { ScreenHeader } from "@/ui/ScreenHeader";
 import { ScreenState } from "@/ui/ScreenState";
 import { TextField } from "@/ui/TextField";
-import { useToast } from "@/ui/Toast";
 import { colors, space, type } from "@/ui/theme";
 
 const fileIcon = require("@/assets/images/figma-student/file.png");
 const SEARCH_DEBOUNCE_MS = 300;
 
 export default function Materials() {
-  const toast = useToast();
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
-  const [downloading, setDownloading] = useState<string | null>(null);
   const [shownItems, setShownItems] = useState<StudentMaterial[] | undefined>(undefined);
 
   useEffect(() => {
@@ -37,19 +34,6 @@ export default function Materials() {
   if (materials.data && materials.data !== shownItems) setShownItems(materials.data);
   const items = materials.data ?? shownItems;
   const searching = materials.data === undefined && items !== undefined && !materials.error;
-
-  const download = async (material: StudentMaterial) => {
-    if (downloading) return;
-    setDownloading(material.id);
-    try {
-      await saveDownload(await studentService.downloadMaterial(material.id), material.fileName, material.contentType);
-      toast.show(`${material.title} pronto para salvar`, "success");
-    } catch (cause) {
-      toast.show(apiErrorMessage(cause, "Não foi possível baixar o material. Tente novamente."), "error");
-    } finally {
-      setDownloading(null);
-    }
-  };
 
   return (
     <View style={styles.screen}>
@@ -78,7 +62,7 @@ export default function Materials() {
       ) : items ? (
         <FlatList
           data={items}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => `${item.source}:${item.id}`}
           contentContainerStyle={styles.list}
           keyboardShouldPersistTaps="handled"
           refreshControl={<RefreshControl refreshing={materials.refreshing} onRefresh={materials.refresh} tintColor={colors.primary} />}
@@ -88,7 +72,7 @@ export default function Materials() {
               : <ScreenState icon="document-text-outline" title="Sem materiais" message="Nenhum material enviado pelo professor." />
           }
           renderItem={({ item }) => (
-            <MaterialCard material={item} downloading={downloading === item.id} disabled={downloading !== null} onDownload={() => download(item)} />
+            <MaterialCard material={item} />
           )}
         />
       ) : (
@@ -98,9 +82,7 @@ export default function Materials() {
   );
 }
 
-type MaterialCardProps = { material: StudentMaterial; downloading: boolean; disabled: boolean; onDownload: () => Promise<void> };
-
-function MaterialCard({ material, downloading, disabled, onDownload }: MaterialCardProps) {
+function MaterialCard({ material }: { material: StudentMaterial }) {
   const size = formatFileSize(material.sizeBytes);
   return (
     <Card style={styles.card}>
@@ -108,20 +90,19 @@ function MaterialCard({ material, downloading, disabled, onDownload }: MaterialC
         <Image source={fileIcon} style={styles.fileIcon} accessible={false} />
         <View style={styles.cardText}>
           <Text style={styles.title}>{material.title}</Text>
+          <MaterialSourceTag item={material} />
           {material.description ? <Text style={styles.description}>{material.description}</Text> : null}
           <Text style={styles.fileName}>{material.fileName}{size ? ` · ${size}` : ""}</Text>
           <Text style={styles.metadata}>{material.teacherName} · {formatFullDate(material.createdAt.slice(0, 10))}</Text>
         </View>
       </View>
-      <Button
+      <DownloadButton
         label="Baixar material"
-        icon="download-outline"
-        variant="secondary"
-        compact
-        loading={downloading}
-        disabled={disabled && !downloading}
         accessibilityLabel={`Baixar ${material.title}`}
-        onPress={onDownload}
+        fileName={material.fileName}
+        contentType={material.contentType}
+        download={() => studentService.downloadMaterialItem(material)}
+        failureMessage="Não foi possível baixar o material. Tente novamente."
       />
     </Card>
   );

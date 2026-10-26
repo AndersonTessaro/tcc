@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import Svg, { Line, Path } from "react-native-svg";
 import { useResource } from "@/hooks/use-resource";
 import { addDays, formatMinutes, parseIsoDate, todayIso } from "@/lib/format";
@@ -9,7 +8,7 @@ import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { ProgressBar } from "@/ui/ProgressBar";
-import { ScreenHeader } from "@/ui/ScreenHeader";
+import { TabHeader } from "@/ui/TabHeader";
 import { ScreenState } from "@/ui/ScreenState";
 import { colors, radius, space, type } from "@/ui/theme";
 import { fetchDashboard } from "./dashboard";
@@ -94,8 +93,7 @@ export default function ProgressOverview() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <ScreenHeader title="Meu progresso" />
+      <TabHeader title="Meu progresso" />
       {resource.data ? (
         <ScrollView ref={listRef}
           contentContainerStyle={styles.content}
