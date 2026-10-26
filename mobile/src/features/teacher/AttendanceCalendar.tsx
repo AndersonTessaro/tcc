@@ -8,7 +8,7 @@ import type { AttendanceStatus } from "./teacherService";
 
 type AttendanceRecord = { date: string; status: AttendanceStatus };
 
-const WEEKDAY_INITIALS = ["S", "T", "Q", "Q", "S", "S", "D"];
+const WEEKDAY_INITIALS = ["D", "S", "T", "Q", "Q", "S", "S"];
 
 const STATUS_STYLE: Record<AttendanceStatus, { bg: string; fg: string; label: string }> = {
   PRESENT: { bg: colors.success, fg: colors.onBrand, label: "Presente" },

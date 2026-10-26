@@ -1,13 +1,12 @@
 import { useRef } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { useResource } from "@/hooks/use-resource";
 import { addDays, formatFullDate, formatMinutes, parseIsoDate, relativeDayLabel, todayIso } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
-import { ScreenHeader } from "@/ui/ScreenHeader";
+import { TabHeader } from "@/ui/TabHeader";
 import { ScreenState } from "@/ui/ScreenState";
 import { colors, MIN_TOUCH, space, type } from "@/ui/theme";
 import { PracticeRecordingDownload } from "./PracticeRecordingDownload";
@@ -45,8 +44,7 @@ export default function PracticeOverview() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <ScreenHeader title="Práticas em casa" />
+      <TabHeader title="Práticas em casa" />
       <View style={styles.body}>
         {practices.data ? (
           <FlatList ref={listRef}

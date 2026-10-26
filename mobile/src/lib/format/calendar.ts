@@ -1,7 +1,7 @@
 export function monthGrid(month: Date): (Date | null)[] {
   const year = month.getFullYear();
   const monthIndex = month.getMonth();
-  const leading = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
+  const leading = new Date(year, monthIndex, 1).getDay();
   const count = new Date(year, monthIndex + 1, 0).getDate();
   return Array.from({ length: Math.ceil((leading + count) / 7) * 7 }, (_, index) => {
     const day = index - leading + 1;

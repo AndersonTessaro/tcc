@@ -53,6 +53,31 @@ describe("apiClient", () => {
     expect(init.credentials).toBe("include");
   });
 
+  it("sends authenticated multipart PUT and preserves its body when refreshing", async () => {
+    const form = new FormData();
+    const fetchMock = jest.fn()
+      .mockReturnValueOnce(jsonResponse(401, {}))
+      .mockReturnValueOnce(jsonResponse(200, { accessToken: "a2" }))
+      .mockReturnValueOnce(jsonResponse(204, null));
+    const api = createApiClient({ ...deps, fetchFn: fetchMock as typeof fetch });
+    await expect(api.putForm("/account/avatar", form)).resolves.toBeUndefined();
+    for (const index of [0, 2]) {
+      expect(fetchMock.mock.calls[index][0]).toBe("http://x/account/avatar");
+      expect(fetchMock.mock.calls[index][1]).toEqual(expect.objectContaining({ method: "PUT", credentials: "include", body: form }));
+      expect(fetchMock.mock.calls[index][1].headers).not.toHaveProperty("Content-Type");
+    }
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe("Bearer a1");
+    expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe("Bearer a2");
+  });
+
+  it("reads image bytes with the auth token", async () => {
+    const bytes = new Uint8Array([137, 80, 78, 71]).buffer;
+    const fetchMock = jest.fn().mockResolvedValue({ status: 200, arrayBuffer: async () => bytes });
+    const api = createApiClient({ ...deps, fetchFn: fetchMock as typeof fetch });
+    expect(await api.getBytes("/account/avatar")).toBe(bytes);
+    expect(fetchMock).toHaveBeenCalledWith("http://x/account/avatar", expect.objectContaining({ headers: { Authorization: "Bearer a1" } }));
+  });
+
   it.each([null, "new-login"])("preserves a changed session during refresh (%s)", async (nextAccess) => {
     let resolveRefresh!: (response: Response) => void;
     let refreshStarted!: () => void;

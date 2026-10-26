@@ -6,6 +6,7 @@ export type AuthResponse = {
   username: string;
   authorities: string[];
   displayName?: string;
+  hasAvatar?: boolean;
 };
 
 export const authService = {
@@ -19,7 +20,7 @@ export const authService = {
     return res;
   },
   me: () =>
-    api.get<{ username: string; authorities: string[]; displayName: string }>("/auth/me"),
+    api.get<{ username: string; authorities: string[]; displayName: string; hasAvatar: boolean }>("/auth/me"),
   forgot: (email: string) => api.post("/auth/forgot-password", { email }, { auth: false }),
   reset: (token: string, newPassword: string) => api.post("/auth/reset-password", { token, newPassword }, { auth: false }),
   async logout() {

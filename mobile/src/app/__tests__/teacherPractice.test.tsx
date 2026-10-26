@@ -22,7 +22,7 @@ jest.mock("@/features/teacher/teacherService", () => ({
   teacherService: {
     student: jest.fn(), studentProfile: jest.fn(), updateStudentProfile: jest.fn(), students: jest.fn(), enrollments: jest.fn(),
     studentLessons: jest.fn(), studentMaterials: jest.fn(), studentGoals: jest.fn().mockResolvedValue([]), createGoal: jest.fn(), endGoal: jest.fn(), studentPractices: jest.fn(),
-    downloadPracticeRecording: jest.fn(), downloadMaterial: jest.fn(),
+    downloadPracticeRecording: jest.fn(), downloadMaterialItem: jest.fn(),
   },
 }));
 const service = jest.mocked(teacherService);
@@ -70,14 +70,25 @@ it("uses the new practice endpoint, shows ten records and downloads using the te
 it("downloads an attached material through the teacher endpoint", async () => {
   const bytes = new ArrayBuffer(8);
   service.studentMaterials.mockResolvedValue([{ id: "material-1", title: "Escalas", description: null, fileName: "escalas.pdf",
-    contentType: "application/pdf", sizeBytes: 8, createdAt: "2026-10-12T10:00:00" }]);
-  service.downloadMaterial.mockResolvedValue(bytes);
+    contentType: "application/pdf", sizeBytes: 8, createdAt: "2026-10-12T10:00:00", source: "MATERIAL", lessonId: null, lessonDate: null }]);
+  service.downloadMaterialItem.mockResolvedValue(bytes);
   await render(<TeacherStudentDetail />);
   await screen.findByText("João");
   await fireEvent.press(screen.getByRole("tab", { name: "Materiais" }));
   await fireEvent.press(screen.getByRole("button", { name: "Baixar material Escalas" }));
-  expect(service.downloadMaterial).toHaveBeenCalledWith("material-1");
+  expect(service.downloadMaterialItem).toHaveBeenCalledWith(expect.objectContaining({ id: "material-1", source: "MATERIAL" }));
   expect(saveDownload).toHaveBeenCalledWith(bytes, "escalas.pdf", "application/pdf");
+});
+
+it("labels lesson materials and downloads the lesson source", async () => {
+  service.studentMaterials.mockResolvedValue([{ id: "attachment-1", title: "Partitura", description: null, fileName: "partitura.pdf", contentType: "application/pdf", sizeBytes: 8, createdAt: "2026-10-12T10:00:00", source: "LESSON", lessonId: "lesson-1", lessonDate: "2026-10-12" }]);
+  service.downloadMaterialItem.mockResolvedValue(new ArrayBuffer(8));
+  await render(<TeacherStudentDetail />);
+  await screen.findByText("João");
+  await fireEvent.press(screen.getByRole("tab", { name: "Materiais" }));
+  expect(screen.getByText("Aula 12/10")).toBeVisible();
+  await fireEvent.press(screen.getByRole("button", { name: "Baixar material Partitura" }));
+  expect(service.downloadMaterialItem).toHaveBeenCalledWith(expect.objectContaining({ source: "LESSON", lessonId: "lesson-1", id: "attachment-1" }));
 });
 
 it("shows raw activity notes and uses the empty-note subtitle without parsing feedback", async () => {

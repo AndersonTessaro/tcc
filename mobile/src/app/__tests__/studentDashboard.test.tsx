@@ -31,8 +31,19 @@ it("shows XP progress from server bounds and opens the practice register from th
   await fireEvent.press(screen.getByRole("button", { name: "Registrar prática" }));
   expect(mockPush).toHaveBeenCalledWith("/(student)/practice/register");
 
-  await fireEvent.press(screen.getByRole("button", { name: "Prática semanal: 1h 35min. Ver minhas metas" }));
-  expect(mockPush).toHaveBeenCalledWith("/(student)/goals");
+  expect(screen.queryByText("Ver minhas metas")).toBeNull();
+  expect(screen.queryByRole("button", { name: /Prática semanal/ })).toBeNull();
+});
+
+it("renders a next lesson from a fixed schedule without opening details", async () => {
+  const date = addDays(todayIso(), 1);
+  service.dashboard.mockResolvedValue({ ...base, nextLesson: { id: null, fromSchedule: true, date, startTime: "14:00:00", instrument: "Piano" } });
+  await render(<Dashboard />);
+  expect(await screen.findByText(formatLessonWhen(date, "14:00"))).toBeVisible();
+  expect(screen.getByText("Piano")).toBeVisible();
+  expect(screen.queryByText("Nenhuma aula agendada")).toBeNull();
+  expect(screen.queryByRole("button", { name: /Próxima aula/ })).toBeNull();
+  expect(mockPush).not.toHaveBeenCalled();
 });
 
 it("opens the next lesson when the dashboard has one", async () => {

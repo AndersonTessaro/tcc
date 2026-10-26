@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { teacherService, type TeacherLesson } from "@/features/teacher/teacherService";
 import { AgendaLessonCard } from "@/features/teacher/AgendaLessonCard";
 import { MonthCalendar } from "@/features/teacher/MonthCalendar";
@@ -12,7 +11,7 @@ import { useResource } from "@/hooks/use-resource";
 import { formatFullDate, relativeDayLabel, todayIso } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { IconButton } from "@/ui/IconButton";
-import { ScreenHeader } from "@/ui/ScreenHeader";
+import { TabHeader } from "@/ui/TabHeader";
 import { ScreenState } from "@/ui/ScreenState";
 import { colors, space, type } from "@/ui/theme";
 
@@ -62,8 +61,7 @@ export default function Schedule() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <ScreenHeader title="Agenda" action={<IconButton icon="add" label="Nova aula" filled onPress={newLesson} />} />
+      <TabHeader title="Agenda" right={<IconButton icon="add" label="Nova aula" color={colors.onBrand} onPress={newLesson} />} />
       <FlatList
         ref={listRef}
         data={lessons.data ?? []}

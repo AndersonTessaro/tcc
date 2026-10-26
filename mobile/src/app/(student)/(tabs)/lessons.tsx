@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { RefreshControl, SectionList, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { byDateTime, lessonBadge } from "@/features/student/lessonStatus";
 import { studentService, type StudentLesson } from "@/features/student/studentService";
@@ -9,7 +8,7 @@ import { useResource } from "@/hooks/use-resource";
 import { formatLessonWhen } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Card } from "@/ui/Card";
-import { ScreenHeader } from "@/ui/ScreenHeader";
+import { TabHeader } from "@/ui/TabHeader";
 import { ScreenState } from "@/ui/ScreenState";
 import { colors, space, type } from "@/ui/theme";
 import { useTabScrollToTop } from "@/hooks/use-tab-scroll-to-top";
@@ -32,8 +31,7 @@ export default function Lessons() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <ScreenHeader title="Minhas aulas" />
+      <TabHeader title="Minhas aulas" />
       {lessons.data ? (
         <SectionList ref={listRef}
           sections={lessons.data}

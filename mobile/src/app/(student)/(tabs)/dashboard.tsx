@@ -1,9 +1,6 @@
 import { useRef } from "react";
 import { Image, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { LinearGradient } from "expo-linear-gradient";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/features/auth/useAuth";
 import { fetchDashboard, firstName, type StudentDashboard } from "@/features/student/dashboard";
@@ -14,10 +11,11 @@ import { formatLessonWhen, formatMinutes } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
+import { TabHeader } from "@/ui/TabHeader";
 import { ProgressBar } from "@/ui/ProgressBar";
 import { ScreenState } from "@/ui/ScreenState";
 import { Skeleton } from "@/ui/Skeleton";
-import { brandGradient, colors, radius, space, type } from "@/ui/theme";
+import { colors, radius, space, type } from "@/ui/theme";
 import { useTabScrollToTop } from "@/hooks/use-tab-scroll-to-top";
 
 const fireIcon = require("@/assets/images/figma-student/dashboard-fire.png");
@@ -29,7 +27,6 @@ export default function Dashboard() {
   useTabScrollToTop(listRef);
   const router = useRouter();
   const { user } = useAuth();
-  const insets = useSafeAreaInsets();
   const dashboard = useResource(fetchDashboard);
 
   const content = dashboard.data ? (
@@ -42,26 +39,21 @@ export default function Dashboard() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="light" />
+      <TabHeader title={`Olá, ${firstName(user?.displayName || user?.username)}!`} subtitle="Continue praticando e evoluindo!">
+        <Image source={waveIcon} style={styles.waveIcon} accessible={false} />
+      </TabHeader>
       <ScrollView ref={listRef}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={dashboard.refreshing} onRefresh={dashboard.refresh} tintColor={colors.primary} />}
       >
-        <LinearGradient colors={brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.hero, { paddingTop: insets.top + space.xxl }]}>
-          <View style={styles.helloRow}>
-            <Text accessibilityRole="header" style={styles.greeting}>Olá, {firstName(user?.displayName || user?.username)}!</Text>
-            <Image source={waveIcon} style={styles.waveIcon} accessible={false} />
-          </View>
-          <Text style={styles.greetingSubtitle}>Continue praticando e evoluindo!</Text>
-        </LinearGradient>
         <View style={styles.cards}>{content}</View>
       </ScrollView>
     </View>
   );
 }
 
-type Href = "/(student)/practice/register" | "/(student)/goals" | `/(student)/lesson/${string}`;
+type Href = "/(student)/practice/register" | `/(student)/lesson/${string}`;
 
 function DashboardCards({ data, onNavigate }: { data: StudentDashboard; onNavigate: (href: Href) => void }) {
   const progress = levelProgress(data.xp, data.level, data);
@@ -89,24 +81,21 @@ function DashboardCards({ data, onNavigate }: { data: StudentDashboard; onNaviga
         </Card>
         <Card variant="plain"
           style={styles.statCard}
-          onPress={() => onNavigate("/(student)/goals")}
-          accessibilityLabel={`Prática semanal: ${weekly}. Ver minhas metas`}
         >
           <Ionicons name="musical-notes-outline" size={28} color={colors.primary} />
           <View style={styles.flex}>
             <Text style={styles.cardTitle}>Prática semanal</Text>
             <Text style={styles.statValue}>{weekly}</Text>
-            <Text style={styles.link}>Ver minhas metas</Text>
           </View>
         </Card>
       </View>
 
-      {nextLesson?.id && nextLessonWhen ? (
+      {nextLesson && nextLessonWhen ? (
         <Card variant="plain"
           style={styles.lessonCard}
-          onPress={() => onNavigate(`/(student)/lesson/${nextLesson.id}`)}
+          onPress={nextLesson.id ? () => onNavigate(`/(student)/lesson/${nextLesson.id}`) : undefined}
           accessibilityLabel={`Próxima aula: ${nextLesson.instrument ?? ""}, ${nextLessonWhen}`}
-          accessibilityHint="Abre os detalhes da aula"
+          accessibilityHint={nextLesson.id ? "Abre os detalhes da aula" : undefined}
         >
           <Image source={agendaIcon} style={styles.cardIcon} accessible={false} />
           <View style={styles.flex}>
@@ -114,7 +103,7 @@ function DashboardCards({ data, onNavigate }: { data: StudentDashboard; onNaviga
             <Text style={styles.lessonWhen}>{nextLessonWhen}</Text>
             {nextLesson.instrument ? <Text style={styles.caption}>{nextLesson.instrument}</Text> : null}
           </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.borderStrong} />
+          {nextLesson.id ? <Ionicons name="chevron-forward" size={20} color={colors.borderStrong} /> : null}
         </Card>
       ) : (
         <Card variant="plain" style={styles.lessonCard}>
@@ -146,14 +135,10 @@ function DashboardSkeleton() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.screen },
-  hero: { paddingHorizontal: space.screenGutter, paddingBottom: 64 },
-  helloRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  greeting: { color: colors.onBrand, fontSize: 26, fontWeight: "600", flexShrink: 1 },
   waveIcon: { width: 26, height: 26 },
-  greetingSubtitle: { color: colors.onBrandMuted, fontSize: 15, marginTop: space.xs },
 
   content: { flexGrow: 1, paddingBottom: space.xxl },
-  cards: { gap: space.xl, paddingHorizontal: space.screenGutter, marginTop: -44 },
+  cards: { gap: space.xl, paddingHorizontal: space.screenGutter },
   skeleton: { gap: space.lg },
   xpCard: { gap: space.lg, padding: space.xxxl },
   eyebrow: { ...type.body, textAlign: "center" },
@@ -166,7 +151,6 @@ const styles = StyleSheet.create({
   cardIcon: { width: 28, height: 28 },
   cardTitle: { ...type.label, fontWeight: "700" },
   statValue: { ...type.title },
-  link: { color: colors.link, fontSize: 13, fontWeight: "600", marginTop: space.xs },
   lessonCard: { minHeight: 116, flexDirection: "row", alignItems: "center", gap: space.lg, padding: space.xxl },
   lessonWhen: { ...type.body, marginTop: space.sm },
   flex: { flex: 1, gap: 2 },

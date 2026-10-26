@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useResource } from "@/hooks/use-resource";
 import { addDays, normalizeSearch, todayIso } from "@/lib/format";
@@ -10,7 +9,7 @@ import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { IconButton } from "@/ui/IconButton";
 import { ListRow } from "@/ui/ListRow";
-import { ScreenHeader } from "@/ui/ScreenHeader";
+import { TabHeader } from "@/ui/TabHeader";
 import { ScreenState } from "@/ui/ScreenState";
 import { TextField } from "@/ui/TextField";
 import { colors, radius, space, type } from "@/ui/theme";
@@ -49,8 +48,7 @@ export default function TeacherReports() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <ScreenHeader title="Relatórios" />
+      <TabHeader title="Relatórios" />
       <ScrollView ref={scrollRef} contentContainerStyle={styles.categories}>
         {REPORT_CATEGORIES.map((category) => (
           <Pressable
@@ -78,7 +76,9 @@ export default function TeacherReports() {
 function IndividualReports({ onBack }: { onBack: () => void }) {
   const router = useRouter();
   const listRef = useRef<FlatList<StudentSummary>>(null);
+  const scrollRef = useRef<ScrollView>(null);
   useTabScrollToTop(listRef);
+  useTabScrollToTop(scrollRef);
   const [selected, setSelected] = useState<StudentSummary | null>(null);
   const [query, setQuery] = useState("");
   const students = useResource(() => teacherService.students());
@@ -95,9 +95,9 @@ function IndividualReports({ onBack }: { onBack: () => void }) {
     const data = report.data;
     return (
       <View style={styles.screen}>
-        <StatusBar style="dark" />
-        <ScreenHeader title="Relatórios" back onBack={() => setSelected(null)} />
+        <TabHeader title="Relatórios" right={<IconButton icon="arrow-back" label="Voltar" color={colors.onBrand} onPress={() => setSelected(null)} />} />
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.content}
           refreshControl={<RefreshControl refreshing={report.refreshing} onRefresh={report.refresh} tintColor={colors.primary} colors={[colors.primary]} />}
         >
@@ -148,8 +148,7 @@ function IndividualReports({ onBack }: { onBack: () => void }) {
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <ScreenHeader title="Relatórios" back onBack={onBack} />
+      <TabHeader title="Relatórios" right={<IconButton icon="arrow-back" label="Voltar" color={colors.onBrand} onPress={onBack} />} />
       <View style={styles.search}>
         <TextField
           accessibilityLabel="Buscar aluno nos relatórios"

@@ -7,7 +7,7 @@ import { Card } from "@/ui/Card";
 import { IconButton } from "@/ui/IconButton";
 import { colors, MIN_TOUCH, radius, space, type } from "@/ui/theme";
 
-const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 type MonthCalendarProps = { value: string; today: string; onChange: (date: string) => void };
 

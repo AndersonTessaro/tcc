@@ -24,7 +24,7 @@ const service = jest.mocked(teacherService);
 const goal: Goal = {
   id: "g1", title: "Praticar escalas", description: null, type: "PRACTICE_DAYS", period: "WEEKLY", target: 5,
   currentProgress: 3, status: "ACTIVE", legacy: false, createdByTeacher: "Carlos", canEnd: true,
-  periodStart: "2026-10-19", periodEnd: "2026-10-25", achieved: false, streak: 1,
+  periodStart: "2026-10-19", periodEnd: "2026-10-25", achieved: false, streak: 1, completed: false,
 };
 
 beforeEach(() => {
@@ -42,6 +42,17 @@ beforeEach(() => {
   service.studentGoals.mockResolvedValue([goal]);
   service.createGoal.mockResolvedValue(goal);
   service.endGoal.mockResolvedValue({ ...goal, status: "ENDED", canEnd: false });
+});
+
+it("distinguishes completed and manually ended goals in the teacher summary", async () => {
+  service.studentGoals.mockResolvedValue([
+    { ...goal, status: "ENDED", completed: true, canEnd: false },
+    { ...goal, id: "manual", title: "Meta manual", status: "ENDED", completed: false, canEnd: false },
+  ]);
+  await render(<TeacherStudentDetail />);
+  expect(await screen.findByText("Cumprida")).toBeVisible();
+  expect(screen.getByText("Encerrada")).toBeVisible();
+  expect(screen.queryByRole("button", { name: /Encerrar meta/ })).toBeNull();
 });
 
 it("lists real goals in summary and creates a goal for the selected student", async () => {

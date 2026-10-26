@@ -36,7 +36,7 @@ export type StudentDashboard = {
   nextLevelXp: number;
   streakDays: number;
   weeklyPracticeMin: number;
-  nextLesson: Partial<StudentLesson> | null;
+  nextLesson: (Partial<Omit<StudentLesson, "id">> & { id?: string | null; fromSchedule?: boolean }) | null;
 };
 
 export type StudentProgress = {
@@ -77,7 +77,11 @@ export type StudentMaterial = {
   contentType: string | null;
   sizeBytes: number | null;
   createdAt: string;
-};
+} & MaterialSource;
+
+export type MaterialSource =
+  | { source: "MATERIAL"; lessonId: null; lessonDate: null }
+  | { source: "LESSON"; lessonId: string; lessonDate: string };
 
 export const studentService = {
   ...goalService("/me/goals"),
@@ -90,6 +94,10 @@ export const studentService = {
   materials: (search?: string) =>
     api.get<StudentMaterial[]>(`/me/materials${search ? `?search=${encodeURIComponent(search)}` : ""}`),
   downloadMaterial: (id: string) => api.getBytes(`/me/materials/${id}/download`),
+  downloadMaterialItem: (item: { id: string } & MaterialSource) => api.getBytes(
+    item.source === "LESSON" ? `/me/lessons/${item.lessonId}/attachments/${item.id}` : `/me/materials/${item.id}/download`,
+    { timeoutMs: MEDIA_TIMEOUT_MS },
+  ),
   progress: () => api.get<StudentProgress>("/me/progress"),
   practices: () => api.get<StudentPractice[]>("/me/practices"),
   attendance: () => api.get<StudentAttendance[]>("/me/attendance"),

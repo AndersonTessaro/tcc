@@ -1,18 +1,21 @@
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useRef } from "react";
+import { Image, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/features/auth/useAuth";
+import { accountService } from "@/features/account/accountService";
+import { useResource } from "@/hooks/use-resource";
+import { useTabScrollToTop } from "@/hooks/use-tab-scroll-to-top";
+import { Avatar } from "@/ui/Avatar";
 import { authService } from "@/features/auth/authService";
 import { fullName } from "@/features/student/dashboard";
 import { alert, confirm } from "@/lib/confirm";
 import { Card } from "@/ui/Card";
 import { ListRow } from "@/ui/ListRow";
-import { ScreenHeader } from "@/ui/ScreenHeader";
+import { TabHeader } from "@/ui/TabHeader";
 import { colors, space, type } from "@/ui/theme";
 
 const icons = {
-  user: require("@/assets/images/figma-student/menu-user.png"),
   help: require("@/assets/images/figma-student/menu-help.png"),
   exit: require("@/assets/images/figma-student/menu-exit.png"),
 };
@@ -24,7 +27,10 @@ function MenuIcon({ source }: { source: number }) {
 export default function More() {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const name = user?.displayName || fullName(user?.username);
+  const account = useResource(accountService.get);
+  const scrollRef = useRef<ScrollView>(null);
+  useTabScrollToTop(scrollRef);
+  const name = account.data?.displayName || user?.displayName || fullName(user?.username);
 
   const signOut = async () => {
     const confirmed = await confirm({ title: "Sair da conta?", message: "Você precisará entrar novamente.", confirmLabel: "Sair", destructive: true });
@@ -35,16 +41,18 @@ export default function More() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <ScreenHeader title="Mais" />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Card>
-          <View accessible accessibilityLabel={`Perfil: ${name}${user?.username ? `, usuário ${user.username}` : ""}`} style={styles.profile}>
-            <Image source={icons.user} style={styles.avatar} accessible={false} />
+      <TabHeader title="Mais" />
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={account.refreshing} onRefresh={account.refresh} tintColor={colors.primary} />}>
+        <Card onPress={() => router.push("/(student)/profile")} accessibilityLabel="Ver perfil">
+          <View style={styles.profile}>
+            <Avatar size={56} hasAvatar={account.data?.hasAvatar} />
             <View style={styles.profileText}>
               <Text numberOfLines={2} style={styles.name}>{name}</Text>
               {user?.username ? <Text numberOfLines={1} style={styles.username}>{user.username}</Text> : null}
+              <Text style={styles.profileLink}>Ver perfil</Text>
             </View>
+            <Ionicons name="chevron-forward" size={22} color={colors.muted} accessible={false} />
           </View>
         </Card>
 
@@ -64,7 +72,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.screen },
   content: { paddingHorizontal: space.screenGutter, paddingBottom: space.xxl, gap: space.screenGutter },
   profile: { flexDirection: "row", alignItems: "center", gap: space.lg },
-  avatar: { width: 56, height: 56 },
+  profileLink: { ...type.label, color: colors.link },
   profileText: { flex: 1, gap: 2 },
   name: { ...type.heading },
   username: { ...type.caption },
