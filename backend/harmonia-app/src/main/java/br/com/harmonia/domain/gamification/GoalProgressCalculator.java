@@ -29,7 +29,7 @@ public final class GoalProgressCalculator {
 
     public Progress calculate(Metric metric, GoalPeriod period, int target, LocalDate createdOn, LocalDate today, Facts facts) {
         LocalDate start = period.start(today);
-        int current = amount(metric, start, period.end(today), facts);
+        int current = amount(metric, start, today, facts);
         boolean achieved = current >= target;
         int streak = achieved ? 1 : 0;
         LocalDate firstPeriod = period.start(createdOn);
