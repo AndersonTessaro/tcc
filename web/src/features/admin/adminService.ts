@@ -37,6 +37,7 @@ export const adminService = {
     api.put<void>(`/admin/security/users/${userId}/status`, { active }),
   resetPassword: (userId: string, newPassword: string) =>
     api.put<void>(`/admin/security/users/${userId}/password`, { newPassword }),
+  deleteUser: (userId: string) => api.delete<void>(`/admin/users/${userId}`),
   setPermissions: (roleId: number, permissionIds: number[]) =>
     api.put<RoleDto>(`/admin/security/roles/${roleId}/permissions`, { permissionIds }),
   // registrations (Plan 2)
