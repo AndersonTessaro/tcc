@@ -12,6 +12,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -25,15 +26,17 @@ public class PracticeUseCase {
     private final CurrentUserService current;
     private final ApplicationEventPublisher events;
     private final GoalProgressService goalProgress;
+    private final Clock clock;
     private final GamificationService gamification = new GamificationService();
 
     public PracticeUseCase(PracticeRepository practices, ProgressRepository progresses, CurrentUserService current,
-                           ApplicationEventPublisher events, GoalProgressService goalProgress) {
+                           ApplicationEventPublisher events, GoalProgressService goalProgress, Clock clock) {
         this.practices = practices;
         this.progresses = progresses;
         this.current = current;
         this.events = events;
         this.goalProgress = goalProgress;
+        this.clock = clock;
     }
 
     public record PracticeRegistration(Practice practice, Progress progress) {}
@@ -71,7 +74,7 @@ public class PracticeUseCase {
     }
 
     public int weeklyPracticeMin(UUID studentId) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         LocalDate weekStart = today.with(DayOfWeek.MONDAY);
         return practices.findByStudentIdAndDateBetween(studentId, weekStart, today)
             .stream().mapToInt(Practice::getDurationMin).sum();

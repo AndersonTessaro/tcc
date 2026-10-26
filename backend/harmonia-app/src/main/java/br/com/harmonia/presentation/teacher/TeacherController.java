@@ -71,13 +71,14 @@ public class TeacherController {
     @PreAuthorize("hasAuthority('student.read')")
     public Map<String, Object> dashboard(@RequestParam(required = false) String className) {
         var summary = teacher.dashboard(className);
+        var statuses = lesson.attendanceByLesson(summary.todayLessons());
         return Map.of(
             "totalStudents", summary.totalStudents(),
             "attendancePercent", summary.attendancePercent(),
             "weeklyPracticeMin", summary.weeklyPracticeMin(),
             "classes", summary.classes(),
             "selectedClass", summary.selectedClass(),
-            "todayLessons", summary.todayLessons().stream().map(LessonResponse::of).toList(),
+            "todayLessons", summary.todayLessons().stream().map(l -> LessonResponse.of(l, statuses.get(l.getId()))).toList(),
             "upcomingLessons", summary.upcomingLessons().stream().map(LessonResponse::of).toList());
     }
 

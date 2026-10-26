@@ -95,7 +95,8 @@ class NotificationsIT extends MoreMenuITSupport {
         String later = lesson(teacherToken, enrollment, today, "10:00", "11:00");
         String first = lesson(teacherToken, enrollment, today, "08:00", "09:00");
         jdbc.update("UPDATE lesson SET status = 'SCHEDULED' WHERE id IN (?, ?)", UUID.fromString(later), UUID.fromString(first));
-        lesson(teacherToken, enrollment, today, "12:00", "13:00");
+        String doneToday = lesson(teacherToken, enrollment, today, "12:00", "13:00");
+        jdbc.update("UPDATE lesson SET status = 'DONE' WHERE id = ?", UUID.fromString(doneToday));
         String canceledToday = lesson(teacherToken, enrollment, today, "14:00", "15:00");
         jdbc.update("UPDATE lesson SET status = 'CANCELED' WHERE id = ?", UUID.fromString(canceledToday));
         String yesterday = lesson(teacherToken, enrollment, today.minusDays(1), "09:00", "10:00");

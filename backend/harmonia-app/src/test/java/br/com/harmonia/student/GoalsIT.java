@@ -10,6 +10,7 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -19,6 +20,42 @@ class GoalsIT extends MoreMenuITSupport {
     private String studentToken;
     private String studentId;
     private String enrollment;
+
+    @Test
+    void practiceCrossingTargetEndsGoalAndRetainsCompletionProgress() throws Exception {
+        String id = postId(studentToken, "/me/goals", """
+            {"title":"Practice","type":"PRACTICE_TIME","period":"WEEKLY","target":30}
+            """);
+        practice(20);
+        practice(15);
+
+        mvc.perform(get("/me/goals?status=ACTIVE").header("Authorization", "Bearer " + studentToken))
+            .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(0)));
+        mvc.perform(get("/me/goals?status=ENDED").header("Authorization", "Bearer " + studentToken))
+            .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(id))
+            .andExpect(jsonPath("$[0].status").value("ENDED"))
+            .andExpect(jsonPath("$[0].completed").value(true))
+            .andExpect(jsonPath("$[0].currentProgress", greaterThanOrEqualTo(30)));
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject(
+            "SELECT ended_at FROM goal WHERE id = ?", java.time.LocalDateTime.class, UUID.fromString(id))).isNotNull();
+        mvc.perform(get("/teacher/students/" + studentId).header("Authorization", "Bearer " + teacherToken))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.goals.completed").value(1));
+    }
+
+    @Test
+    void listingEndedGoalsAlsoCompletesAlreadyAchievedActiveGoals() throws Exception {
+        String id = postId(studentToken, "/me/goals", """
+            {"title":"Practice","type":"PRACTICE_TIME","period":"DAILY","target":30}
+            """);
+        jdbc.update("INSERT INTO practice (student_id, date, duration_min) VALUES (?, ?, 40)", UUID.fromString(studentId), today);
+
+        mvc.perform(get("/me/goals?status=ENDED").header("Authorization", "Bearer " + studentToken))
+            .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(id))
+            .andExpect(jsonPath("$[0].status").value("ENDED"))
+            .andExpect(jsonPath("$[0].completed").value(true)).andExpect(jsonPath("$[0].currentProgress").value(40));
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject(
+            "SELECT status FROM goal WHERE id = ?", String.class, UUID.fromString(id))).isEqualTo("ENDED");
+    }
 
     @BeforeEach
     void setUp() throws Exception {
@@ -76,6 +113,8 @@ class GoalsIT extends MoreMenuITSupport {
 
         mvc.perform(get("/me/goals").header("Authorization", "Bearer " + studentToken))
             .andExpect(jsonPath("$[0].currentProgress", is(1)))
+            .andExpect(jsonPath("$[0].status", is("ENDED")))
+            .andExpect(jsonPath("$[0].completed", is(true)))
             .andExpect(jsonPath("$[0].achieved", is(true)))
             .andExpect(jsonPath("$[0].streak", is(1)));
         mvc.perform(get("/notifications").header("Authorization", "Bearer " + teacherToken))

@@ -87,11 +87,13 @@ class StudentFlowIT {
 
         String goalBody = mvc.perform(post("/me/goals").header("Authorization", "Bearer " + t)
                 .contentType("application/json")
-                .content("{\"title\":\"Study\",\"type\":\"PRACTICE_DAYS\",\"period\":\"DAILY\",\"target\":1}"))
+                .content("{\"title\":\"Study\",\"type\":\"PRACTICE_DAYS\",\"period\":\"WEEKLY\",\"target\":2}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.title", is("Study")))
             .andExpect(jsonPath("$.type", is("PRACTICE_DAYS")))
-            .andExpect(jsonPath("$.target", is(1)))
+            .andExpect(jsonPath("$.period", is("WEEKLY")))
+            .andExpect(jsonPath("$.target", is(2)))
+            .andExpect(jsonPath("$.currentProgress", is(1)))
             .andExpect(jsonPath("$.status", is("ACTIVE")))
             .andExpect(jsonPath("$.student").doesNotHaveJsonPath())
             .andReturn().getResponse().getContentAsString();
@@ -99,10 +101,12 @@ class StudentFlowIT {
         mvc.perform(get("/me/goals?status=ACTIVE").header("Authorization", "Bearer " + t))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].id", is(goal)))
+            .andExpect(jsonPath("$[0].currentProgress", is(1)))
             .andExpect(jsonPath("$[0].student").doesNotHaveJsonPath());
         mvc.perform(patch("/me/goals/" + goal + "/end").header("Authorization", "Bearer " + t))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status", is("ENDED")));
+            .andExpect(jsonPath("$.status", is("ENDED")))
+            .andExpect(jsonPath("$.completed", is(false)));
 
         // upcoming lessons (empty, no lesson) -> 200
         mvc.perform(get("/me/lessons?status=upcoming").header("Authorization", "Bearer " + t))

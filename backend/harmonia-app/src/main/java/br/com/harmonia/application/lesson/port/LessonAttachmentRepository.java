@@ -8,6 +8,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface LessonAttachmentRepository extends JpaRepository<LessonAttachment, UUID> {
+    List<LessonAttachment> findByLessonEnrollmentStudentId(UUID studentId);
+    List<LessonAttachment> findByLessonEnrollmentStudentIdAndLessonEnrollmentTeacherId(UUID studentId, UUID teacherId);
     List<LessonAttachment> findByLessonId(UUID lessonId);
     long countByLessonId(UUID lessonId);
     Optional<LessonAttachment> findByIdAndLessonId(UUID id, UUID lessonId);
