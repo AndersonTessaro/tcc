@@ -29,6 +29,18 @@ class GoalProgressCalculatorTest {
     }
 
     @Test
+    void endedGoal_ignoresPracticeAfterTheReferenceDay() {
+        var monday = LocalDate.of(2026, 10, 19);
+        var facts = practices(new PracticeFact(monday, 10), new PracticeFact(WEDNESDAY, 90));
+
+        var progress = calculator.calculate(Metric.PRACTICE_TIME, GoalPeriod.WEEKLY, 60, monday, monday, facts);
+
+        assertThat(progress.current()).isEqualTo(10);
+        assertThat(progress.achieved()).isFalse();
+        assertThat(progress.periodEnd()).isEqualTo(LocalDate.of(2026, 10, 25));
+    }
+
+    @Test
     void practiceTime_sumsOnlyTheCurrentWeek() {
         var facts = practices(new PracticeFact(LocalDate.of(2026, 10, 18), 90),
             new PracticeFact(LocalDate.of(2026, 10, 19), 30), new PracticeFact(WEDNESDAY, 45));
