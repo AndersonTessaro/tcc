@@ -45,7 +45,7 @@ public class GoalUseCase {
 
     public record GoalView(Goal goal, Progress progress, boolean canEnd) {}
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<GoalView> listMine(GoalStatus status) {
         return views(current.currentStudent().getId(), status, this::studentCanEnd);
     }
@@ -64,7 +64,7 @@ public class GoalUseCase {
         return view(end(goal), this::studentCanEnd);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<GoalView> listForStudent(UUID studentId, GoalStatus status) {
         links.assertLinked(studentId);
         return views(studentId, status, this::teacherCanEnd);
@@ -128,11 +128,11 @@ public class GoalUseCase {
     }
 
     private List<GoalView> views(UUID studentId, GoalStatus status, Predicate<Goal> canEnd) {
-        List<Goal> found = status == null ? goals.findByStudentId(studentId)
-            : status == GoalStatus.ACTIVE ? goals.findByStudentIdAndStatus(studentId, GoalStatus.ACTIVE)
-            : goals.findByStudentIdAndStatusIn(studentId, List.of(GoalStatus.ENDED, GoalStatus.COMPLETED));
+        List<Goal> found = goals.findByStudentId(studentId);
         Map<UUID, Progress> computed = progress.progressOf(studentId, found);
         return found.stream()
+            .filter(goal -> status == null || (status == GoalStatus.ACTIVE
+                ? goal.getStatus() == GoalStatus.ACTIVE : goal.getStatus() != GoalStatus.ACTIVE))
             .sorted(Comparator.comparing(Goal::getCreatedAt).reversed())
             .map(goal -> new GoalView(goal, computed.get(goal.getId()), canEnd.test(goal)))
             .toList();

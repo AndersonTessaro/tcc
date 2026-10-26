@@ -3,6 +3,7 @@ package br.com.harmonia.presentation.student;
 import br.com.harmonia.application.lesson.StudentLessonUseCase;
 import br.com.harmonia.application.lesson.LessonAttachmentUseCase;
 import br.com.harmonia.application.student.StudentNoteUseCase;
+import br.com.harmonia.application.student.StudentDashboardUseCase;
 import br.com.harmonia.presentation.response.SharedNoteResponse;
 import br.com.harmonia.application.gamification.GoalUseCase;
 import br.com.harmonia.application.gamification.PracticeUseCase;
@@ -15,8 +16,6 @@ import br.com.harmonia.infrastructure.persistence.gamification.GoalStatus;
 import br.com.harmonia.infrastructure.persistence.gamification.GoalType;
 import br.com.harmonia.infrastructure.persistence.gamification.Progress;
 import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
-import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
-import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
 import br.com.harmonia.presentation.response.LessonDetailResponse;
 import br.com.harmonia.presentation.response.GoalResponse;
 import br.com.harmonia.presentation.response.LessonResponse;
@@ -36,8 +35,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,12 +51,13 @@ public class StudentController {
     private final LessonAttachmentUseCase attachments;
     private final StudentMaterialUseCase material;
     private final StudentNoteUseCase notes;
+    private final StudentDashboardUseCase dashboard;
     private final GamificationService gamification = new GamificationService();
 
     public StudentController(ProgressUseCase progress, PracticeUseCase practice, GoalUseCase goal,
                             StudentLessonUseCase lesson, StudentMaterialUseCase material,
                             PracticeRecordingUseCase recording, StudentNoteUseCase notes,
-                            LessonAttachmentUseCase attachments) {
+                            LessonAttachmentUseCase attachments, StudentDashboardUseCase dashboard) {
         this.progress = progress;
         this.practice = practice;
         this.goal = goal;
@@ -68,6 +66,7 @@ public class StudentController {
         this.recording = recording;
         this.notes = notes;
         this.attachments = attachments;
+        this.dashboard = dashboard;
     }
 
     public record RegisterPractice(@Min(1) int durationMin, LocalDate date, @Size(max = 500) String notes,
@@ -89,19 +88,17 @@ public class StudentController {
     @GetMapping("/dashboard")
     @PreAuthorize("hasAuthority('progress.read')")
     public Map<String, Object> dashboard() {
-        Progress p = progress.myProgress();
-        var nextLesson = lesson.myLessons(true).stream()
-            .filter(item -> item.getStatus() == LessonStatus.SCHEDULED)
-            .filter(item -> item.getDate().isAfter(LocalDate.now()) || item.getStartTime().isAfter(LocalTime.now()))
-            .min(Comparator.comparing(Lesson::getDate).thenComparing(Lesson::getStartTime));
+        var summary = dashboard.get();
+        Progress p = summary.progress();
         Map<String, Object> body = new HashMap<>();
         body.put("xp", p.getXpTotal());
         body.put("level", p.getLevel());
         body.put("levelStartXp", gamification.xpToReachLevel(p.getLevel()));
         body.put("nextLevelXp", gamification.xpToReachLevel(p.getLevel() + 1));
         body.put("streakDays", p.getStreakDays());
-        body.put("weeklyPracticeMin", practice.weeklyPracticeMin(p.getStudent().getId()));
-        body.put("nextLesson", nextLesson.map(LessonResponse::of).orElse(null));
+        body.put("weeklyPracticeMin", summary.weeklyPracticeMin());
+        var next = summary.nextLesson();
+        body.put("nextLesson", next == null ? null : LessonResponse.of(next.lesson(), null, next.fromSchedule()));
         return body;
     }
 

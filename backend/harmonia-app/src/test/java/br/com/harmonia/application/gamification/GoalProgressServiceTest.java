@@ -24,6 +24,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 class GoalProgressServiceTest {
@@ -65,6 +66,10 @@ class GoalProgressServiceTest {
         service.notifyReached(studentId, facts -> facts.withoutPractice(today, 15));
 
         verify(events).publishEvent(new GoalCompletedEvent(studentId, goal.getId(), "Praticar"));
+        assertThat(goal.getStatus()).isEqualTo(GoalStatus.ENDED);
+        assertThat(goal.getEndedAt()).isNotNull();
+        assertThat(goal.isCompleted()).isTrue();
+        verify(goals).save(goal);
     }
 
     @Test
@@ -76,5 +81,38 @@ class GoalProgressServiceTest {
         service.notifyReached(studentId, facts -> facts.withoutPractice(today, 15));
 
         verifyNoInteractions(events);
+    }
+
+    @Test
+    void readingAnAchievedActiveGoalPersistsItsCompletion() {
+        Goal goal = dailyGoal(30);
+        practiced(35);
+
+        var progress = service.progressOf(studentId, List.of(goal)).get(goal.getId());
+
+        assertThat(progress.current()).isEqualTo(35);
+        assertThat(goal.getStatus()).isEqualTo(GoalStatus.ENDED);
+        assertThat(goal.isCompleted()).isTrue();
+        verify(goals).save(goal);
+        verify(events).publishEvent(new GoalCompletedEvent(studentId, goal.getId(), "Praticar"));
+    }
+
+    @Test
+    void endedGoalKeepsTheProgressFromItsEndingPeriod() {
+        Goal goal = dailyGoal(30);
+        goal.setStatus(GoalStatus.ENDED);
+        goal.setCreatedAt(today.minusDays(2).atStartOfDay());
+        goal.setEndedAt(today.minusDays(1).atTime(12, 0));
+        Practice yesterday = new Practice();
+        yesterday.setDate(today.minusDays(1));
+        yesterday.setDurationMin(40);
+        when(practices.findByStudentIdAndDateBetween(eq(studentId), any(), eq(today))).thenReturn(List.of(yesterday));
+
+        var progress = service.progressOf(studentId, List.of(goal)).get(goal.getId());
+
+        assertThat(progress.current()).isEqualTo(40);
+        assertThat(progress.periodStart()).isEqualTo(today.minusDays(1));
+        verifyNoInteractions(events);
+        verify(goals, never()).save(any());
     }
 }

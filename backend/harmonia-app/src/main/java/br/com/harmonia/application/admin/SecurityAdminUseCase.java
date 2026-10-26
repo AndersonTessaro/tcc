@@ -1,5 +1,11 @@
 package br.com.harmonia.application.admin;
 
+import br.com.harmonia.application.admin.port.UserStorageRepository;
+import br.com.harmonia.application.context.CurrentUserService;
+import br.com.harmonia.application.storage.StorageTransactions;
+import br.com.harmonia.domain.common.DuplicateResourceException;
+import br.com.harmonia.domain.common.ResourceNotFoundException;
+import br.com.harmonia.infrastructure.storage.FileStoragePort;
 import br.com.harmonia.application.security.port.PermissionRepository;
 import br.com.harmonia.application.security.port.RoleRepository;
 import br.com.harmonia.application.security.port.UserRepository;
@@ -24,15 +30,33 @@ public class SecurityAdminUseCase {
     private final PermissionRepository permissions;
     private final PasswordEncoder encoder;
     private final TokenService tokenService;
+    private final CurrentUserService current;
+    private final UserStorageRepository userStorage;
+    private final FileStoragePort storage;
 
     public SecurityAdminUseCase(UserRepository users, RoleRepository roles,
                                 PermissionRepository permissions, PasswordEncoder encoder,
-                                TokenService tokenService) {
+                                TokenService tokenService, CurrentUserService current,
+                                UserStorageRepository userStorage, FileStoragePort storage) {
         this.users = users;
         this.roles = roles;
         this.permissions = permissions;
         this.encoder = encoder;
         this.tokenService = tokenService;
+        this.current = current;
+        this.userStorage = userStorage;
+        this.storage = storage;
+    }
+
+    @Transactional
+    public void deleteUser(UUID userId) {
+        User user = users.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User"));
+        if (current.userId().equals(userId)) throw new DuplicateResourceException("Cannot delete your own account");
+        if (user.getRoles().stream().anyMatch(role -> "ADMIN".equals(role.getName())))
+            throw new DuplicateResourceException("Cannot delete an administrator");
+        var paths = userStorage.pathsForUser(userId);
+        users.delete(user);
+        paths.forEach(path -> StorageTransactions.deleteAfterCommit(storage, path));
     }
 
     public List<User> listUsers() {

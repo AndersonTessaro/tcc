@@ -93,6 +93,7 @@ public class AuthController {
         body.put("username", user.getUsername());
         body.put("email", user.getEmail());
         body.put("displayName", user.getDisplayName());
+        body.put("hasAvatar", user.hasAvatar());
         body.put("authorities", jwt.getClaimAsStringList("authorities"));
         return body;
     }

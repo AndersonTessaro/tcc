@@ -12,7 +12,7 @@ import java.util.UUID;
 public record GoalResponse(UUID id, String title, String description, GoalType type, GoalPeriod period,
                            Integer target, Integer currentProgress, GoalStatus status, boolean legacy,
                            String createdByTeacher, boolean canEnd, LocalDate periodStart, LocalDate periodEnd,
-                           boolean achieved, int streak) {
+                           boolean achieved, int streak, boolean completed) {
     public static GoalResponse of(GoalView view) {
         Goal goal = view.goal();
         var progress = view.progress();
@@ -23,6 +23,6 @@ public record GoalResponse(UUID id, String title, String description, GoalType t
             goal.isLegacy(), teacher, view.canEnd(),
             progress == null ? null : progress.periodStart(), progress == null ? null : progress.periodEnd(),
             progress == null ? goal.getStatus() == GoalStatus.COMPLETED : progress.achieved(),
-            progress == null ? 0 : progress.streak());
+            progress == null ? 0 : progress.streak(), goal.isCompleted() || goal.getStatus() == GoalStatus.COMPLETED);
     }
 }

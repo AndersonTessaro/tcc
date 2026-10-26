@@ -27,7 +27,8 @@ public class AccountUseCase {
 
     public record Instrument(UUID id, String name) {}
     public record TeacherProfile(String bio, List<Instrument> instruments) {}
-    public record Account(String username, String email, String displayName, List<String> roles, TeacherProfile teacher) {}
+    public record Account(String username, String email, String displayName, List<String> roles,
+                          TeacherProfile teacher, boolean hasAvatar) {}
 
     public AccountUseCase(CurrentUserService current, UserRepository users, TeacherRepository teachers,
                           RefreshTokenRepository tokens, PasswordEncoder encoder) {
@@ -72,6 +73,6 @@ public class AccountUseCase {
             teacher.getBio(), teacher.getInstruments().stream().map(i -> new Instrument(i.getId(), i.getName()))
                 .sorted(Comparator.comparing(Instrument::name)).toList())).orElse(null);
         return new Account(user.getUsername(), user.getEmail(), user.nameForDisplay(),
-            user.getRoles().stream().map(role -> role.getName()).sorted().toList(), profile);
+            user.getRoles().stream().map(role -> role.getName()).sorted().toList(), profile, user.hasAvatar());
     }
 }

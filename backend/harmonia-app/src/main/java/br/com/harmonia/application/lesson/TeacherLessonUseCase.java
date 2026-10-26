@@ -2,12 +2,12 @@ package br.com.harmonia.application.lesson;
 
 import br.com.harmonia.domain.common.ResourceNotFoundException;
 import br.com.harmonia.application.lesson.port.AttendanceRepository;
+import br.com.harmonia.application.lesson.port.LessonAttendanceStatus;
 import br.com.harmonia.application.lesson.port.LessonRepository;
 import br.com.harmonia.application.lesson.port.LessonAttachmentRepository;
 import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.application.profile.EnrollmentRules;
 import br.com.harmonia.application.profile.port.EnrollmentRepository;
-import br.com.harmonia.infrastructure.persistence.lesson.Attendance;
 import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
 import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
 import br.com.harmonia.infrastructure.persistence.lesson.LessonAttachment;
@@ -135,7 +135,8 @@ public class TeacherLessonUseCase {
 
     public Map<UUID, AttendanceStatus> attendanceByLesson(List<Lesson> dayLessons) {
         List<UUID> ids = dayLessons.stream().map(Lesson::getId).toList();
-        return attendances.findByLessonIdIn(ids).stream()
-            .collect(Collectors.toMap(a -> a.getLesson().getId(), Attendance::getStatus));
+        if (ids.isEmpty()) return Map.of();
+        return attendances.findStatusesByLessonIds(ids).stream()
+            .collect(Collectors.toMap(LessonAttendanceStatus::lessonId, LessonAttendanceStatus::status));
     }
 }

@@ -14,8 +14,10 @@ import br.com.harmonia.infrastructure.persistence.gamification.GoalStatus;
 import br.com.harmonia.infrastructure.persistence.lesson.AttendanceStatus;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -24,6 +26,7 @@ import java.util.UUID;
 import java.util.function.UnaryOperator;
 
 @Service
+@Transactional
 public class GoalProgressService {
     private final GoalRepository goals;
     private final PracticeRepository practices;
@@ -48,7 +51,11 @@ public class GoalProgressService {
             .map(goal -> calculator.earliestNeeded(goal.getPeriod(), goal.getCreatedAt().toLocalDate(), referenceDay(goal, today)))
             .min(LocalDate::compareTo).orElse(today);
         Facts facts = facts(studentId, from, today);
-        tracked.forEach(goal -> result.put(goal.getId(), calculate(goal, facts, referenceDay(goal, today))));
+        tracked.forEach(goal -> {
+            Progress progress = calculate(goal, facts, referenceDay(goal, today));
+            result.put(goal.getId(), progress);
+            if (goal.getStatus() == GoalStatus.ACTIVE && progress.achieved()) complete(studentId, goal);
+        });
         return result;
     }
 
@@ -60,8 +67,17 @@ public class GoalProgressService {
         Facts before = undo.apply(after);
         for (Goal goal : tracked) {
             if (calculate(goal, after, today).achieved() && !calculate(goal, before, today).achieved())
-                events.publishEvent(new GoalCompletedEvent(studentId, goal.getId(), goal.getTitle()));
+                complete(studentId, goal);
         }
+    }
+
+    private void complete(UUID studentId, Goal goal) {
+        goal.setStatus(GoalStatus.ENDED);
+        goal.setEndedAt(LocalDateTime.now());
+        goal.setCompletedAt(goal.getEndedAt());
+        goal.setCompleted(true);
+        goals.save(goal);
+        events.publishEvent(new GoalCompletedEvent(studentId, goal.getId(), goal.getTitle()));
     }
 
     private static boolean isTracked(Goal goal) {

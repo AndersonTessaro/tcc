@@ -7,6 +7,8 @@ import br.com.harmonia.application.gamification.port.PracticeRepository;
 import br.com.harmonia.application.lesson.port.AttendanceRepository;
 import br.com.harmonia.application.lesson.port.LessonRepository;
 import br.com.harmonia.application.profile.port.EnrollmentRepository;
+import br.com.harmonia.application.profile.port.StudentRepository;
+import br.com.harmonia.domain.common.ResourceNotFoundException;
 import br.com.harmonia.infrastructure.persistence.gamification.GoalStatus;
 import br.com.harmonia.infrastructure.persistence.gamification.Practice;
 import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
@@ -36,11 +38,12 @@ public class TeacherUseCase {
     private final CurrentUserService current;
     private final PracticeRepository practices;
     private final StudentLinkGuard links;
+    private final StudentRepository students;
 
     public TeacherUseCase(EnrollmentRepository enrollments, ProgressRepository progresses,
                           LessonRepository lessons, AttendanceRepository attendances,
                           GoalRepository goals, CurrentUserService current,
-                          PracticeRepository practices, StudentLinkGuard links) {
+                          PracticeRepository practices, StudentLinkGuard links, StudentRepository students) {
         this.enrollments = enrollments;
         this.progresses = progresses;
         this.lessons = lessons;
@@ -49,6 +52,7 @@ public class TeacherUseCase {
         this.current = current;
         this.practices = practices;
         this.links = links;
+        this.students = students;
     }
 
     public record DashboardSummary(int totalStudents, int attendancePercent, int weeklyPracticeMin,
@@ -132,10 +136,13 @@ public class TeacherUseCase {
 
         Map<String, Object> goalsSummary = new HashMap<>();
         goalsSummary.put("active", goals.countByStudentIdAndStatus(studentId, GoalStatus.ACTIVE));
-        goalsSummary.put("completed", goals.countByStudentIdAndStatus(studentId, GoalStatus.COMPLETED));
+        goalsSummary.put("completed", goals.countCompletedByStudentId(studentId));
 
         Map<String, Object> body = new HashMap<>();
         body.put("studentId", studentId);
+        var student = students.findById(studentId).orElseThrow(() -> new ResourceNotFoundException("Student"));
+        body.put("userId", student.getUser().getId());
+        body.put("hasAvatar", student.getUser().hasAvatar());
         body.put("progress", progresses.findByStudentId(studentId).orElse(null));
         body.put("lessonsCount", lessons.countByEnrollmentStudentId(studentId));
         body.put("attendance", attendance);

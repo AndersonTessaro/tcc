@@ -59,6 +59,9 @@ public class Goal {
     @Column(name = "ended_at")
     private LocalDateTime endedAt;
 
+    @Column(nullable = false)
+    private boolean completed;
+
     public boolean isLegacy() {
         return period == null;
     }

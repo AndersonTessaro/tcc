@@ -24,6 +24,18 @@ class AuthFlowIT {
     @Autowired MockMvc mvc;
 
     @Test
+    void loginAndRefreshIgnoreInvalidBearerButMeStillRejectsIt() throws Exception {
+        var login = mvc.perform(post("/auth/login").header("Authorization", "Bearer invalid")
+                .contentType("application/json").content("{\"login\":\"admin\",\"password\":\"Admin@123\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.accessToken", not(emptyString())))
+            .andReturn().getResponse();
+        mvc.perform(post("/auth/refresh").header("Authorization", "Bearer invalid").cookie(login.getCookie("refresh_token")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.accessToken", not(emptyString())));
+        mvc.perform(get("/auth/me").header("Authorization", "Bearer invalid"))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void login_then_me_then_refresh() throws Exception {
         var loginResult = mvc.perform(post("/auth/login").contentType("application/json")
                 .content("{\"login\":\"admin\",\"password\":\"Admin@123\"}"))

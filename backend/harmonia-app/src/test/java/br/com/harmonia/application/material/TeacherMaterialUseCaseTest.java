@@ -2,6 +2,7 @@ package br.com.harmonia.application.material;
 
 import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.application.material.port.MaterialRepository;
+import br.com.harmonia.application.lesson.port.LessonAttachmentRepository;
 import br.com.harmonia.application.profile.port.EnrollmentRepository;
 import br.com.harmonia.application.profile.port.StudentRepository;
 import br.com.harmonia.domain.common.OwnershipException;
@@ -32,9 +33,10 @@ class TeacherMaterialUseCaseTest {
     @Mock EnrollmentRepository enrollments;
     @Mock FileStoragePort storage;
     @Mock CurrentUserService current;
+    @Mock LessonAttachmentRepository attachments;
 
     private TeacherMaterialUseCase useCase() {
-        return new TeacherMaterialUseCase(materials, students, enrollments, storage, current);
+        return new TeacherMaterialUseCase(materials, students, enrollments, storage, current, attachments);
     }
 
     @Test

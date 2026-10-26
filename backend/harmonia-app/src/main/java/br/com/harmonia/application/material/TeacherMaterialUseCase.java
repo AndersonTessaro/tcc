@@ -3,6 +3,7 @@ package br.com.harmonia.application.material;
 import br.com.harmonia.domain.common.ResourceNotFoundException;
 import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.application.material.port.MaterialRepository;
+import br.com.harmonia.application.lesson.port.LessonAttachmentRepository;
 import br.com.harmonia.application.profile.port.EnrollmentRepository;
 import br.com.harmonia.application.profile.port.StudentRepository;
 import br.com.harmonia.domain.common.OwnershipException;
@@ -18,6 +19,8 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.UUID;
 import java.util.List;
+import java.util.Comparator;
+import java.util.stream.Stream;
 
 @Service
 public class TeacherMaterialUseCase {
@@ -26,21 +29,27 @@ public class TeacherMaterialUseCase {
     private final EnrollmentRepository enrollments;
     private final FileStoragePort storage;
     private final CurrentUserService current;
+    private final LessonAttachmentRepository attachments;
 
     public TeacherMaterialUseCase(MaterialRepository materials, StudentRepository students,
                                   EnrollmentRepository enrollments, FileStoragePort storage,
-                                  CurrentUserService current) {
+                                  CurrentUserService current, LessonAttachmentRepository attachments) {
         this.materials = materials;
         this.students = students;
         this.enrollments = enrollments;
         this.storage = storage;
         this.current = current;
+        this.attachments = attachments;
     }
 
     @Transactional(readOnly = true)
-    public List<Material> forStudent(UUID studentId) {
+    public List<MaterialItem> forStudent(UUID studentId) {
         assertLinked(studentId);
-        return materials.findByStudentId(studentId);
+        var lessonItems = current.isAdmin() ? attachments.findByLessonEnrollmentStudentId(studentId)
+            : attachments.findByLessonEnrollmentStudentIdAndLessonEnrollmentTeacherId(studentId, current.currentTeacher().getId());
+        return Stream.concat(materials.findByStudentId(studentId).stream().map(MaterialItem::of),
+                lessonItems.stream().map(MaterialItem::of))
+            .sorted(Comparator.comparing(MaterialItem::createdAt).reversed()).toList();
     }
 
     @Transactional(readOnly = true)

@@ -9,6 +9,14 @@ public final class FileSignatures {
         return head != null && startsWith(head, 0, "%PDF");
     }
 
+    public static boolean isPng(byte[] head) {
+        return head != null && startsWith(head, 0, new byte[] {(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A});
+    }
+
+    public static boolean isJpeg(byte[] head) {
+        return head != null && startsWith(head, 0, new byte[] {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF});
+    }
+
     public static boolean isImage(byte[] head) {
         if (head == null) return false;
         return startsWith(head, 0, new byte[] {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF})

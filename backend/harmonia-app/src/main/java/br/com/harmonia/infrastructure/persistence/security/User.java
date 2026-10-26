@@ -32,6 +32,14 @@ public class User implements UserDetails {
     @Column(name = "display_name")
     private String displayName;
 
+    @JsonIgnore
+    @Column(name = "avatar_path")
+    private String avatarPath;
+
+    public boolean hasAvatar() {
+        return avatarPath != null;
+    }
+
     @Column(nullable = false)
     private Boolean active = true;
 
