@@ -102,6 +102,16 @@ class AvatarIT extends MoreMenuITSupport {
     }
 
     @Test
+    void linkedTeacherSeesStudentBio() throws Exception {
+        mvc.perform(put("/account").header("Authorization", "Bearer " + studentToken).contentType("application/json")
+            .content("""
+                {"displayName":"Aluno","bio":"Toco violão"}
+                """)).andExpect(status().isOk());
+        mvc.perform(get("/teacher/students/" + studentId).header("Authorization", "Bearer " + teacherToken))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.bio").value("Toco violão"));
+    }
+
+    @Test
     void onlySelfLinkedTeacherAndAdminCanReadStudentAvatar() throws Exception {
         upload(studentToken, PNG).andExpect(status().isNoContent());
         for (String token : new String[]{teacherToken, admin}) {
