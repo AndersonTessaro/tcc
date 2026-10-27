@@ -44,6 +44,12 @@ beforeEach(() => {
   service.endGoal.mockResolvedValue({ ...goal, status: "ENDED", canEnd: false });
 });
 
+it("shows the student's bio in the header", async () => {
+  service.student.mockResolvedValue({ ...(await service.student("student-1")), bio: "Toco violão" });
+  await render(<TeacherStudentDetail />);
+  expect(await screen.findByText("Toco violão")).toBeVisible();
+});
+
 it("distinguishes completed and manually ended goals in the teacher summary", async () => {
   service.studentGoals.mockResolvedValue([
     { ...goal, status: "ENDED", completed: true, canEnd: false },

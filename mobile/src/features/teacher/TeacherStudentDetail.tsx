@@ -230,7 +230,7 @@ export default function TeacherStudentDetail() {
       ) : (
         <>
           <View style={styles.profile}>
-            <TeacherStudentIdentity name={data.name ?? "Aluno"} instrument={data.instruments.join(", ") || "Instrumento não informado"} userId={data.detail.userId} hasAvatar={data.detail.hasAvatar} />
+            <TeacherStudentIdentity name={data.name ?? "Aluno"} instrument={data.instruments.join(", ") || "Instrumento não informado"} userId={data.detail.userId} hasAvatar={data.detail.hasAvatar} bio={data.detail.bio} />
           </View>
           <TeacherStudentSections value={tab} onChange={setTab} />
           <ScrollView

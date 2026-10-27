@@ -143,6 +143,7 @@ public class TeacherUseCase {
         var student = students.findById(studentId).orElseThrow(() -> new ResourceNotFoundException("Student"));
         body.put("userId", student.getUser().getId());
         body.put("hasAvatar", student.getUser().hasAvatar());
+        body.put("bio", student.getBio());
         body.put("progress", progresses.findByStudentId(studentId).orElse(null));
         body.put("lessonsCount", lessons.countByEnrollmentStudentId(studentId));
         body.put("attendance", attendance);

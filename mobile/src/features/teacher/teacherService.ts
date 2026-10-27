@@ -108,6 +108,7 @@ export type TeacherStudentDetailData = {
   studentId: string;
   userId: string;
   hasAvatar: boolean;
+  bio?: string | null;
   progress: { xpTotal: number; level: number; streakDays: number } | null;
   lessonsCount: number;
   attendance: { present: number; absent: number; excused: number; rate: number };
