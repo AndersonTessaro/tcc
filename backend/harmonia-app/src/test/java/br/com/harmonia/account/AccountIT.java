@@ -39,15 +39,18 @@ class AccountIT extends MoreMenuITSupport {
     }
 
     @Test
-    void studentCanUpdateNameAndBioIsIgnored() throws Exception {
+    void studentUpdatesNameAndBio() throws Exception {
         student("accountStudent");
         String studentToken = login("accountStudent" + suffix, "Student@123");
         mvc.perform(put("/account").header("Authorization", "Bearer " + studentToken).contentType("application/json")
             .content("""
-                {"displayName":"Aluno atualizado","bio":"ignored"}
+                {"displayName":"Aluno atualizado","bio":"Estudo violão"}
                 """))
             .andExpect(status().isOk()).andExpect(jsonPath("$.displayName").value("Aluno atualizado"))
-            .andExpect(jsonPath("$.teacher").value(nullValue()));
+            .andExpect(jsonPath("$.teacher").value(nullValue()))
+            .andExpect(jsonPath("$.student.bio").value("Estudo violão"));
+        mvc.perform(get("/account").header("Authorization", "Bearer " + studentToken))
+            .andExpect(jsonPath("$.student.bio").value("Estudo violão"));
     }
 
     @Test
