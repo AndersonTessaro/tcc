@@ -34,3 +34,15 @@ Banco de dev existente (migrado de V21 para V23 sem erro). Capturas em `sonetto-
 - Metas encerradas antes da V22 ficam com `completed=false` ("Encerrada"), mesmo que tenham batido o alvo.
 - Avisos do console do Expo web (`shadow*`, `useNativeDriver`, `resizeMode`, `pointerEvents`) vêm de bibliotecas no web; nenhum erro.
 - Dados de dev alterados no teste: senhas de `prof`, `aluno`, `user` e `prof.figma` = `Teste@123`; nome de `user` = "Aluno Teste"; usuário `prof1790115441672` excluído; 2 aulas de 26/10, 1 anexo e 1 meta criados.
+
+## Fase D — Google Drive (27/10/2026)
+OAuth com conta dedicada, app publicado "Em produção", escopo `drive`. Pasta "Harmonia" criada pela API; variáveis em `backend/secrets/drive.env` (gitignored). Backend subiu com `APP_STORAGE_PROVIDER=google-drive`.
+
+| Teste | Resultado |
+|---|---|
+| Foto de perfil do professor (PUT/GET `/account/avatar`) | 204/200, bytes iguais; `avatar_path` = id do arquivo no Drive |
+| Anexo PDF de aula (upload professor) | 200 |
+| Download professor e aluno | 200/200, bytes iguais |
+| Exclusão do anexo | 204; arquivo saiu da pasta do Drive |
+
+Anexos e materiais gravados antes da troca continuam no disco local e não abrem com o Drive ligado (sem migração, como previsto).
