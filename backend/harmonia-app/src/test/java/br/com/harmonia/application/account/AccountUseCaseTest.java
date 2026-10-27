@@ -1,6 +1,7 @@
 package br.com.harmonia.application.account;
 
 import br.com.harmonia.application.context.CurrentUserService;
+import br.com.harmonia.application.profile.port.StudentRepository;
 import br.com.harmonia.application.profile.port.TeacherRepository;
 import br.com.harmonia.application.security.port.RefreshTokenRepository;
 import br.com.harmonia.application.security.port.UserRepository;
@@ -27,6 +28,7 @@ class AccountUseCaseTest {
     @Mock CurrentUserService current;
     @Mock UserRepository users;
     @Mock TeacherRepository teachers;
+    @Mock StudentRepository students;
     @Mock RefreshTokenRepository tokens;
     @Mock PasswordEncoder encoder;
     private AccountUseCase account;
@@ -39,7 +41,7 @@ class AccountUseCaseTest {
         user.setPassword("oldHash");
         when(current.userId()).thenReturn(user.getId());
         when(users.findById(user.getId())).thenReturn(Optional.of(user));
-        account = new AccountUseCase(current, users, teachers, tokens, encoder);
+        account = new AccountUseCase(current, users, teachers, students, tokens, encoder);
     }
 
     @Test

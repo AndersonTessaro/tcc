@@ -29,6 +29,19 @@ it("loads and saves the student's display name using the account contract", asyn
   expect(mockUpdateProfile).toHaveBeenCalledWith({ displayName: "Ana Maria", hasAvatar: false });
 });
 
+it("edits and saves the student's bio", async () => {
+  const withBio = { ...account, student: { bio: "Violão" } };
+  jest.mocked(accountService.get).mockResolvedValue(withBio);
+  jest.mocked(accountService.update).mockResolvedValue({ ...withBio, student: { bio: "Violão e canto" } });
+  await render(<Profile />);
+  expect(await screen.findByLabelText("Bio")).toHaveProp("value", "Violão");
+  await fireEvent.changeText(screen.getByLabelText("Bio"), "Violão e canto");
+  await fireEvent.press(screen.getByRole("button", { name: "Salvar" }));
+  expect(accountService.update).toHaveBeenCalledWith({ displayName: "Ana", bio: "Violão e canto" });
+  expect(screen.getByLabelText("Bio")).toHaveProp("value", "Violão e canto");
+  expect(screen.queryByText("Instrumentos")).toBeNull();
+});
+
 it("uploads a selected photo, enables removal and updates the avatar", async () => {
   jest.mocked(DocumentPicker.getDocumentAsync).mockResolvedValue({ canceled: false, assets: [{ uri: "file:///a.png", name: "a.png", mimeType: "image/png", size: 100 }] });
   await render(<Profile />);

@@ -29,7 +29,9 @@ function ProfileForm({ account, onSaved, onPhotoChanged }: { account: Account; o
   const [editedName, setEditedName] = useState<string>();
   const [editedBio, setEditedBio] = useState<string>();
   const displayName = editedName ?? account.displayName;
-  const bio = editedBio ?? account.teacher?.bio ?? "";
+  const hasBio = Boolean(account.teacher || account.student);
+  const savedBio = account.teacher?.bio ?? account.student?.bio ?? "";
+  const bio = editedBio ?? savedBio;
   const [busy, setBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; bio?: string; form?: string }>({});
@@ -47,7 +49,7 @@ function ProfileForm({ account, onSaved, onPhotoChanged }: { account: Account; o
     mutationLock.current = true;
     setBusy(true);
     try {
-      onSaved(await accountService.update({ displayName: displayName.trim(), ...(account.teacher ? { bio } : {}) }));
+      onSaved(await accountService.update({ displayName: displayName.trim(), ...(hasBio ? { bio } : {}) }));
       setEditedName(undefined);
       setEditedBio(undefined);
       toast.show("Perfil atualizado", "success");
@@ -66,8 +68,8 @@ function ProfileForm({ account, onSaved, onPhotoChanged }: { account: Account; o
         <ReadOnlyField label="E-mail" value={account.email} />
         <ReadOnlyField label="Usuário" value={account.username} />
         <Text style={styles.caption}>Para alterar, fale com a secretaria</Text>
+        {hasBio ? <TextField ref={bioRef} label="Bio" value={bio} onChangeText={(value) => setEditedBio(value === savedBio ? undefined : value)} error={errors.bio} multiline editable={!busy} /> : null}
         {account.teacher ? <>
-          <TextField ref={bioRef} label="Bio" value={bio} onChangeText={(value) => setEditedBio(value === (account.teacher?.bio ?? "") ? undefined : value)} error={errors.bio} multiline editable={!busy} />
           <Text accessibilityRole="header" style={styles.heading}>Instrumentos</Text>
           <View style={styles.row}>{account.teacher.instruments.map((instrument) => <StatusChip key={instrument.id} label={instrument.name} tone="info" />)}</View>
           {!account.teacher.instruments.length ? <Text style={styles.caption}>Nenhum instrumento vinculado</Text> : null}

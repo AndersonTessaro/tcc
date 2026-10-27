@@ -7,6 +7,7 @@ export type Account = {
   displayName: string;
   roles: string[];
   teacher: { bio: string | null; instruments: { id: string; name: string }[] } | null;
+  student?: { bio: string | null } | null;
 };
 
 export const accountService = {

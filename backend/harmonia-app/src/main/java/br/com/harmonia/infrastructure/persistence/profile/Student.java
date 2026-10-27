@@ -24,6 +24,8 @@ public class Student {
 
     private String phone;
 
+    private String bio;
+
     @Column(nullable = false)
     private Boolean active = true;
 }
