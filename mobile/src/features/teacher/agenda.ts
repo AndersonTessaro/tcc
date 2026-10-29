@@ -20,10 +20,14 @@ export const hhmm = (time: string) => time.slice(0, 5);
 
 export type LessonActions = { canComplete: boolean; canCancel: boolean; canReplace: boolean; canEdit: boolean };
 
-export function lessonActions(lesson: Pick<TeacherLesson, "status" | "date">, today: string): LessonActions {
+export function lessonActions(
+  lesson: Pick<TeacherLesson, "status" | "date"> & Partial<Pick<TeacherLesson, "startTime">>,
+  today: string,
+  nowTime = nowHhmm(),
+): LessonActions {
   const scheduled = lesson.status === "SCHEDULED";
   return {
-    canComplete: scheduled && lesson.date <= today,
+    canComplete: scheduled && canRecordAttendance(lesson, today, nowTime),
     canCancel: scheduled,
     canReplace: !scheduled,
     canEdit: lesson.status !== "CANCELED",

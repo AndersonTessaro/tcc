@@ -19,6 +19,8 @@ describe("agenda", () => {
     expect(canRecordAttendance(lesson, "2026-09-22", "17:05")).toBe(false);
     expect(canRecordAttendance(lesson, "2026-09-22", "19:00")).toBe(true);
     expect(canRecordAttendance({ ...lesson, date: "2026-09-21" }, "2026-09-22", "08:00")).toBe(true);
+    expect(lessonActions(lesson, "2026-09-22", "17:05").canComplete).toBe(false);
+    expect(lessonActions(lesson, "2026-09-22", "19:30").canComplete).toBe(true);
   });
 
   it("offers complete/cancel for scheduled lessons and makeup for finished ones", () => {

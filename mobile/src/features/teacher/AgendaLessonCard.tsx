@@ -40,7 +40,8 @@ export function AgendaLessonCard({ lesson, today, busy, error, onMark, onChangeS
       {attendanceOpen ? (
         <AttendanceControl lesson={lesson} busy={busy} onMark={(status, justification) => onMark(lesson, status, justification)} />
       ) : (
-        <Text style={styles.detail}>{lesson.status === "CANCELED" ? "Aula cancelada" : "Frequência disponível no dia da aula"}</Text>
+        <Text style={styles.detail}>{lesson.status === "CANCELED" ? "Aula cancelada"
+          : lesson.date === today ? `Frequência disponível a partir das ${hhmm(lesson.startTime)}` : "Frequência disponível no dia da aula"}</Text>
       )}
       {error ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
       {actions.canComplete || actions.canCancel || actions.canReplace || actions.canEdit ? (
