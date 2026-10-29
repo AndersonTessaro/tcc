@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 env:
   AZURE_CLIENT_ID: 31238b13-8987-48ac-b67b-bb55f0bb1ce5
@@ -25,7 +24,7 @@ jobs:
       web: ${{ steps.filter.outputs.web }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
         with:
           filters: |
@@ -38,6 +37,9 @@ jobs:
     name: Deploy ${{ matrix.app }}
     needs: changes
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -54,7 +56,7 @@ jobs:
       - uses: actions/checkout@v4
         if: needs.changes.outputs[matrix.app] == 'true'
 
-      - uses: azure/login@v2
+      - uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         if: needs.changes.outputs[matrix.app] == 'true'
         with:
           client-id: ${{ env.AZURE_CLIENT_ID }}
