@@ -39,7 +39,8 @@ class StudentFlowIT {
     @Test
     void student_practice_goal_dashboard() throws Exception {
         String admin = login("admin", "Admin@123");
-        String inst = postId(admin, "/admin/instruments", "{\"name\":\"Piano\"}");
+        // Not @Transactional: a fixed name would leak into the shared DB and collide with AdminEnrollmentsIT.
+        String inst = postId(admin, "/admin/instruments", "{\"name\":\"Piano-" + java.util.UUID.randomUUID() + "\"}");
         String teacher = postId(admin, "/admin/teachers",
             "{\"username\":\"teacherA\",\"email\":\"teacherA@h.local\",\"password\":\"Teach@1234\",\"name\":\"Teacher A\",\"instrumentIds\":[\"" + inst + "\"]}");
         String student = postId(admin, "/admin/students",
