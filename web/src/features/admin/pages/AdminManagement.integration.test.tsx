@@ -9,7 +9,7 @@ import { adminService } from "../adminService";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("../adminService", () => ({ adminService: {
-  users: vi.fn(), roles: vi.fn(), deleteUser: vi.fn(), permissions: vi.fn(), createRole: vi.fn(),
+  users: vi.fn(), roles: vi.fn(), deleteUser: vi.fn(), resetPassword: vi.fn(), permissions: vi.fn(), createRole: vi.fn(),
   transactions: vi.fn(), balance: vi.fn(), createTransaction: vi.fn(),
   settings: vi.fn(), upsertSetting: vi.fn(),
 } }));
@@ -52,7 +52,7 @@ describe("Admin management improvements", () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
     render(<Users />);
     await screen.findByText("Ana Souza");
-    const deleteAna = () => fireEvent.click(screen.getAllByRole("button", { name: "Excluir" })[1]);
+    const deleteAna = () => fireEvent.click(screen.getByRole("button", { name: "Excluir ana" }));
     deleteAna();
     expect(confirm).toHaveBeenCalledWith(expect.stringContaining("Matrículas, aulas"));
     expect(service.deleteUser).not.toHaveBeenCalled();
@@ -60,6 +60,19 @@ describe("Admin management improvements", () => {
     await waitFor(() => expect(service.deleteUser).toHaveBeenCalledWith("2"));
     await waitFor(() => expect(service.users).toHaveBeenCalledTimes(2));
     confirm.mockRestore();
+  });
+
+  it("resets a password through an inline form instead of a prompt", async () => {
+    render(<Users />);
+    await screen.findByText("Ana Souza");
+    fireEvent.click(screen.getByRole("button", { name: "Redefinir senha de ana" }));
+    const field = screen.getByLabelText("Nova senha para ana");
+    expect(field).toHaveAttribute("type", "password");
+    expect(field).toHaveAttribute("autocomplete", "new-password");
+    fireEvent.change(field, { target: { value: "NovaSenha1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar senha" }));
+    await waitFor(() => expect(service.resetPassword).toHaveBeenCalledWith("2", "NovaSenha1"));
+    await waitFor(() => expect(screen.queryByLabelText("Nova senha para ana")).toBeNull());
   });
 
   it("creates a role with name and description and reloads the list", async () => {
