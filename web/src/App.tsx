@@ -4,6 +4,7 @@ import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
 import AppLayout from "@/components/layout/AppLayout";
 import Login from "@/features/auth/pages/Login";
 import Forgot from "@/features/auth/pages/Forgot";
+import Overview from "@/features/admin/pages/Overview";
 import Users from "@/features/admin/pages/Users";
 import Roles from "@/features/admin/pages/Roles";
 import Permissions from "@/features/admin/pages/Permissions";
@@ -19,13 +20,13 @@ const ADMIN_AUTHORITIES = ["ROLE_ADMIN", "auth.user.manage", "auth.role.manage"]
 
 function Home() {
   const { user, loading, logout } = useAuth();
-  if (loading) return <div className="p-8 text-gray-500">Carregando...</div>;
+  if (loading) return <div className="p-8 text-ink-faint">Carregando...</div>;
   if (!user) return <Navigate to="/login" replace />;
   if (user.authorities.some((a) => ADMIN_AUTHORITIES.includes(a)))
-    return <Navigate to="/admin/users" replace />;
+    return <Navigate to="/admin/overview" replace />;
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
-      <p className="text-gray-600">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-canvas p-8 text-center">
+      <p className="max-w-md text-ink-muted">
         Este painel é exclusivo para administradores. Use o aplicativo para acessar as áreas de
         aluno e professor.
       </p>
@@ -52,7 +53,8 @@ export default function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="/admin/users" replace />} />
+            <Route index element={<Navigate to="/admin/overview" replace />} />
+            <Route path="overview" element={<Overview />} />
             <Route path="users" element={<Users />} />
             <Route path="roles" element={<Roles />} />
             <Route path="permissions" element={<Permissions />} />

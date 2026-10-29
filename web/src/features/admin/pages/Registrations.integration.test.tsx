@@ -25,6 +25,11 @@ const service = vi.mocked(adminService);
 const piano = { id: "in-1", name: "Piano" };
 const violin = { id: "in-2", name: "Violino" };
 
+const openDialog = (button: string, title = button) => {
+  fireEvent.click(screen.getAllByRole("button", { name: button })[0]);
+  return within(screen.getByRole("dialog", { name: title }));
+};
+
 describe("Registration pages", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -48,12 +53,14 @@ describe("Registration pages", () => {
 
   it("creates an enrollment from the selected names instead of typed ids", async () => {
     render(<Enrollments />);
-    await screen.findByRole("option", { name: "Ana Souza (ana)" });
+    await screen.findByText("Nenhuma matrícula encontrada");
+    const form = openDialog("Nova matrícula");
+    await form.findByRole("option", { name: "Ana Souza (ana)" });
 
-    fireEvent.change(screen.getByLabelText("Aluno"), { target: { value: "st-1" } });
-    fireEvent.change(screen.getByLabelText("Professor"), { target: { value: "te-1" } });
-    fireEvent.change(screen.getByLabelText("Instrumento"), { target: { value: "in-1" } });
-    fireEvent.click(screen.getByRole("button", { name: "Criar matrícula" }));
+    fireEvent.change(form.getByLabelText("Aluno"), { target: { value: "st-1" } });
+    fireEvent.change(form.getByLabelText("Professor"), { target: { value: "te-1" } });
+    fireEvent.change(form.getByLabelText("Instrumento"), { target: { value: "in-1" } });
+    fireEvent.click(form.getByRole("button", { name: "Criar matrícula" }));
 
     await waitFor(() =>
       expect(service.createEnrollment).toHaveBeenCalledWith({
@@ -67,12 +74,14 @@ describe("Registration pages", () => {
 
   it("only offers the instruments the selected teacher teaches", async () => {
     render(<Enrollments />);
-    await screen.findByRole("option", { name: "Ana Souza (ana)" });
-    const instrumentSelect = screen.getByLabelText("Instrumento");
+    await screen.findByText("Nenhuma matrícula encontrada");
+    const form = openDialog("Nova matrícula");
+    await form.findByRole("option", { name: "Ana Souza (ana)" });
+    const instrumentSelect = form.getByLabelText("Instrumento");
 
     expect(within(instrumentSelect).queryByRole("option", { name: "Piano" })).toBeNull();
 
-    fireEvent.change(screen.getByLabelText("Professor"), { target: { value: "te-1" } });
+    fireEvent.change(form.getByLabelText("Professor"), { target: { value: "te-1" } });
 
     expect(within(instrumentSelect).getByRole("option", { name: "Piano" })).toBeInTheDocument();
     expect(within(instrumentSelect).queryByRole("option", { name: "Violino" })).toBeNull();
@@ -80,9 +89,11 @@ describe("Registration pages", () => {
 
   it("does not submit an incomplete enrollment", async () => {
     render(<Enrollments />);
-    await screen.findByRole("option", { name: "Ana Souza (ana)" });
+    await screen.findByText("Nenhuma matrícula encontrada");
+    const form = openDialog("Nova matrícula");
+    await form.findByRole("option", { name: "Ana Souza (ana)" });
 
-    fireEvent.click(screen.getByRole("button", { name: "Criar matrícula" }));
+    fireEvent.click(form.getByRole("button", { name: "Criar matrícula" }));
 
     expect(service.createEnrollment).not.toHaveBeenCalled();
   });
@@ -90,14 +101,14 @@ describe("Registration pages", () => {
   it("creates a teacher with the instruments they teach", async () => {
     render(<Teachers />);
     await screen.findByText("Carlos Lima");
-    const teacherCard = screen.getByText("Novo professor").closest("div") as HTMLElement;
+    const teacherForm = openDialog("Novo professor");
 
-    fireEvent.change(within(teacherCard).getByPlaceholderText("Usuário"), { target: { value: "bia" } });
-    fireEvent.change(within(teacherCard).getByLabelText("E-mail"), { target: { value: "bia@example.com" } });
-    fireEvent.change(within(teacherCard).getByLabelText("Senha"), { target: { value: "Password@123" } });
-    fireEvent.change(within(teacherCard).getByLabelText("Nome"), { target: { value: "Bia" } });
-    fireEvent.click(within(teacherCard).getByLabelText("Violino"));
-    fireEvent.click(within(teacherCard).getByRole("button", { name: "Criar professor" }));
+    fireEvent.change(teacherForm.getByLabelText("Usuário"), { target: { value: "bia" } });
+    fireEvent.change(teacherForm.getByLabelText("E-mail"), { target: { value: "bia@example.com" } });
+    fireEvent.change(teacherForm.getByLabelText("Senha"), { target: { value: "Password@123" } });
+    fireEvent.change(teacherForm.getByLabelText("Nome"), { target: { value: "Bia" } });
+    fireEvent.click(teacherForm.getByLabelText("Violino"));
+    fireEvent.click(teacherForm.getByRole("button", { name: "Cadastrar professor" }));
 
     await waitFor(() =>
       expect(service.createTeacher).toHaveBeenCalledWith(
@@ -108,10 +119,10 @@ describe("Registration pages", () => {
 
   it("updates the instruments of an existing teacher", async () => {
     render(<Teachers />);
-    const linkCard = (await screen.findByText("Carlos Lima")).closest("tr") as HTMLElement;
-    fireEvent.click(within(linkCard).getByRole("button", { name: "Editar instrumentos" }));
-    fireEvent.click(within(linkCard).getByLabelText("Violino"));
-    fireEvent.click(within(linkCard).getByRole("button", { name: "Salvar instrumentos" }));
+    await screen.findByText("Carlos Lima");
+    const editor = openDialog("Editar instrumentos de Carlos Lima", "Instrumentos de Carlos Lima");
+    fireEvent.click(editor.getByLabelText("Violino"));
+    fireEvent.click(editor.getByRole("button", { name: "Salvar instrumentos" }));
 
     await waitFor(() => expect(service.setTeacherInstruments).toHaveBeenCalledWith("te-1", ["in-1", "in-2"]));
     await waitFor(() => expect(service.teachers).toHaveBeenCalledTimes(2));
@@ -134,11 +145,12 @@ describe("Registration pages", () => {
     expect(screen.getByText("Nenhum aluno encontrado")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Buscar alunos"), { target: { value: "ana" } });
     expect(screen.getByText("Ana Souza")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Usuário"), { target: { value: "bia" } });
-    fireEvent.change(screen.getByLabelText("E-mail"), { target: { value: "bia@example.com" } });
-    fireEvent.change(screen.getByLabelText("Senha"), { target: { value: "Password@123" } });
-    fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Bia" } });
-    fireEvent.click(screen.getByRole("button", { name: "Criar aluno" }));
+    const form = openDialog("Novo aluno");
+    fireEvent.change(form.getByLabelText("Usuário"), { target: { value: "bia" } });
+    fireEvent.change(form.getByLabelText("E-mail"), { target: { value: "bia@example.com" } });
+    fireEvent.change(form.getByLabelText("Senha"), { target: { value: "Password@123" } });
+    fireEvent.change(form.getByLabelText("Nome"), { target: { value: "Bia" } });
+    fireEvent.click(form.getByRole("button", { name: "Cadastrar aluno" }));
     await waitFor(() => expect(service.createStudent).toHaveBeenCalledWith(expect.objectContaining({ username: "bia" })));
     await waitFor(() => expect(service.students).toHaveBeenCalledTimes(2));
   });

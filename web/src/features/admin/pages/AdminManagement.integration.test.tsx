@@ -52,6 +52,7 @@ describe("Admin management improvements", () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
     render(<Users />);
     await screen.findByText("Ana Souza");
+    fireEvent.click(screen.getByRole("button", { name: "Gerenciar ana" }));
     const deleteAna = () => fireEvent.click(screen.getByRole("button", { name: "Excluir ana" }));
     deleteAna();
     expect(confirm).toHaveBeenCalledWith(expect.stringContaining("Matrículas, aulas"));
@@ -59,25 +60,27 @@ describe("Admin management improvements", () => {
     deleteAna();
     await waitFor(() => expect(service.deleteUser).toHaveBeenCalledWith("2"));
     await waitFor(() => expect(service.users).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole("dialog")).toBeNull();
     confirm.mockRestore();
   });
 
-  it("resets a password through an inline form instead of a prompt", async () => {
+  it("resets a password through a form instead of a prompt", async () => {
     render(<Users />);
     await screen.findByText("Ana Souza");
-    fireEvent.click(screen.getByRole("button", { name: "Redefinir senha de ana" }));
+    fireEvent.click(screen.getByRole("button", { name: "Gerenciar ana" }));
     const field = screen.getByLabelText("Nova senha para ana");
     expect(field).toHaveAttribute("type", "password");
     expect(field).toHaveAttribute("autocomplete", "new-password");
     fireEvent.change(field, { target: { value: "NovaSenha1" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar senha" }));
     await waitFor(() => expect(service.resetPassword).toHaveBeenCalledWith("2", "NovaSenha1"));
-    await waitFor(() => expect(screen.queryByLabelText("Nova senha para ana")).toBeNull());
+    await waitFor(() => expect(screen.getByLabelText("Nova senha para ana")).toHaveValue(""));
   });
 
   it("creates a role with name and description and reloads the list", async () => {
     render(<Roles />);
     await screen.findByText("Acesso completo");
+    fireEvent.click(screen.getByRole("button", { name: "Novo perfil" }));
     fireEvent.change(screen.getByLabelText("Nome do perfil"), { target: { value: "MONITOR" } });
     fireEvent.change(screen.getByLabelText("Descrição"), { target: { value: "Apoio pedagógico" } });
     fireEvent.click(screen.getByRole("button", { name: "Criar perfil" }));
@@ -88,6 +91,7 @@ describe("Admin management improvements", () => {
   it("formats financial dates and submits category and chosen date", async () => {
     render(<Finance />);
     expect(await screen.findByText("16/10/2026")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Novo lançamento" }));
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     expect(screen.getByLabelText("Data")).toHaveValue(today);
