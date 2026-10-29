@@ -13,7 +13,7 @@ import { addMinutes, DURATION_OPTIONS, durationBetween } from "@/features/teache
 import { slotKey, useSlotAvailability } from "@/features/teacher/useSlotAvailability";
 import { useResource } from "@/hooks/use-resource";
 import { confirm } from "@/lib/confirm";
-import { formatFullDate, relativeDayLabel, shortTime, todayIso } from "@/lib/format";
+import { formatFullDate, nowHhmm, relativeDayLabel, shortTime, todayIso } from "@/lib/format";
 import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { apiErrorKey, apiErrorMessage } from "@/lib/http/errorMessage";
 import type { PickedFile } from "@/lib/http/formFile";
@@ -69,7 +69,7 @@ function LessonEditLoader({ id }: { id: string }) {
   if (detail.data) return <LessonEditor existing={detail.data} reloadAttachments={detail.reload} />;
   return (
     <View style={styles.screen}>
-      <TeacherStackHeader />
+      <TeacherStackHeader title="Editar aula" />
       {detail.error ? (
         <ScreenState message={apiErrorMessage(detail.error, "Não foi possível carregar a aula.")} retry={() => void detail.reload()} />
       ) : (
@@ -301,7 +301,7 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <TeacherStackHeader />
+      <TeacherStackHeader title={editing ? "Editar aula" : "Nova aula"} />
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         <View onLayout={(event) => { fieldPositions.current.enrollment = event.nativeEvent.layout.y; }}>
           {lesson ? (
@@ -381,6 +381,7 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
               verified={verified}
               startTime={startTime}
               durationMin={durationMin}
+              earliestStart={date === todayIso() ? nowHhmm() : null}
               onPickStart={changeStart}
               onUseSchedule={(block) => applySchedule(shortTime(block.startTime), shortTime(block.endTime))}
             />

@@ -6,7 +6,9 @@ import br.com.harmonia.application.material.port.MaterialRepository;
 import br.com.harmonia.application.lesson.port.LessonAttachmentRepository;
 import br.com.harmonia.application.profile.port.EnrollmentRepository;
 import br.com.harmonia.application.profile.port.StudentRepository;
+import br.com.harmonia.application.storage.StorageTransactions;
 import br.com.harmonia.domain.common.OwnershipException;
+import br.com.harmonia.domain.material.MaterialFileRule;
 import br.com.harmonia.infrastructure.persistence.material.Material;
 import br.com.harmonia.infrastructure.persistence.profile.Student;
 import br.com.harmonia.infrastructure.persistence.profile.Teacher;
@@ -17,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.List;
 import java.util.Comparator;
@@ -72,7 +75,11 @@ public class TeacherMaterialUseCase {
         if (enrollments.findByTeacherIdAndStudentId(teacher.getId(), studentId).isEmpty())
             throw new OwnershipException("Student is not linked to this teacher");
         try {
-            String path = storage.save(file.getOriginalFilename(), file.getBytes());
+            byte[] content = file.getBytes();
+            MaterialFileRule.validate(file.getOriginalFilename(), file.getSize(),
+                Arrays.copyOf(content, Math.min(content.length, MaterialFileRule.HEAD_BYTES)));
+            String path = storage.save(file.getOriginalFilename(), content);
+            StorageTransactions.deleteOnRollback(storage, path);
             Material m = new Material();
             m.setTeacher(teacher);
             m.setStudent(student);

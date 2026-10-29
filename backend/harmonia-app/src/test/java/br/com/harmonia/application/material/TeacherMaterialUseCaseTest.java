@@ -10,11 +10,14 @@ import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
 import br.com.harmonia.infrastructure.persistence.profile.Student;
 import br.com.harmonia.infrastructure.persistence.profile.Teacher;
 import br.com.harmonia.infrastructure.storage.FileStoragePort;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +37,16 @@ class TeacherMaterialUseCaseTest {
     @Mock FileStoragePort storage;
     @Mock CurrentUserService current;
     @Mock LessonAttachmentRepository attachments;
+
+    @BeforeEach
+    void initSynchronization() {
+        TransactionSynchronizationManager.initSynchronization();
+    }
+
+    @AfterEach
+    void clearSynchronization() {
+        TransactionSynchronizationManager.clear();
+    }
 
     private TeacherMaterialUseCase useCase() {
         return new TeacherMaterialUseCase(materials, students, enrollments, storage, current, attachments);
@@ -78,7 +91,7 @@ class TeacherMaterialUseCaseTest {
         when(storage.save(any(), any())).thenReturn("path/a.pdf");
         when(materials.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        var file = new MockMultipartFile("file", "a.pdf", "application/pdf", new byte[] {1});
+        var file = new MockMultipartFile("file", "a.pdf", "application/pdf", "%PDF-1.7".getBytes());
 
         var saved = useCase().attach(studentId, "Title", "Desc", file);
 

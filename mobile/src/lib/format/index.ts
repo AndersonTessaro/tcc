@@ -24,6 +24,10 @@ export function todayIso(now = new Date()): string {
   return toIsoDate(now);
 }
 
+export function nowHhmm(now = new Date()): string {
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+}
+
 export function addDays(iso: string, days: number): string {
   const date = parseIsoDate(iso);
   date.setDate(date.getDate() + days);
@@ -86,4 +90,8 @@ const numberFormatter = new Intl.NumberFormat("pt-BR");
 
 export function formatNumber(value: number): string {
   return numberFormatter.format(value);
+}
+
+export function count(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`;
 }

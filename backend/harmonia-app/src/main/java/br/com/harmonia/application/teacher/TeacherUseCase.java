@@ -55,7 +55,7 @@ public class TeacherUseCase {
         this.students = students;
     }
 
-    public record DashboardSummary(int totalStudents, int attendancePercent, int weeklyPracticeMin,
+    public record DashboardSummary(int totalStudents, int attendancePercent, long attendanceRecorded, int weeklyPracticeMin,
                                    List<String> classes, String selectedClass, List<Lesson> todayLessons,
                                    List<Lesson> upcomingLessons) {}
 
@@ -86,7 +86,7 @@ public class TeacherUseCase {
             .stream().filter(item -> enrollmentIds.contains(item.getEnrollment().getId()) && item.getStatus() == LessonStatus.SCHEDULED)
             .sorted(Comparator.comparing(Lesson::getDate).thenComparing(Lesson::getStartTime))
             .limit(3).toList();
-        return new DashboardSummary(studentIds.size(), attendancePercent, weeklyPracticeMin,
+        return new DashboardSummary(studentIds.size(), attendancePercent, recorded, weeklyPracticeMin,
             classes, selectedClass, todayLessons, upcomingLessons);
     }
 

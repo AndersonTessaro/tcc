@@ -27,6 +27,20 @@ class AttendanceRecordingRuleTest {
     }
 
     @Test
+    void lessonLaterToday_rejectsAttendanceUntilItStarts() {
+        java.time.LocalTime start = java.time.LocalTime.of(19, 0);
+        assertThatThrownBy(() -> rule.validateRecordable(SessionStatus.SCHEDULED, today, start, today.atTime(17, 0)))
+            .isInstanceOf(DomainValidationException.class)
+            .hasMessageContaining("before the lesson starts");
+        assertThatCode(() -> rule.validateRecordable(SessionStatus.SCHEDULED, today, start, today.atTime(19, 0)))
+            .doesNotThrowAnyException();
+        assertThatCode(() -> rule.validateRecordable(SessionStatus.DONE, today.minusDays(1), start, today.atTime(8, 0)))
+            .doesNotThrowAnyException();
+        assertThatCode(() -> rule.validateRecordable(SessionStatus.SCHEDULED, today, null, today.atTime(8, 0)))
+            .doesNotThrowAnyException();
+    }
+
+    @Test
     void scheduledOrDoneLessonOnOrBeforeToday_acceptsAttendance() {
         assertThatCode(() -> rule.validateRecordable(SessionStatus.SCHEDULED, today, today)).doesNotThrowAnyException();
         assertThatCode(() -> rule.validateRecordable(SessionStatus.DONE, today.minusDays(3), today))

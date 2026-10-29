@@ -6,6 +6,7 @@ import { studentTabs } from "@/components/student-tabs";
 import { haptics } from "@/lib/haptics";
 
 let mockSegments: string[] = [];
+let mockParams: { from?: string } = {};
 let mockKeyboardVisible = false;
 let mockUser: { authorities: string[] } = { authorities: ["ROLE_STUDENT"] };
 jest.mock("@/features/auth/useAuth", () => ({ useAuth: () => ({ user: mockUser }) }));
@@ -14,6 +15,7 @@ jest.mock("expo-router", () => ({
   Stack: () => null,
   useRouter: () => ({ dismissTo: mockDismissTo }),
   useSegments: () => mockSegments,
+  useGlobalSearchParams: () => mockParams,
 }));
 jest.mock("@/hooks/use-keyboard-visible", () => ({ useKeyboardVisible: () => mockKeyboardVisible }));
 jest.mock("@/lib/haptics", () => ({ haptics: { select: jest.fn() } }));
@@ -21,7 +23,15 @@ jest.mock("@/lib/haptics", () => ({ haptics: { select: jest.fn() } }));
 beforeEach(() => {
   jest.clearAllMocks();
   mockKeyboardVisible = false;
+  mockParams = {};
   mockUser = { authorities: ["ROLE_STUDENT"] };
+});
+
+it("selects Mais for goals opened from the Mais menu", async () => {
+  mockSegments = ["(student)", "goals"];
+  mockParams = { from: "more" };
+  await render(<StudentLayout />);
+  expect(screen.getByRole("tab", { name: "Mais", selected: true })).toBeVisible();
 });
 
 it.each([

@@ -16,17 +16,18 @@ type SlotPlannerProps = {
   verified: boolean;
   startTime: string;
   durationMin: number;
+  earliestStart?: string | null;
   onPickStart: (start: string) => void;
   onUseSchedule: (block: AvailabilityBlock) => void;
 };
 
 const range = (block: AvailabilityBlock) => `${shortTime(block.startTime)}–${shortTime(block.endTime)}`;
 
-export function SlotPlanner({ availability, checking, error, verified, startTime, durationMin, onPickStart, onUseSchedule }: SlotPlannerProps) {
+export function SlotPlanner({ availability, checking, error, verified, startTime, durationMin, earliestStart = null, onPickStart, onUseSchedule }: SlotPlannerProps) {
   const busy = availability?.busy ?? [];
   const fulfilled = availability?.fulfilledSchedule ?? null;
   const usingSchedule = !!fulfilled && shortTime(fulfilled.startTime) === startTime;
-  const suggestions = availability ? nextFreeStarts(busy, durationMin, null, 8) : [];
+  const suggestions = availability ? nextFreeStarts(busy, durationMin, earliestStart, 8) : [];
 
   return (
     <View style={styles.wrapper}>

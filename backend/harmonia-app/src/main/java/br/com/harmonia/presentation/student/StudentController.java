@@ -69,7 +69,7 @@ public class StudentController {
         this.dashboard = dashboard;
     }
 
-    public record RegisterPractice(@Min(1) int durationMin, LocalDate date, @Size(max = 500) String notes,
+    public record RegisterPractice(@Min(1) @Max(1440) int durationMin, LocalDate date, @Size(max = 500) String notes,
                                    @Size(max = 255) String difficulty, @Min(1) @Max(5) Integer rating) {}
     public record AttendanceResponse(LocalDate date, AttendanceStatus status) {}
     public record NewGoal(@NotBlank @Size(max = 150) String title, @Size(max = 500) String description,
@@ -136,7 +136,7 @@ public class StudentController {
     @PostMapping("/practices")
     @PreAuthorize("hasAuthority('practice.register')")
     public ProgressResponse registerPractice(@Valid @RequestBody RegisterPractice r) {
-        return ProgressResponse.of(practice.register(r.durationMin(), r.date() == null ? LocalDate.now() : r.date(),
+        return ProgressResponse.of(practice.register(r.durationMin(), r.date(),
             r.notes(), r.difficulty(), r.rating()));
     }
 

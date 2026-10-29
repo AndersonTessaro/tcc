@@ -14,6 +14,13 @@ describe("agenda", () => {
     expect(canRecordAttendance({ status: "DONE", date: "2026-09-01" }, "2026-09-22")).toBe(true);
   });
 
+  it("keeps a lesson later today closed until it starts", () => {
+    const lesson = { status: "SCHEDULED" as const, date: "2026-09-22", startTime: "19:00:00" };
+    expect(canRecordAttendance(lesson, "2026-09-22", "17:05")).toBe(false);
+    expect(canRecordAttendance(lesson, "2026-09-22", "19:00")).toBe(true);
+    expect(canRecordAttendance({ ...lesson, date: "2026-09-21" }, "2026-09-22", "08:00")).toBe(true);
+  });
+
   it("offers complete/cancel for scheduled lessons and makeup for finished ones", () => {
     expect(lessonActions({ status: "SCHEDULED", date: "2026-09-22" }, "2026-09-22")).toEqual({
       canComplete: true,

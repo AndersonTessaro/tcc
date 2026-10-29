@@ -27,7 +27,7 @@ jest.mock("@/features/notifications/notificationService", () => ({ notificationS
 
 it.each([
   [StudentDashboard, "Olá, Ana!"], [StudentLessons, "Minhas aulas"], [StudentPractice, "Práticas em casa"],
-  [StudentProgress, "Meu progresso"], [StudentMore, "Mais"], [TeacherDashboard, "Olá, Professor!"],
+  [StudentProgress, "Meu progresso"], [StudentMore, "Mais"], [TeacherDashboard, "Olá, Ana!"],
   [TeacherStudents, "Alunos"], [TeacherSchedule, "Agenda"], [TeacherReports, "Relatórios"], [TeacherMore, "Mais"],
 ])("keeps the %s header outside scrolling content", async (Component, title) => {
   await render(<Component />);

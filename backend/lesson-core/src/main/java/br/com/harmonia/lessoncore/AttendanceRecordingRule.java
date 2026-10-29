@@ -1,6 +1,8 @@
 package br.com.harmonia.lessoncore;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Objects;
 
 public final class AttendanceRecordingRule {
@@ -14,6 +16,16 @@ public final class AttendanceRecordingRule {
         }
         if (lessonDate.isAfter(today)) {
             throw new DomainValidationException("Attendance cannot be recorded before the lesson date");
+        }
+    }
+
+    /** Same as the date-only check, plus: a lesson later today is not recordable until it starts. */
+    public void validateRecordable(SessionStatus lessonStatus, LocalDate lessonDate, LocalTime startTime,
+                                   LocalDateTime now) {
+        Objects.requireNonNull(now, "now is required");
+        validateRecordable(lessonStatus, lessonDate, now.toLocalDate());
+        if (startTime != null && lessonDate.isEqual(now.toLocalDate()) && now.toLocalTime().isBefore(startTime)) {
+            throw new DomainValidationException("Attendance cannot be recorded before the lesson starts");
         }
     }
 

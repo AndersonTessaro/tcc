@@ -62,5 +62,5 @@ it("uses the server level bounds when the dashboard reports the same level", asy
 
   expect(await screen.findByText("Faltam 350 XP para o nível 3")).toBeVisible();
   expect(screen.getByText("50%")).toBeVisible();
-  expect(screen.getByText("1 presenças em 2 aulas registradas")).toBeVisible();
+  expect(screen.getByText("1 presença em 2 aulas registradas")).toBeVisible();
 });

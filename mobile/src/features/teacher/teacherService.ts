@@ -97,6 +97,7 @@ export type LessonAvailability = {
 export type TeacherDashboardData = {
   totalStudents: number;
   attendancePercent: number;
+  attendanceRecorded?: number;
   weeklyPracticeMin: number;
   classes: string[];
   selectedClass: string;

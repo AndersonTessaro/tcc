@@ -1,4 +1,4 @@
-import { formatDayMonth, formatMinutes } from "@/lib/format";
+import { count, formatDayMonth, formatMinutes } from "@/lib/format";
 import type { ChipOption } from "@/ui/Chip";
 import type { Goal, GoalPeriod, GoalType } from "./goalService";
 
@@ -32,9 +32,9 @@ export function suggestedGoalTitle(type: GoalType, period: GoalPeriod, target: n
 
 export function goalProgressText(goal: Goal): string {
   if (goal.type === "PRACTICE_TIME") return goalDuration(goal.currentProgress) + " de " + goalDuration(goal.target);
-  const unit = goal.type === "PRACTICE_DAYS" || goal.type === "STREAK" ? "dias"
-    : goal.type === "ATTENDANCE" ? "presenças" : goal.type === "LESSONS" ? "aulas" : "unidades";
-  return goal.currentProgress + " de " + goal.target + " " + unit;
+  const [one, many] = goal.type === "PRACTICE_DAYS" || goal.type === "STREAK" ? ["dia", "dias"]
+    : goal.type === "ATTENDANCE" ? ["presença", "presenças"] : goal.type === "LESSONS" ? ["aula", "aulas"] : ["unidade", "unidades"];
+  return goal.currentProgress + " de " + count(goal.target, one, many);
 }
 
 export function goalPeriodText(goal: Goal): string | null {

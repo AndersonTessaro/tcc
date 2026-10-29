@@ -75,6 +75,7 @@ public class TeacherController {
         return Map.of(
             "totalStudents", summary.totalStudents(),
             "attendancePercent", summary.attendancePercent(),
+            "attendanceRecorded", summary.attendanceRecorded(),
             "weeklyPracticeMin", summary.weeklyPracticeMin(),
             "classes", summary.classes(),
             "selectedClass", summary.selectedClass(),

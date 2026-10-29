@@ -29,9 +29,7 @@ export function percentLabel(rate: number | null): string {
   return rate == null ? "—" : `${rate}%`;
 }
 
-export function count(n: number, one: string, many: string): string {
-  return `${n} ${n === 1 ? one : many}`;
-}
+export { count } from "@/lib/format";
 
 export function ratingLabel(rating: number | null): string {
   return rating == null ? "—" : rating.toFixed(1).replace(".", ",");

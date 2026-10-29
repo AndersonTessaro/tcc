@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import RegisterPractice from "@/app/(student)/practice/register";
 import { studentService } from "@/features/student/studentService";
 import { ApiError } from "@/lib/http/apiError";
-import { todayIso } from "@/lib/format";
+import { addDays, todayIso } from "@/lib/format";
 import * as DocumentPicker from "expo-document-picker";
 import { RECORDING_MAX_BYTES } from "@/features/student/recording";
 
@@ -83,10 +83,15 @@ it("keeps date and duration editable and lets shortcuts fill them", async () => 
     await fireEvent.press(screen.getByRole("radio", { name: "1h" }));
     expect(screen.getByLabelText("Tempo de prática em minutos")).toHaveProp("value", "60");
     expect(screen.getByLabelText("Data").props.value).not.toBe(todayIso());
-    await fireEvent(screen.getByLabelText("Data"), "change", { currentTarget: { value: "2026-07-08" } });
+    await fireEvent(screen.getByLabelText("Data"), "change", { currentTarget: { value: addDays(todayIso(), -31) } });
+    await fireEvent.press(screen.getByRole("button", { name: "Salvar registro" }));
+    expect(screen.getByText("Só dá para registrar práticas dos últimos 30 dias.")).toBeVisible();
+    expect(service.registerPractice).not.toHaveBeenCalled();
+
+    await fireEvent(screen.getByLabelText("Data"), "change", { currentTarget: { value: addDays(todayIso(), -10) } });
     await fireEvent.changeText(screen.getByLabelText("Tempo de prática em minutos"), "90");
     await fireEvent.press(screen.getByRole("button", { name: "Salvar registro" }));
-    expect(service.registerPractice).toHaveBeenCalledWith({ durationMin: 90, date: "2026-07-08" });
+    expect(service.registerPractice).toHaveBeenCalledWith({ durationMin: 90, date: addDays(todayIso(), -10) });
   } finally {
     platform.restore();
   }

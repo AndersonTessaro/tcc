@@ -62,20 +62,31 @@ class StudentFlowIT {
             .andExpect(jsonPath("$.length()", is(5)))
             .andExpect(jsonPath("$.student").doesNotHaveJsonPath());
 
-        // 2nd practice 120 min same day -> xp 180, level 2
+        // 2nd practice 120 min same day -> practice XP is capped at 120 per day, level 2
         mvc.perform(post("/me/practices").header("Authorization", "Bearer " + t)
                 .contentType("application/json").content("{\"durationMin\":120}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.practiceId").isString())
-            .andExpect(jsonPath("$.xpTotal", is(180)))
+            .andExpect(jsonPath("$.xpTotal", is(120)))
             .andExpect(jsonPath("$.level", is(2)))
             .andExpect(jsonPath("$.totalPracticeMin", is(180)))
             .andExpect(jsonPath("$.student").doesNotHaveJsonPath());
 
+        mvc.perform(post("/me/practices").header("Authorization", "Bearer " + t)
+                .contentType("application/json").content("{\"durationMin\":30,\"date\":\"2999-01-01\"}"))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.code", is("DOMAIN_VALIDATION")));
+        mvc.perform(post("/me/practices").header("Authorization", "Bearer " + t)
+                .contentType("application/json").content("{\"durationMin\":1300}"))
+            .andExpect(status().isUnprocessableEntity());
+        mvc.perform(post("/me/practices").header("Authorization", "Bearer " + t)
+                .contentType("application/json").content("{\"durationMin\":100000}"))
+            .andExpect(status().isUnprocessableEntity());
+
         // dashboard reflects
         mvc.perform(get("/me/dashboard").header("Authorization", "Bearer " + t))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.xp", is(180)))
+            .andExpect(jsonPath("$.xp", is(120)))
             .andExpect(jsonPath("$.level", is(2)))
             .andExpect(jsonPath("$.weeklyPracticeMin", is(180)));
         mvc.perform(get("/me/practices").header("Authorization", "Bearer " + t))
