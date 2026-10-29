@@ -4,9 +4,9 @@ export type { StudentDashboard };
 
 export const fetchDashboard = (): Promise<StudentDashboard> => studentService.dashboard();
 
-export function firstName(name?: string | null): string {
+export function firstName(name?: string | null, fallback = "Aluno"): string {
   const first = name?.split(/[.@ _-]/)[0];
-  return first ? `${first.charAt(0).toUpperCase()}${first.slice(1)}` : "Aluno";
+  return first ? `${first.charAt(0).toUpperCase()}${first.slice(1)}` : fallback;
 }
 
 export function fullName(name?: string | null): string {

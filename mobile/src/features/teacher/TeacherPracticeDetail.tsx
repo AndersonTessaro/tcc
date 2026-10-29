@@ -58,8 +58,8 @@ export default function TeacherPracticeDetail() {
             <Text accessibilityRole="header" style={styles.moodLabel}>Como foi a prática?</Text>
             <View style={styles.moods}>
               {practiceMoods.map((source, index) => (
-                <View key={index} style={[styles.mood, practice.rating === index + 1 && styles.selectedMood]}>
-                  <Image source={source} accessible accessibilityRole="image" accessibilityLabel={"Avaliação " + (index + 1) + " de 5" + (practice.rating === index + 1 ? ", selecionada" : "")} style={styles.moodIcon} />
+                <View key={index} accessible accessibilityRole="image" accessibilityLabel={"Avaliação " + (index + 1) + " de 5" + (practice.rating === index + 1 ? ", selecionada" : "")} style={[styles.mood, practice.rating === index + 1 && styles.selectedMood]}>
+                  <Image source={source} accessible={false} style={styles.moodIcon} />
                 </View>
               ))}
             </View>

@@ -3,7 +3,7 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native
 import { useRouter } from "expo-router";
 import Svg, { Line, Path } from "react-native-svg";
 import { useResource } from "@/hooks/use-resource";
-import { addDays, formatMinutes, parseIsoDate, todayIso } from "@/lib/format";
+import { addDays, count, formatMinutes, parseIsoDate, todayIso } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
@@ -139,7 +139,7 @@ function ProgressCards({ data }: { data: ProgressData }) {
         <Text accessibilityRole="header" style={styles.cardTitle}>Frequência</Text>
         <Text style={styles.value}>{attendancePercent}</Text>
         {attendance.length ? (
-          <Text style={styles.caption}>{presences} presenças em {attendance.length} aulas registradas</Text>
+          <Text style={styles.caption}>{count(presences, "presença", "presenças")} em {count(attendance.length, "aula registrada", "aulas registradas")}</Text>
         ) : (
           <Text style={styles.caption}>Ainda não há presença registrada pelo professor.</Text>
         )}

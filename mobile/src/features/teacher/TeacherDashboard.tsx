@@ -3,6 +3,8 @@ import { Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, 
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useResource } from "@/hooks/use-resource";
+import { useAuth } from "@/features/auth/useAuth";
+import { firstName } from "@/features/student/dashboard";
 import { NotificationBell } from "@/features/notifications/NotificationBell";
 import { notificationService } from "@/features/notifications/notificationService";
 import { formatLessonWhen, formatMinutes, todayIso } from "@/lib/format";
@@ -23,6 +25,7 @@ const waveIcon = require("@/assets/images/figma-teacher/wave.png");
 
 export default function TeacherDashboard() {
   const router = useRouter();
+  const user = useAuth()?.user;
   const today = todayIso();
   const scrollRef = useRef<ScrollView>(null);
   useTabScrollToTop(scrollRef);
@@ -48,7 +51,7 @@ export default function TeacherDashboard() {
 
   return (
     <View style={styles.screen}>
-      <TabHeader title="Olá, Professor!" subtitle="Aqui está o resumo das suas atividades" right={<NotificationBell unreadCount={unread.data?.unreadCount ?? 0} />}>
+      <TabHeader title={`Olá, ${firstName(user?.displayName || user?.username, "Professor")}!`} subtitle="Aqui está o resumo das suas atividades" right={<NotificationBell unreadCount={unread.data?.unreadCount ?? 0} />}>
         <Image source={waveIcon} accessible={false} style={styles.wave} />
       </TabHeader>
       <ScrollView
@@ -88,7 +91,7 @@ export default function TeacherDashboard() {
               <View style={styles.metrics}>
                 <MetricCard title="Alunos" value={String(data.totalStudents)} icon="people-outline" />
                 <MetricCard title="Aulas hoje" value={String(data.todayLessons.length)} icon="calendar-outline" />
-                <MetricCard title="Frequência média" value={`${data.attendancePercent}%`} icon="document-text-outline" />
+                <MetricCard title="Frequência média" value={data.attendanceRecorded === 0 ? "—" : `${data.attendancePercent}%`} icon="document-text-outline" />
                 <MetricCard title="Prática (semana)" value={formatMinutes(data.weeklyPracticeMin)} icon="time-outline" />
               </View>
 

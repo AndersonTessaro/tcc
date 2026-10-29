@@ -118,6 +118,7 @@ describe("NewLesson screen", () => {
     });
     await render(<NewLesson />);
     await pickAna();
+    await fireEvent.changeText(screen.getByLabelText("Data"), FUTURE_DATE);
 
     expect(await screen.findByText("Horário fixo deste aluno: 15:00–16:30")).toBeVisible();
     await fireEvent.press(screen.getByRole("button", { name: "Usar horário fixo" }));

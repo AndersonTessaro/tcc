@@ -1,5 +1,5 @@
 import type { StatusTone } from "@/ui/StatusChip";
-import { addDays, parseIsoDate } from "@/lib/format";
+import { addDays, nowHhmm, parseIsoDate } from "@/lib/format";
 import type { AttendanceStatus, LessonStatus, TeacherLesson } from "./teacherService";
 
 export const ATTENDANCE_OPTIONS: { status: AttendanceStatus; label: string }[] = [
@@ -30,8 +30,13 @@ export function lessonActions(lesson: Pick<TeacherLesson, "status" | "date">, to
   };
 }
 
-export function canRecordAttendance(lesson: Pick<TeacherLesson, "status" | "date">, today: string): boolean {
-  return lesson.status !== "CANCELED" && lesson.date <= today;
+export function canRecordAttendance(
+  lesson: Pick<TeacherLesson, "status" | "date"> & Partial<Pick<TeacherLesson, "startTime">>,
+  today: string,
+  nowTime = nowHhmm(),
+): boolean {
+  if (lesson.status === "CANCELED" || lesson.date > today) return false;
+  return lesson.date < today || !lesson.startTime || hhmm(lesson.startTime) <= nowTime;
 }
 
 const STATUS_TONE: Record<LessonStatus, StatusTone> = {

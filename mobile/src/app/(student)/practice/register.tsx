@@ -37,6 +37,7 @@ const DURATION_OPTIONS: ChipOption<DurationChoice>[] = [
 
 const MAX_NOTES_LENGTH = 255;
 const MAX_MINUTES = 24 * 60;
+const MAX_BACKDATE_DAYS = 30;
 
 function practiceDate(choice: DateChoice, otherDate: string): string {
   if (choice === "today") return todayIso();
@@ -95,7 +96,8 @@ export default function RegisterPractice() {
     const minutes = practiceMinutes(customMinutes);
     const notes = what.trim();
     const nextErrors = {
-      date: !isValidIsoDate(date) || date > todayIso() ? "Escolha uma data até hoje." : undefined,
+      date: !isValidIsoDate(date) || date > todayIso() ? "Escolha uma data até hoje."
+        : date < addDays(todayIso(), -MAX_BACKDATE_DAYS) ? "Só dá para registrar práticas dos últimos 30 dias." : undefined,
       minutes: minutes < 1 || minutes > MAX_MINUTES ? "Informe os minutos praticados (1 a 1440)." : undefined,
       notes: notes.length > MAX_NOTES_LENGTH ? `Resuma a descrição para até ${MAX_NOTES_LENGTH} caracteres.` : undefined,
     };
@@ -171,6 +173,7 @@ export default function RegisterPractice() {
             fieldStyle={styles.field}
             value={practiceDate(dateChoice, otherDate)}
             onChange={(value) => { setOtherDate(value); setDateChoice("other"); }}
+            minimumDate={parseIsoDate(addDays(todayIso(), -MAX_BACKDATE_DAYS))}
             maximumDate={parseIsoDate(todayIso())}
             error={errors.date}
           />

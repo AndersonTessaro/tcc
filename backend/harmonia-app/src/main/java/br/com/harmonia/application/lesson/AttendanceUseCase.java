@@ -15,7 +15,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,14 +26,16 @@ public class AttendanceUseCase {
     private final LessonRepository lessons;
     private final CurrentUserService current;
     private final ApplicationEventPublisher events;
+    private final Clock clock;
     private final AttendanceRecordingRule recordingRule = new AttendanceRecordingRule();
 
     public AttendanceUseCase(AttendanceRepository attendances, LessonRepository lessons,
-                             CurrentUserService current, ApplicationEventPublisher events) {
+                             CurrentUserService current, ApplicationEventPublisher events, Clock clock) {
         this.attendances = attendances;
         this.lessons = lessons;
         this.current = current;
         this.events = events;
+        this.clock = clock;
     }
 
     @Transactional
@@ -41,7 +43,7 @@ public class AttendanceUseCase {
         Lesson lesson = lessons.findById(lessonId).orElseThrow(() -> new ResourceNotFoundException("Lesson"));
         current.assertOwnedByCurrentTeacher(lesson.getEnrollment());
         recordingRule.validateRecordable(LessonStatuses.toSessionStatus(lesson.getStatus()), lesson.getDate(),
-            LocalDate.now());
+            lesson.getStartTime(), LocalDateTime.now(clock));
 
         Optional<Attendance> existing = attendances.findByLessonId(lessonId);
         AttendanceOutcome previousOutcome = existing.map(a -> toOutcome(a.getStatus())).orElse(null);

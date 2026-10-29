@@ -48,6 +48,16 @@ class GamificationServiceTest {
         assertEquals(1, s.newStreak(5, LocalDate.of(2026, 5, 28), LocalDate.of(2026, 5, 31)));
     }
 
+    @Test void xpFromPractice_capIsSharedAcrossTheDay() {
+        assertEquals(60, s.xpFromPractice(60, 0));
+        assertEquals(20, s.xpFromPractice(60, 100));
+        assertEquals(0, s.xpFromPractice(60, 120));
+    }
+
+    @Test void streak_keepsWhenBackdated() {
+        assertEquals(5, s.newStreak(5, LocalDate.of(2026, 5, 31), LocalDate.of(2026, 5, 20)));
+    }
+
     @Test void streak_oneWhenFirstPractice() {
         assertEquals(1, s.newStreak(0, null, LocalDate.of(2026, 5, 31)));
     }

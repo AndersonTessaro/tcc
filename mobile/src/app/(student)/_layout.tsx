@@ -1,4 +1,4 @@
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack, useGlobalSearchParams, useRouter, useSegments } from "expo-router";
 import { StyleSheet, View } from "react-native";
 import { AppTabBarView } from "@/components/app-tab-bar";
 import { studentTabs } from "@/components/student-tabs";
@@ -20,6 +20,8 @@ export default function StudentLayout() {
   const router = useRouter();
   const segments = useSegments();
   const route = segments[segments.indexOf("(student)") + 1];
+  // Screens reachable from two tabs (goals: Progresso and Mais) say which one opened them.
+  const { from } = useGlobalSearchParams<{ from?: string }>();
   const { user } = useAuth();
   const onSelect = (name: string) => {
     haptics.select();
@@ -32,7 +34,7 @@ export default function StudentLayout() {
   return (
     <View style={styles.screen}>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.screen } }} />
-      {!segments.includes("(tabs)") ? <AppTabBarView tabs={studentTabs} activeName={activeTabs[route]} onSelect={onSelect} /> : null}
+      {!segments.includes("(tabs)") ? <AppTabBarView tabs={studentTabs} activeName={from === "more" ? "more" : activeTabs[route]} onSelect={onSelect} /> : null}
     </View>
   );
 }

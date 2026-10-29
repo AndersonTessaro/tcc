@@ -67,7 +67,7 @@ class TeacherFlowIT {
         String lessonBody = mvc.perform(post("/teacher/lessons").header("Authorization", "Bearer " + t)
                 .contentType("application/json")
                 .content("{\"enrollmentId\":\"" + enrollment + "\",\"date\":\"" + today
-                    + "\",\"startTime\":\"10:00\",\"endTime\":\"11:00\",\"content\":\"Scale\"}"))
+                    + "\",\"startTime\":\"00:00\",\"endTime\":\"01:00\",\"content\":\"Scale\"}"))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         String lessonId = JsonPath.read(lessonBody, "$.id");
 
@@ -161,5 +161,11 @@ class TeacherFlowIT {
             .andExpect(status().isForbidden());
         mvc.perform(get("/teacher/materials/" + UUID.randomUUID() + "/download").header("Authorization", "Bearer " + t))
             .andExpect(status().isNotFound());
+
+        var disguised = new MockMultipartFile("file", "fake.pdf", "application/pdf", "MZ executable".getBytes());
+        mvc.perform(multipart("/teacher/students/" + student + "/materials")
+                .file(disguised).param("title", "Disguised").header("Authorization", "Bearer " + t))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.code").value("DOMAIN_VALIDATION"));
     }
 }

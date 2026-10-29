@@ -59,7 +59,7 @@ export default function More() {
         <View>
           <ListRow variant="plain" title="Materiais" subtitle="Arquivos enviados pelo professor" leading={<Ionicons name="document-text-outline" size={26} color={colors.text} accessible={false} />} onPress={() => router.push("/(student)/materials")} />
           <ListRow variant="plain" title="Observações do professor" leading={<Ionicons name="chatbox-ellipses-outline" size={26} color={colors.text} accessible={false} />} onPress={() => router.push("/(student)/teacher-notes")} />
-          <ListRow variant="plain" title="Minhas metas" subtitle="Acompanhe e crie metas" leading={<Ionicons name="flag-outline" size={26} color={colors.text} accessible={false} />} onPress={() => router.push("/(student)/goals")} />
+          <ListRow variant="plain" title="Minhas metas" subtitle="Acompanhe e crie metas" leading={<Ionicons name="flag-outline" size={26} color={colors.text} accessible={false} />} onPress={() => router.push("/(student)/goals?from=more")} />
           <ListRow variant="plain" title="Ajuda" leading={<MenuIcon source={icons.help} />} onPress={() => alert("Ajuda", "Para dúvidas sobre aulas ou acesso, procure a secretaria da escola.")} />
           <ListRow variant="plain" title="Sair" tone="danger" leading={<MenuIcon source={icons.exit} />} onPress={signOut} />
         </View>

@@ -298,8 +298,8 @@ class LessonSchedulingIT {
         String t = login("teacherAgd", TEACHER_PASSWORD);
         String today = LocalDate.now().toString();
 
-        String late = postId(t, "/teacher/lessons", lessonBody(enrollment, today, "15:00", "16:00"));
-        String early = postId(t, "/teacher/lessons", lessonBody(enrollment, today, "08:00", "09:00"));
+        String late = postId(t, "/teacher/lessons", lessonBody(enrollment, today, "00:30", "01:00"));
+        String early = postId(t, "/teacher/lessons", lessonBody(enrollment, today, "00:00", "00:30"));
         attendance(t, late, 200);
 
         mvc.perform(get("/teacher/schedule").param("date", today).header("Authorization", "Bearer " + t))

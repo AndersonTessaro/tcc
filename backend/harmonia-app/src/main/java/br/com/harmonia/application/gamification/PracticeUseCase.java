@@ -4,6 +4,7 @@ import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.application.gamification.port.PracticeRepository;
 import br.com.harmonia.application.gamification.port.ProgressRepository;
 import br.com.harmonia.domain.gamification.GamificationService;
+import br.com.harmonia.domain.gamification.PracticeEntryRule;
 import br.com.harmonia.infrastructure.persistence.gamification.Practice;
 import br.com.harmonia.infrastructure.persistence.gamification.Progress;
 import br.com.harmonia.infrastructure.persistence.profile.Student;
@@ -42,9 +43,14 @@ public class PracticeUseCase {
     public record PracticeRegistration(Practice practice, Progress progress) {}
 
     @Transactional
-    public PracticeRegistration register(int durationMin, LocalDate date, String notes, String difficulty, Integer rating) {
+    public PracticeRegistration register(int durationMin, LocalDate requestedDate, String notes, String difficulty,
+                                         Integer rating) {
         Student student = current.currentStudent();
-        int xp = gamification.xpFromPractice(durationMin);
+        LocalDate today = LocalDate.now(clock);
+        LocalDate date = requestedDate == null ? today : requestedDate;
+        List<Practice> sameDay = practices.findByStudentIdAndDateBetween(student.getId(), date, date);
+        PracticeEntryRule.validate(durationMin, date, today, sameDay.stream().mapToInt(Practice::getDurationMin).sum());
+        int xp = gamification.xpFromPractice(durationMin, sameDay.stream().mapToInt(Practice::getXpEarned).sum());
 
         Practice practice = new Practice();
         practice.setStudent(student);
@@ -65,7 +71,7 @@ public class PracticeUseCase {
         prog.setXpTotal(prog.getXpTotal() + xp);
         prog.setLevel(gamification.level(prog.getXpTotal()));
         prog.setTotalPracticeMin(prog.getTotalPracticeMin() + durationMin);
-        prog.setLastPractice(date);
+        if (prog.getLastPractice() == null || date.isAfter(prog.getLastPractice())) prog.setLastPractice(date);
         prog.setUpdatedAt(LocalDateTime.now());
         Progress savedProgress = progresses.save(prog);
         events.publishEvent(new PracticeRecordedEvent(student.getId(), savedPractice.getId(), durationMin, date));

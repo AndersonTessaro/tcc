@@ -294,7 +294,7 @@ class LessonEditIT {
     void scheduledLessonWithAttendanceCannotBeRescheduled() throws Exception {
         String id = createLesson(future, "09:00", "10:00");
         LocalDate today = LocalDate.now();
-        update(teacher, id, today, "09:00", "10:00")
+        update(teacher, id, today, "00:00", "01:00")
             .andExpect(status().isOk()).andExpect(jsonPath("$.status", is("SCHEDULED")));
         mvc.perform(post("/teacher/lessons/" + id + "/attendance").header("Authorization", "Bearer " + teacher)
                 .contentType("application/json").content("{\"status\":\"PRESENT\"}"))

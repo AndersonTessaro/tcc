@@ -66,7 +66,7 @@ export function MaterialUpload({ studentId, onUploaded }: MaterialUploadProps) {
         onPress={pickFile}
         disabled={uploading}
       />
-      <Text style={styles.hint}>PDF, imagem, áudio ou partitura, até 50 MB.</Text>
+      <Text style={styles.hint}>PDF, imagem, áudio, vídeo ou partitura (MusicXML/MuseScore), até 50 MB.</Text>
       {error ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
       <Button label="Enviar material" icon="cloud-upload-outline" onPress={upload} loading={uploading} />
     </Card>

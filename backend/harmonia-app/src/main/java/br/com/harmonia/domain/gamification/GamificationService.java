@@ -11,6 +11,11 @@ public class GamificationService {
         return Math.min(Math.max(durationMin, 0), PRACTICE_XP_CAP);
     }
 
+    /** The cap is per day, so splitting one session into many entries earns no extra XP. */
+    public int xpFromPractice(int durationMin, int xpAlreadyEarnedOnDate) {
+        return Math.min(xpFromPractice(durationMin), Math.max(PRACTICE_XP_CAP - xpAlreadyEarnedOnDate, 0));
+    }
+
     public int xpFromAttendance() {
         return ATTENDANCE_XP;
     }
@@ -27,7 +32,7 @@ public class GamificationService {
     /** New streak of consecutive days with practice. */
     public int newStreak(int currentStreak, LocalDate lastPractice, LocalDate today) {
         if (lastPractice == null) return 1;
-        if (lastPractice.isEqual(today)) return Math.max(currentStreak, 1);
+        if (!today.isAfter(lastPractice)) return Math.max(currentStreak, 1);
         if (lastPractice.isEqual(today.minusDays(1))) return currentStreak + 1;
         return 1;
     }
