@@ -1,0 +1,76 @@
+name: Deploy
+
+# Stage 5 (main only): ship what changed to Azure Container Apps (see infra/main.bicep).
+# Auth is GitHub OIDC -> federated credential bound to refs/heads/main, so these ids are not secrets.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AZURE_CLIENT_ID: 31238b13-8987-48ac-b67b-bb55f0bb1ce5
+  AZURE_TENANT_ID: 8e2409c6-8cd2-4069-8bc3-b4c6e3e72e85
+  AZURE_SUBSCRIPTION_ID: 3e41ca9e-b54c-409c-af84-2fd2721a4d9f
+  RESOURCE_GROUP: harmonia-rg
+  REGISTRY: harmoniaacrorc0g
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'backend/**'
+            web:
+              - 'web/**'
+
+  deploy:
+    name: Deploy ${{ matrix.app }}
+    needs: changes
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: api
+            context: backend
+          - app: web
+            context: web
+    steps:
+      - name: Skip unchanged
+        if: needs.changes.outputs[matrix.app] != 'true'
+        run: echo "No changes under ${{ matrix.context }}/ - nothing to deploy."
+
+      - uses: actions/checkout@v4
+        if: needs.changes.outputs[matrix.app] == 'true'
+
+      - uses: azure/login@v2
+        if: needs.changes.outputs[matrix.app] == 'true'
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      # Built on the runner: ACR Tasks (az acr build) is blocked on the Azure for Students subscription.
+      - name: Build and push image
+        if: needs.changes.outputs[matrix.app] == 'true'
+        run: |
+          az acr login -n "$REGISTRY"
+          IMAGE="$REGISTRY.azurecr.io/harmonia-${{ matrix.app }}:${{ github.sha }}"
+          docker build -t "$IMAGE" ${{ matrix.context }}
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Roll out new revision
+        if: needs.changes.outputs[matrix.app] == 'true'
+        run: az containerapp update -g "$RESOURCE_GROUP" -n "harmonia-${{ matrix.app }}" --image "$IMAGE" --query properties.latestRevisionName -o tsv
