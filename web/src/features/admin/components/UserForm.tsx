@@ -1,15 +1,24 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button, Card, Input } from "@/components/ui";
+import { Button, Field, Input } from "@/components/ui";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import type { InstrumentOption, NewUser } from "../adminService";
 import { InstrumentChecklist } from "./InstrumentChecklist";
 
 const EMPTY_USER: NewUser = { username: "", email: "", password: "", name: "" };
 
-export function UserForm({ label, onSubmit, instruments }: {
+const FIELDS = [
+  { key: "name", title: "Nome", type: "text", maxLength: 150, autoComplete: "off", hint: undefined },
+  { key: "username", title: "Usuário", type: "text", maxLength: 100, autoComplete: "off", hint: "Usado para entrar no app." },
+  { key: "email", title: "E-mail", type: "email", maxLength: 255, autoComplete: "off", hint: undefined },
+  { key: "password", title: "Senha", type: "password", maxLength: undefined, autoComplete: "new-password",
+    hint: "Senha inicial, com pelo menos 8 caracteres." },
+] as const;
+
+export function UserForm({ label, onSubmit, onDone, instruments }: {
   label: string;
   onSubmit: (user: NewUser, instrumentIds: string[]) => Promise<unknown>;
+  onDone?: () => void;
   instruments?: InstrumentOption[];
 }) {
   const [user, setUser] = useState(EMPTY_USER);
@@ -21,36 +30,32 @@ export function UserForm({ label, onSubmit, instruments }: {
     setSaving(true);
     try {
       await onSubmit(user, instrumentIds);
-      toast.success(`${label} criado`);
+      toast.success(`${label} cadastrado`);
       setUser(EMPTY_USER);
       setInstrumentIds([]);
+      onDone?.();
     } catch (error) {
-      toast.error(apiErrorMessage(error, `Erro ao criar ${label.toLowerCase()}`));
+      toast.error(apiErrorMessage(error, `Erro ao cadastrar ${label.toLowerCase()}`));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Card>
-      <p className="mb-3 font-medium">Novo {label.toLowerCase()}</p>
-      <form onSubmit={save} className="space-y-2">
-        <fieldset disabled={saving} className="space-y-2">
-          {([
-            ["username", "Usuário", "text", 100], ["email", "E-mail", "email", 255],
-            ["password", "Senha", "password", undefined], ["name", "Nome", "text", 150],
-          ] as const).map(([key, title, type, maxLength]) => (
-            <label key={key} className="block text-sm text-gray-700">
-              {title}
-              <Input className="mt-1" placeholder={title} type={type} required maxLength={maxLength}
-                minLength={key === "password" ? 8 : undefined} value={user[key]}
-                onChange={(event) => setUser({ ...user, [key]: event.target.value })} />
-            </label>
-          ))}
-          {instruments && <InstrumentChecklist instruments={instruments} selected={instrumentIds} onChange={setInstrumentIds} />}
-          <Button type="submit" disabled={saving}>Criar {label.toLowerCase()}</Button>
-        </fieldset>
-      </form>
-    </Card>
+    <form onSubmit={save}>
+      <fieldset disabled={saving} className="space-y-4">
+        {FIELDS.map(({ key, title, type, maxLength, autoComplete, hint }) => (
+          <Field key={key} label={title} hint={hint}>
+            <Input type={type} required maxLength={maxLength} autoComplete={autoComplete}
+              minLength={key === "password" ? 8 : undefined} value={user[key]}
+              onChange={(event) => setUser({ ...user, [key]: event.target.value })} />
+          </Field>
+        ))}
+        {instruments && <InstrumentChecklist instruments={instruments} selected={instrumentIds} onChange={setInstrumentIds} />}
+        <Button type="submit" className="w-full" disabled={saving}>
+          {saving ? "Salvando…" : `Cadastrar ${label.toLowerCase()}`}
+        </Button>
+      </fieldset>
+    </form>
   );
 }

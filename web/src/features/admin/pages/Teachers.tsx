@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button, Card, Input, PageTitle } from "@/components/ui";
+import { Badge, Button, Card, Drawer, Input, PageHeader, Table, Toolbar, cell } from "@/components/ui";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { adminService } from "../adminService";
 import type { InstrumentOption, NewUser, TeacherOption } from "../adminService";
@@ -8,58 +8,95 @@ import { InstrumentChecklist } from "../components/InstrumentChecklist";
 import { UserForm } from "../components/UserForm";
 import { ListState } from "../components/ListState";
 import { useAdminList } from "../hooks/useAdminList";
+import { useCreateDrawer } from "../hooks/useCreateDrawer";
+import { matches } from "../format";
+
+const COLUMNS = [
+  { label: "Nome" }, { label: "Usuário" }, { label: "Instrumentos" },
+  { label: "Alunos ativos", align: "right" as const }, { label: "Ações", align: "right" as const },
+];
 
 const loadTeachers = async () => {
-  const [teachers, instruments] = await Promise.all([adminService.teachers(), adminService.instruments()]);
-  return { teachers, instruments };
+  const [teachers, instruments, enrollments] = await Promise.all([
+    adminService.teachers(), adminService.instruments(), adminService.enrollments("ACTIVE"),
+  ]);
+  return { teachers, instruments, enrollments };
 };
 
 export default function Teachers() {
   const { data, loading, error, reload } = useAdminList(loadTeachers,
-    { teachers: [], instruments: [] }, "Erro ao carregar professores e instrumentos");
+    { teachers: [], instruments: [], enrollments: [] }, "Erro ao carregar professores e instrumentos");
   const [search, setSearch] = useState("");
-  const filtered = data.teachers.filter((teacher) => `${teacher.name} ${teacher.username}`.toLocaleLowerCase("pt-BR")
-    .includes(search.trim().toLocaleLowerCase("pt-BR")));
+  const [editing, setEditing] = useState<TeacherOption | null>(null);
+  const creating = useCreateDrawer();
+  const filtered = data.teachers.filter((teacher) => matches(`${teacher.name} ${teacher.username}`, search));
+  const activeStudents = (teacherId: string) =>
+    new Set(data.enrollments.filter((enrollment) => enrollment.teacher.id === teacherId).map((e) => e.student.id)).size;
   const create = async (user: NewUser, instrumentIds: string[]) => {
     await adminService.createTeacher({ ...user, instrumentIds });
     await reload();
   };
+  const newButton = <Button onClick={creating.show}>Novo professor</Button>;
 
   return (
-    <div className="space-y-4">
-      <PageTitle>Professores</PageTitle>
-      <Card className="overflow-x-auto">
-        <label className="block text-sm text-gray-700">Buscar professores
-          <Input className="mt-1" value={search} onChange={(event) => setSearch(event.target.value)} />
-        </label>
-        <ListState loading={loading} error={error} empty={!filtered.length} emptyMessage="Nenhum professor encontrado" />
+    <>
+      <PageHeader title="Professores" count={loading ? undefined : `${data.teachers.length}`}
+        description="Só é possível matricular um aluno em um instrumento que o professor ensina." actions={newButton} />
+      <Card>
+        <Toolbar>
+          <Input type="search" aria-label="Buscar professores" placeholder="Buscar por nome ou usuário" autoComplete="off"
+            spellCheck={false} className="max-w-sm" value={search} onChange={(event) => setSearch(event.target.value)} />
+        </Toolbar>
+        <ListState loading={loading} error={error} empty={!filtered.length} emptyMessage="Nenhum professor encontrado"
+          emptyAction={!search ? newButton : undefined} />
         {!loading && !error && filtered.length > 0 && (
-          <table className="mt-4 w-full text-left text-sm">
-            <thead><tr><th className="p-3">Nome</th><th className="p-3">Usuário</th><th className="p-3">Instrumentos</th></tr></thead>
-            <tbody>{filtered.map((teacher) => <TeacherRow key={teacher.id} teacher={teacher}
-              instruments={data.instruments} onSaved={reload} />)}</tbody>
-          </table>
+          <Table columns={COLUMNS}>
+            {filtered.map((teacher) => (
+              <tr key={teacher.id} className="hover:bg-canvas/60">
+                <td className={`${cell} font-semibold text-ink`}>{teacher.name}</td>
+                <td className={`${cell} text-ink-muted`}>{teacher.username}</td>
+                <td className={cell}>
+                  {teacher.instruments.length
+                    ? <div className="flex flex-wrap gap-1">{teacher.instruments.map((i) => <Badge key={i.id} tone="brand">{i.name}</Badge>)}</div>
+                    : <Badge tone="warning">Sem instrumentos</Badge>}
+                </td>
+                <td className={`${cell} tabular text-right`}>{activeStudents(teacher.id)}</td>
+                <td className={`${cell} text-right`}>
+                  <Button variant="secondary" size="sm" aria-label={`Editar instrumentos de ${teacher.name}`}
+                    onClick={() => setEditing(teacher)}>Instrumentos</Button>
+                </td>
+              </tr>
+            ))}
+          </Table>
         )}
       </Card>
-      {!loading && !error && <UserForm label="Professor" instruments={data.instruments} onSubmit={create} />}
-    </div>
+
+      <Drawer open={editing !== null} title={`Instrumentos de ${editing?.name ?? ""}`}
+        description="Marque o que este professor ensina." onClose={() => setEditing(null)}>
+        {editing && <TeacherInstruments key={editing.id} teacher={editing} instruments={data.instruments}
+          onSaved={async () => { setEditing(null); await reload(); }} />}
+      </Drawer>
+
+      <Drawer open={creating.open} title="Novo professor" description="O professor entra no app com o usuário e a senha definidos aqui."
+        onClose={creating.hide}>
+        <UserForm label="Professor" instruments={data.instruments} onSubmit={create} onDone={creating.hide} />
+      </Drawer>
+    </>
   );
 }
 
-function TeacherRow({ teacher, instruments, onSaved }: {
+function TeacherInstruments({ teacher, instruments, onSaved }: {
   teacher: TeacherOption;
   instruments: InstrumentOption[];
   onSaved: () => Promise<void>;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState(() => teacher.instruments.map((instrument) => instrument.id));
   const [saving, setSaving] = useState(false);
   const save = async () => {
     setSaving(true);
     try {
       await adminService.setTeacherInstruments(teacher.id, selected);
       toast.success("Instrumentos do professor atualizados");
-      setEditing(false);
       await onSaved();
     } catch (cause) {
       toast.error(apiErrorMessage(cause, "Erro ao salvar instrumentos"));
@@ -69,23 +106,9 @@ function TeacherRow({ teacher, instruments, onSaved }: {
   };
 
   return (
-    <tr className="border-t border-gray-100 align-top">
-      <td className="p-3">{teacher.name}</td><td className="p-3">{teacher.username}</td>
-      <td className="space-y-2 p-3">
-        {editing ? <fieldset disabled={saving}>
-          <InstrumentChecklist instruments={instruments} selected={selected} onChange={setSelected} />
-          <div className="mt-2 flex gap-2">
-            <Button onClick={save} disabled={saving}>Salvar instrumentos</Button>
-            <Button variant="ghost" onClick={() => setEditing(false)} disabled={saving}>Cancelar</Button>
-          </div>
-        </fieldset> : <>
-          <p>{teacher.instruments.map((instrument) => instrument.name).join(", ") || "Sem instrumentos"}</p>
-          <Button variant="ghost" onClick={() => {
-            setSelected(teacher.instruments.map((instrument) => instrument.id));
-            setEditing(true);
-          }}>Editar instrumentos</Button>
-        </>}
-      </td>
-    </tr>
+    <fieldset disabled={saving} className="space-y-5">
+      <InstrumentChecklist instruments={instruments} selected={selected} onChange={setSelected} />
+      <Button className="w-full" onClick={save} disabled={saving}>{saving ? "Salvando…" : "Salvar instrumentos"}</Button>
+    </fieldset>
   );
 }

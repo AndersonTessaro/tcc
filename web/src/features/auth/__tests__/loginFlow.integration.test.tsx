@@ -39,6 +39,9 @@ const routeFetch = (input: RequestInfo | URL): Promise<Response> => {
   if (url.endsWith("/admin/security/roles")) return Promise.resolve(jsonResponse(200, USERS[0].roles));
   if (url.endsWith("/admin/students"))
     return Promise.resolve(jsonResponse(200, [{ id: "s-1", name: "Ana Souza", username: "ana" }]));
+  if (url.endsWith("/admin/teachers")) return Promise.resolve(jsonResponse(200, []));
+  if (url.includes("/admin/enrollments")) return Promise.resolve(jsonResponse(200, []));
+  if (url.endsWith("/admin/finance/balance")) return Promise.resolve(jsonResponse(200, { balance: 0 }));
   return Promise.resolve(jsonResponse(404, {}));
 };
 
@@ -63,10 +66,10 @@ describe("web admin login flow", () => {
     await renderApp();
 
     expect(await screen.findByPlaceholderText("E-mail ou usuário")).toBeInTheDocument();
-    expect(screen.getByText("Configurador administrativo")).toBeInTheDocument();
+    expect(screen.getByText("Administração da escola")).toBeInTheDocument();
   });
 
-  it("signs an admin in and lands on the user management page", async () => {
+  it("signs an admin in and lands on the school overview", async () => {
     await renderApp();
 
     fireEvent.change(await screen.findByPlaceholderText("E-mail ou usuário"), {
@@ -75,9 +78,9 @@ describe("web admin login flow", () => {
     fireEvent.change(screen.getByPlaceholderText("Senha"), { target: { value: "Admin@123" } });
     fireEvent.submit(screen.getByRole("button", { name: "Entrar" }).closest("form")!);
 
-    // "Usuários" shows up twice once logged in: sidebar link + page title.
-    expect(await screen.findAllByText("Usuários")).not.toHaveLength(0);
-    await waitFor(() => expect(screen.getByText("admin@harmonia.local")).toBeInTheDocument());
+    expect(await screen.findByRole("heading", { name: "Visão geral" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("aluno sem matrícula ativa")).toBeInTheDocument());
+    expect(window.location.pathname).toBe("/admin/overview");
     expect(localStorage.getItem("harmonia_access")).toBe(ADMIN_SESSION.accessToken);
   });
 

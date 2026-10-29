@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { authService } from "../authService";
-import { Button, Card, Input } from "@/components/ui";
+import { Button, Field, Input } from "@/components/ui";
+import { AuthShell } from "./AuthShell";
 
 export default function Forgot() {
   const [email, setEmail] = useState("");
@@ -14,23 +15,23 @@ export default function Forgot() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <Card className="w-full max-w-sm">
-        <h1 className="mb-6 text-xl font-bold text-gray-900">Recuperar senha</h1>
-        {sent ? (
-          <p className="text-sm text-accent">Se o e-mail existir, enviamos as instruções.</p>
-        ) : (
-          <form onSubmit={onSubmit} className="space-y-3">
-            <Input placeholder="E-mail" autoCapitalize="none" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <Button type="submit" className="w-full">
-              Enviar
-            </Button>
-          </form>
-        )}
-        <Link to="/login" className="mt-4 block text-center text-sm text-primary">
-          Voltar ao login
-        </Link>
-      </Card>
-    </div>
+    <AuthShell title="Recuperar senha" subtitle="Enviamos um link para redefinir a senha do e-mail cadastrado.">
+      {sent ? (
+        <p role="status" className="rounded-lg bg-success-soft px-4 py-3 text-sm text-success">
+          Se o e-mail estiver cadastrado, as instruções chegam em alguns minutos.
+        </p>
+      ) : (
+        <form onSubmit={onSubmit} className="space-y-4">
+          <Field label="E-mail">
+            <Input placeholder="E-mail" type="email" autoCapitalize="none" autoComplete="email" required value={email}
+              onChange={(e) => setEmail(e.target.value)} />
+          </Field>
+          <Button type="submit" className="w-full">Enviar link</Button>
+        </form>
+      )}
+      <Link to="/login" className="mt-5 block text-center text-sm font-semibold text-primary hover:underline">
+        Voltar ao login
+      </Link>
+    </AuthShell>
   );
 }

@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "../useAuth";
-import { Button, Card, Input } from "@/components/ui";
+import { Button, Field, Input } from "@/components/ui";
+import { AuthShell } from "./AuthShell";
 
 export default function Login() {
   const { login } = useAuth();
@@ -31,21 +32,23 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <Card className="w-full max-w-sm">
-        <h1 className="mb-1 text-2xl font-bold text-gray-900">Harmonia</h1>
-        <p className="mb-6 text-sm text-gray-500">Configurador administrativo</p>
-        <form onSubmit={onSubmit} className="space-y-3">
-          <Input placeholder="E-mail ou usuário" autoCapitalize="none" value={l} onChange={(e) => setL(e.target.value)} />
-          <Input placeholder="Senha" type="password" value={s} onChange={(e) => setS(e.target.value)} />
-          <Button type="submit" className="w-full" disabled={busy}>
-            {busy ? "Entrando..." : "Entrar"}
-          </Button>
-        </form>
-        <Link to="/forgot" className="mt-4 block text-center text-sm text-primary">
-          Esqueci a senha
-        </Link>
-      </Card>
-    </div>
+    <AuthShell title="Entrar" subtitle="Administração da escola">
+      <form onSubmit={onSubmit} className="space-y-4">
+        <Field label="Usuário ou e-mail">
+          <Input placeholder="E-mail ou usuário" autoCapitalize="none" autoComplete="username" spellCheck={false}
+            required value={l} onChange={(e) => setL(e.target.value)} />
+        </Field>
+        <Field label="Senha">
+          <Input placeholder="Senha" type="password" autoComplete="current-password" required value={s}
+            onChange={(e) => setS(e.target.value)} />
+        </Field>
+        <Button type="submit" className="w-full" disabled={busy}>
+          {busy ? "Entrando…" : "Entrar"}
+        </Button>
+      </form>
+      <Link to="/forgot" className="mt-5 block text-center text-sm font-semibold text-primary hover:underline">
+        Esqueci a senha
+      </Link>
+    </AuthShell>
   );
 }
