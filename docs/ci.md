@@ -6,7 +6,7 @@ Runs concorrentes no mesmo ref são cancelados (`concurrency`).
 ## Encadeamento
 
 ```
-build ──▶ unit-tests ──▶ integration-tests ──▶ system-tests ──▶ ci-passed
+build ──▶ unit-tests ──▶ integration-tests ──▶ system-tests ──▶ ci-passed ──▶ deploy (só push em main)
 ```
 
 Cada etapa é um workflow reutilizável próprio (`on: workflow_call`), ligado pelo
@@ -22,7 +22,15 @@ app inteira de pé) só roda quando o barato já passou.
 | `.github/workflows/tests-integration.yml` | 3 — integração | `mvnw verify`; `npm run test:integration` (mobile, web) |
 | `.github/workflows/tests-system.yml` | 4 — sistema | `mvnw -pl harmonia-app -am -Psystem-tests verify` |
 
+| `.github/workflows/deploy.yml` | 5 — deploy (CD) | por app alterado (`backend/**` → `harmonia-api`, `web/**` → `harmonia-web`): `docker build` no runner, push no ACR com tag = SHA, `az containerapp update --image` |
+
 `ci-passed` agrega tudo — é o único status a exigir na branch protection de `main`.
+
+**Deploy:** login na Azure por OIDC (app `harmonia-github-deploy`, credencial federada só para
+`repo:AndersonTessaro/tcc:ref:refs/heads/main`; papéis `AcrPush` no ACR e `Contributor` no
+`harmonia-rg`). Client/tenant/subscription ids ficam no workflow — não são segredo; nenhum
+secret no repositório. Variáveis e segredos dos apps (banco, Drive) já moram no Container App e
+não são tocados. Reaplicar `infra/main.bicep` volta a imagem para a tag passada como parâmetro.
 
 ## O que é cada categoria
 
