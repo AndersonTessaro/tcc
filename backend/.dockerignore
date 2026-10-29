@@ -11,3 +11,7 @@ harmonia-app/storage/
 
 docker-compose.yml
 HELP.md
+
+# Local credentials (Drive OAuth) - never part of the build context
+secrets/
+*.log

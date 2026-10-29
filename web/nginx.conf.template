@@ -1,0 +1,20 @@
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+
+    location /api/ {
+        proxy_pass ${API_URL}/;
+        proxy_ssl_server_name on;
+        proxy_set_header Host ${API_HOST};
+        proxy_set_header X-Forwarded-Proto https;
+        # Same-origin for the browser; forwarding Origin would trip the backend's dev-only CORS list.
+        proxy_set_header Origin "";
+        # Backend scopes the refresh cookie to /auth; the browser sees it under /api/auth.
+        proxy_cookie_path /auth /api/auth;
+        client_max_body_size 51m;
+    }
+
+    location / {
+        try_files $uri /index.html;
+    }
+}
