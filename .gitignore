@@ -2,3 +2,5 @@
 *.iml
 backend/secrets/
 backend/storage/
+
+.playwright-mcp/
