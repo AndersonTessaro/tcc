@@ -4,7 +4,8 @@ import { toast } from "sonner";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
-const school = { id: "school-1", name: "Escola Harmonia", active: true, createdAt: "2026-11-01T10:00:00" };
+const school = { id: "school-1", name: "Escola Harmonia", active: true, createdAt: "2026-11-01T10:00:00",
+  managers: [{ id: "manager-1", name: "Marta", username: "marta", email: "marta@example.com", active: true }] };
 const teacher = { id: "teacher-1", name: "Carlos", username: "carlos", instruments: [{ id: "piano", name: "Piano" }] };
 const enrollment = { id: "enrollment-1", student: { id: "student-1", name: "Ana", username: "ana" },
   teacher, instrument: teacher.instruments[0], classLabel: "Piano", status: "ACTIVE", monthlyFee: null };
@@ -57,7 +58,7 @@ describe("schools, school access and agenda through HTTP", () => {
     localStorage.clear();
     localStorage.setItem("harmonia_access", "token");
     role = "ADMIN";
-    schools = [school, { ...school, id: "inactive", name: "Escola inativa", active: false }];
+    schools = [school, { ...school, id: "inactive", name: "Escola inativa", active: false, managers: [] }];
     lessons = [lesson, { ...lesson, id: "lesson-2", date: "2030-04-07", content: "Ritmo" }];
     conflict = false;
     loadError = false;
@@ -69,7 +70,7 @@ describe("schools, school access and agenda through HTTP", () => {
       if (path === "/auth/me" || path === "/auth/login") return json(200, { accessToken: "token", username: "usuario",
         authorities: [`ROLE_${role}`, "auth.user.manage", "enrollment.manage", "lesson.manage"] });
       if (path === "/admin/schools" && method === "POST") {
-        const created = { ...school, id: "new-school", name: body.name };
+        const created = { ...school, id: "new-school", name: body.name, managers: [] };
         schools.push(created);
         return json(200, created);
       }
@@ -77,6 +78,10 @@ describe("schools, school access and agenda through HTTP", () => {
       if (path === `/admin/schools/${school.id}` && method === "PUT") {
         schools = schools.map((item) => item.id === school.id ? { ...item, ...body } : item);
         return json(200, schools[0]);
+      }
+      if (path.endsWith("/managers") && method === "POST") {
+        const manager = { id: "manager-new", name: body.name, username: body.username, email: body.email, active: true };
+        schools = schools.map((item) => path.includes(item.id) ? { ...item, managers: [...item.managers, manager] } : item);
       }
       if (path.endsWith("/managers") || (method === "POST" && ["/admin/students", "/admin/teachers"].includes(path))) {
         return json(200, { id: "new-user" });
@@ -148,6 +153,9 @@ describe("schools, school access and agenda through HTTP", () => {
   it("creates a school and a manager with the exact bodies", async () => {
     await renderApp("/admin/schools");
     await screen.findByText(school.name);
+    const harmoniaRow = screen.getByRole("row", { name: new RegExp(school.name) });
+    expect(within(harmoniaRow).getByText("Marta")).toBeInTheDocument();
+    expect(within(screen.getByRole("row", { name: /Escola inativa/ })).getByText("Nenhum gestor")).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "Nova escola" })[0]);
     fireEvent.change(screen.getByLabelText("Nome da escola"), { target: { value: "Escola Sonetto" } });
     fireEvent.click(screen.getByRole("button", { name: "Criar escola" }));
@@ -158,6 +166,7 @@ describe("schools, school access and agenda through HTTP", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cadastrar gestor" }));
     await waitFor(() => expect(requests(`/admin/schools/${school.id}/managers`)).toHaveLength(1));
     expect(bodyOf(`/admin/schools/${school.id}/managers`)).toEqual({ name: "Beatriz", username: "bia", email: "bia@example.com", password: "Senha@123" });
+    expect(await within(screen.getByRole("row", { name: new RegExp(school.name) })).findByText("Beatriz")).toBeInTheDocument();
   });
 
   it("renames and deactivates a school after confirmation", async () => {

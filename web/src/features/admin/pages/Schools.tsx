@@ -3,13 +3,13 @@ import { toast } from "sonner";
 import { Badge, Button, Card, Drawer, Field, Input, PageHeader, Table, cell } from "@/components/ui";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { adminService } from "../adminService";
-import type { SchoolDto } from "../adminService";
+import type { SchoolDto, SchoolManagerDto } from "../adminService";
 import { ListState } from "../components/ListState";
 import { UserForm } from "../components/UserForm";
 import { useAdminList } from "../hooks/useAdminList";
 import { useCreateDrawer } from "../hooks/useCreateDrawer";
 
-const COLUMNS = [{ label: "Nome" }, { label: "Situação" }, { label: "Ações", align: "right" as const }];
+const COLUMNS = [{ label: "Nome" }, { label: "Gestores" }, { label: "Situação" }, { label: "Ações", align: "right" as const }];
 
 export default function Schools() {
   const { data, loading, error, reload } = useAdminList(adminService.schools, [], "Erro ao carregar escolas");
@@ -29,6 +29,7 @@ export default function Schools() {
           {data.map((school) => (
             <tr key={school.id} className="hover:bg-canvas/60">
               <td className={`${cell} font-semibold text-ink`}>{school.name}</td>
+              <td className={cell}><SchoolManagers managers={school.managers} /></td>
               <td className={cell}><Badge tone={school.active ? "success" : "neutral"}>{school.active ? "Ativa" : "Inativa"}</Badge></td>
               <td className={`${cell} text-right`}>
                 <div className="flex justify-end gap-2">
@@ -47,9 +48,24 @@ export default function Schools() {
       </Drawer>
       <Drawer open={managerSchool !== null} title="Criar gestor" description={managerSchool?.name} onClose={() => setManagerSchool(null)}>
         {managerSchool && <UserForm key={managerSchool.id} label="Gestor"
-          onSubmit={(user) => adminService.createManager(managerSchool.id, user)} onDone={() => setManagerSchool(null)} />}
+          onSubmit={(user) => adminService.createManager(managerSchool.id, user)} onDone={() => { setManagerSchool(null); void reload(); }} />}
       </Drawer>
     </>
+  );
+}
+
+function SchoolManagers({ managers }: { managers: SchoolManagerDto[] }) {
+  if (!managers.length) return <span className="text-sm text-ink-faint">Nenhum gestor</span>;
+  return (
+    <ul className="space-y-1">
+      {managers.map((manager) => (
+        <li key={manager.id} className="text-sm">
+          <span className="font-medium text-ink">{manager.name ?? manager.username}</span>
+          <span className="text-ink-muted"> · {manager.username}</span>
+          {!manager.active && <span className="ml-2"><Badge>Inativo</Badge></span>}
+        </li>
+      ))}
+    </ul>
   );
 }
 

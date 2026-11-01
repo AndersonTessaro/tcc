@@ -129,6 +129,14 @@ class SchoolManagementIT {
     }
 
     @Test
+    void schoolListShowsEachSchoolManagers() throws Exception {
+        call("GET", "/admin/schools", admin, null).andExpect(status().isOk())
+            .andExpect(jsonPath("$[?(@.id == '" + schoolA + "')].managers[*].username").value("manager" + suffix))
+            .andExpect(jsonPath("$[?(@.id == '" + schoolA + "')].managers[*].active").value(true))
+            .andExpect(jsonPath("$[?(@.id == '" + schoolB + "')].managers[*]").isEmpty());
+    }
+
+    @Test
     void currentUserShowsOwnSchoolNameAndNoneForSystemAdmin() throws Exception {
         call("GET", "/auth/me", manager, null).andExpect(status().isOk())
             .andExpect(jsonPath("$.schoolName").value("School A " + suffix));

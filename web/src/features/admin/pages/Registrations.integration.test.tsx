@@ -36,7 +36,7 @@ describe("Registration pages", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service.enrollments.mockResolvedValue([]);
-    service.schools.mockResolvedValue([{ id: "school-1", name: "Escola Harmonia", active: true, createdAt: "2026-11-01T10:00:00" }]);
+    service.schools.mockResolvedValue([{ id: "school-1", name: "Escola Harmonia", active: true, createdAt: "2026-11-01T10:00:00", managers: [] }]);
     service.students.mockResolvedValue([{ id: "st-1", name: "Ana Souza", username: "ana" }]);
     service.teachers.mockResolvedValue([
       { id: "te-1", name: "Carlos Lima", username: "carlos", instruments: [piano] },

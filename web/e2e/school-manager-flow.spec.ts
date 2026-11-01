@@ -69,6 +69,7 @@ test.describe.serial("Painel web: admin do sistema e gestor da escola", () => {
     await expect(page.getByText("Escola cadastrada")).toBeVisible();
     const row = page.getByRole("row", { name: new RegExp(schoolA) });
     await expect(row.getByText("Ativa")).toBeVisible();
+    await expect(row.getByText("Nenhum gestor")).toBeVisible();
 
     await page.getByRole("button", { name: `Criar gestor de ${schoolA}` }).click();
     const drawer = page.getByRole("dialog");
@@ -83,6 +84,8 @@ test.describe.serial("Painel web: admin do sistema e gestor da escola", () => {
     await drawer.getByRole("textbox", { name: "Usuário" }).fill(managerA.username);
     await drawer.getByRole("button", { name: "Cadastrar gestor" }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(row).toContainText(managerA.name);
+    await expect(row).toContainText(managerA.username);
   });
 
   test("gestor vê só o menu da escola e o nome da escola", async ({ page }) => {

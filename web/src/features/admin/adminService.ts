@@ -72,7 +72,8 @@ export const adminService = {
     api.post<TransactionDto>("/admin/finance/transactions", b),
 };
 
-export type SchoolDto = { id: string; name: string; active: boolean; createdAt: string };
+export type SchoolManagerDto = { id: string; name: string | null; username: string; email: string; active: boolean };
+export type SchoolDto = { id: string; name: string; active: boolean; createdAt: string; managers: SchoolManagerDto[] };
 export type NewUser = { username: string; email: string; password: string; name: string; schoolId?: string };
 export type NewTeacher = NewUser & { instrumentIds: string[] };
 export type SettingDto = { id: string; key: string; value: string; description: string | null };
