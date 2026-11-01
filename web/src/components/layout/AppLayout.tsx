@@ -1,22 +1,27 @@
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "@/features/auth/useAuth";
+import { useAdminAccess } from "@/features/admin/useAdminAccess";
 
-const NAV_GROUPS = [
+const NAV_GROUPS: { title: string; items: { to: string; label: string; adminOnly?: boolean }[] }[] = [
   { title: "Escola", items: [
     { to: "/admin/overview", label: "Visão geral" },
     { to: "/admin/students", label: "Alunos" },
     { to: "/admin/teachers", label: "Professores" },
+    { to: "/admin/agenda", label: "Agenda" },
     { to: "/admin/enrollments", label: "Matrículas" },
     { to: "/admin/instruments", label: "Instrumentos" },
   ] },
   { title: "Dinheiro", items: [{ to: "/admin/finance", label: "Financeiro" }] },
   { title: "Acesso", items: [
     { to: "/admin/users", label: "Usuários" },
-    { to: "/admin/roles", label: "Perfis de acesso" },
-    { to: "/admin/permissions", label: "Permissões" },
+    { to: "/admin/roles", label: "Perfis de acesso", adminOnly: true },
+    { to: "/admin/permissions", label: "Permissões", adminOnly: true },
   ] },
-  { title: "Sistema", items: [{ to: "/admin/settings", label: "Configurações" }] },
+  { title: "Sistema", items: [
+    { to: "/admin/schools", label: "Escolas", adminOnly: true },
+    { to: "/admin/settings", label: "Configurações", adminOnly: true },
+  ] },
 ];
 
 function Wordmark() {
@@ -36,13 +41,16 @@ function Wordmark() {
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
+  const { isAdmin } = useAdminAccess();
   const [menuOpen, setMenuOpen] = useState(false);
+  const groups = NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => !item.adminOnly || isAdmin) }))
+    .filter((group) => group.items.length > 0);
 
   const sidebar = (
     <nav aria-label="Menu principal" className="flex h-full flex-col gap-6 p-4">
       <Wordmark />
       <div className="flex-1 space-y-5 overflow-y-auto">
-        {NAV_GROUPS.map((group) => (
+        {groups.map((group) => (
           <div key={group.title}>
             <p className="mb-1 px-3 text-xs font-semibold text-ink-faint">{group.title}</p>
             <ul className="space-y-0.5">
@@ -63,7 +71,7 @@ export default function AppLayout() {
       <div className="flex items-center justify-between gap-2 border-t border-line px-3 pt-4">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-ink">{user?.username}</p>
-          <p className="text-xs text-ink-faint">Administrador</p>
+          <p className="text-xs text-ink-faint">{isAdmin ? "Administrador do sistema" : "Gestor da escola"}</p>
         </div>
         <button type="button" onClick={logout}
           className="rounded-lg px-3 py-1.5 text-sm font-semibold text-danger hover:bg-danger-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">

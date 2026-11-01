@@ -26,6 +26,10 @@ export type EnrollmentDto = {
 };
 
 export const adminService = {
+  schools: () => api.get<SchoolDto[]>("/admin/schools"),
+  createSchool: (name: string) => api.post<SchoolDto>("/admin/schools", { name }),
+  updateSchool: (id: string, body: { name: string; active: boolean }) => api.put<SchoolDto>(`/admin/schools/${id}`, body),
+  createManager: (schoolId: string, body: NewUser) => api.post<{ id: string }>(`/admin/schools/${schoolId}/managers`, body),
   users: () => api.get<UserDto[]>("/admin/security/users"),
   roles: () => api.get<RoleDto[]>("/admin/security/roles"),
   createRole: (name: string, description: string) =>
@@ -68,12 +72,14 @@ export const adminService = {
     api.post<TransactionDto>("/admin/finance/transactions", b),
 };
 
-export type NewUser = { username: string; email: string; password: string; name: string };
+export type SchoolDto = { id: string; name: string; active: boolean; createdAt: string };
+export type NewUser = { username: string; email: string; password: string; name: string; schoolId?: string };
 export type NewTeacher = NewUser & { instrumentIds: string[] };
 export type SettingDto = { id: string; key: string; value: string; description: string | null };
 export type TransactionType = "INCOME" | "EXPENSE";
 export type TransactionDto = {
   id: string;
+  schoolId: string;
   type: TransactionType;
   amount: number;
   description: string | null;
@@ -81,6 +87,7 @@ export type TransactionDto = {
   date: string;
 };
 export type NewTransaction = {
+  schoolId?: string;
   type: TransactionType;
   amount: number;
   description?: string;

@@ -5,7 +5,7 @@ import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { adminService } from "../adminService";
 import type { InstrumentOption, NewUser, TeacherOption } from "../adminService";
 import { InstrumentChecklist } from "../components/InstrumentChecklist";
-import { UserForm } from "../components/UserForm";
+import { SchoolUserForm } from "../components/SchoolUserForm";
 import { ListState } from "../components/ListState";
 import { useAdminList } from "../hooks/useAdminList";
 import { useCreateDrawer } from "../hooks/useCreateDrawer";
@@ -79,7 +79,7 @@ export default function Teachers() {
 
       <Drawer open={creating.open} title="Novo professor" description="O professor entra no app com o usuário e a senha definidos aqui."
         onClose={creating.hide}>
-        <UserForm label="Professor" instruments={data.instruments} onSubmit={create} onDone={creating.hide} />
+        <SchoolUserForm label="Professor" instruments={data.instruments} onSubmit={create} onDone={creating.hide} />
       </Drawer>
     </>
   );

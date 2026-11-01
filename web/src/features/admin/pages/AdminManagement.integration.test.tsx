@@ -8,6 +8,7 @@ import Settings from "./Settings";
 import { adminService } from "../adminService";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("@/features/auth/useAuth", () => ({ useAuth: () => ({ user: { authorities: ["ROLE_MANAGER"] } }) }));
 vi.mock("../adminService", () => ({ adminService: {
   users: vi.fn(), roles: vi.fn(), deleteUser: vi.fn(), resetPassword: vi.fn(), permissions: vi.fn(), createRole: vi.fn(),
   transactions: vi.fn(), balance: vi.fn(), createTransaction: vi.fn(),
@@ -27,7 +28,7 @@ describe("Admin management improvements", () => {
     ]);
     service.permissions.mockResolvedValue([]);
     service.createRole.mockResolvedValue({ id: 3, name: "MONITOR", description: "Apoio pedagógico", permissions: [] });
-    service.transactions.mockResolvedValue([{ id: "1", type: "INCOME", amount: 150.5, description: "Mensalidade",
+    service.transactions.mockResolvedValue([{ id: "1", schoolId: "school-1", type: "INCOME", amount: 150.5, description: "Mensalidade",
       category: "Aulas", date: "2026-10-16" }]);
     service.balance.mockResolvedValue({ balance: 150.5 });
     service.settings.mockResolvedValue([{ id: "1", key: "school.name", value: "Harmonia", description: "Escola" }]);

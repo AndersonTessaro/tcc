@@ -7,8 +7,10 @@ import Enrollments from "./Enrollments";
 import { adminService } from "../adminService";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("@/features/auth/useAuth", () => ({ useAuth: () => ({ user: { authorities: ["ROLE_ADMIN"] } }) }));
 vi.mock("../adminService", () => ({
   adminService: {
+    schools: vi.fn(),
     enrollments: vi.fn(),
     students: vi.fn(),
     teachers: vi.fn(),
@@ -34,6 +36,7 @@ describe("Registration pages", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service.enrollments.mockResolvedValue([]);
+    service.schools.mockResolvedValue([{ id: "school-1", name: "Escola Harmonia", active: true, createdAt: "2026-11-01T10:00:00" }]);
     service.students.mockResolvedValue([{ id: "st-1", name: "Ana Souza", username: "ana" }]);
     service.teachers.mockResolvedValue([
       { id: "te-1", name: "Carlos Lima", username: "carlos", instruments: [piano] },
@@ -102,6 +105,8 @@ describe("Registration pages", () => {
     render(<Teachers />);
     await screen.findByText("Carlos Lima");
     const teacherForm = openDialog("Novo professor");
+    await teacherForm.findByRole("option", { name: "Escola Harmonia" });
+    fireEvent.change(teacherForm.getByLabelText("Escola"), { target: { value: "school-1" } });
 
     fireEvent.change(teacherForm.getByLabelText("Usuário"), { target: { value: "bia" } });
     fireEvent.change(teacherForm.getByLabelText("E-mail"), { target: { value: "bia@example.com" } });
@@ -146,6 +151,8 @@ describe("Registration pages", () => {
     fireEvent.change(screen.getByLabelText("Buscar alunos"), { target: { value: "ana" } });
     expect(screen.getByText("Ana Souza")).toBeInTheDocument();
     const form = openDialog("Novo aluno");
+    await form.findByRole("option", { name: "Escola Harmonia" });
+    fireEvent.change(form.getByLabelText("Escola"), { target: { value: "school-1" } });
     fireEvent.change(form.getByLabelText("Usuário"), { target: { value: "bia" } });
     fireEvent.change(form.getByLabelText("E-mail"), { target: { value: "bia@example.com" } });
     fireEvent.change(form.getByLabelText("Senha"), { target: { value: "Password@123" } });

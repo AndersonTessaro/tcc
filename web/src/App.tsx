@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/features/auth/useAuth";
 import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
 import AppLayout from "@/components/layout/AppLayout";
@@ -14,20 +14,21 @@ import Instruments from "@/features/admin/pages/Instruments";
 import Enrollments from "@/features/admin/pages/Enrollments";
 import Finance from "@/features/admin/pages/Finance";
 import Settings from "@/features/admin/pages/Settings";
+import Schools from "@/features/admin/pages/Schools";
+import Agenda from "@/features/admin/pages/Agenda";
+import { ADMIN_PANEL_ROLES, canAccessAdmin } from "@/features/admin/accessProfile";
 import { Button } from "@/components/ui";
-
-const ADMIN_AUTHORITIES = ["ROLE_ADMIN", "auth.user.manage", "auth.role.manage"];
 
 function Home() {
   const { user, loading, logout } = useAuth();
   if (loading) return <div className="p-8 text-ink-faint">Carregando...</div>;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.authorities.some((a) => ADMIN_AUTHORITIES.includes(a)))
+  if (canAccessAdmin(user.authorities))
     return <Navigate to="/admin/overview" replace />;
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-canvas p-8 text-center">
       <p className="max-w-md text-ink-muted">
-        Este painel é exclusivo para administradores. Use o aplicativo para acessar as áreas de
+        Este painel é exclusivo para administradores e gestores. Use o aplicativo para acessar as áreas de
         aluno e professor.
       </p>
       <Button variant="danger" onClick={logout}>
@@ -48,7 +49,7 @@ export default function App() {
           <Route
             path="/admin"
             element={
-              <ProtectedRoute anyOf={ADMIN_AUTHORITIES}>
+              <ProtectedRoute anyOf={ADMIN_PANEL_ROLES}>
                 <AppLayout />
               </ProtectedRoute>
             }
@@ -56,15 +57,19 @@ export default function App() {
             <Route index element={<Navigate to="/admin/overview" replace />} />
             <Route path="overview" element={<Overview />} />
             <Route path="users" element={<Users />} />
-            <Route path="roles" element={<Roles />} />
-            <Route path="permissions" element={<Permissions />} />
+            <Route element={<ProtectedRoute anyOf={["ROLE_ADMIN"]} redirectTo="/admin/overview"><Outlet /></ProtectedRoute>}>
+              <Route path="roles" element={<Roles />} />
+              <Route path="permissions" element={<Permissions />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="schools" element={<Schools />} />
+            </Route>
             <Route path="registrations" element={<Navigate to="/admin/students" replace />} />
             <Route path="students" element={<Students />} />
             <Route path="teachers" element={<Teachers />} />
             <Route path="instruments" element={<Instruments />} />
             <Route path="enrollments" element={<Enrollments />} />
             <Route path="finance" element={<Finance />} />
-            <Route path="settings" element={<Settings />} />
+            <Route path="agenda" element={<Agenda />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

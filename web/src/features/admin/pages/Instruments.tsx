@@ -5,6 +5,7 @@ import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { adminService } from "../adminService";
 import { ListState } from "../components/ListState";
 import { useAdminList } from "../hooks/useAdminList";
+import { useAdminAccess } from "../useAdminAccess";
 
 const loadInstruments = async () => {
   const [instruments, teachers] = await Promise.all([adminService.instruments(), adminService.teachers()]);
@@ -12,6 +13,7 @@ const loadInstruments = async () => {
 };
 
 export default function Instruments() {
+  const { isAdmin } = useAdminAccess();
   const { data, loading, error, reload } = useAdminList(loadInstruments, { instruments: [], teachers: [] },
     "Erro ao carregar instrumentos");
   const [name, setName] = useState("");
@@ -39,11 +41,11 @@ export default function Instruments() {
       <PageHeader title="Instrumentos" count={loading ? undefined : `${data.instruments.length}`}
         description="O que a escola ensina. Depois de adicionar, marque quais professores ensinam cada um." />
       <Card>
-        <form onSubmit={create} className="flex flex-wrap gap-2 border-b border-line p-4">
+        {isAdmin && <form onSubmit={create} className="flex flex-wrap gap-2 border-b border-line p-4">
           <Input aria-label="Nome do instrumento" placeholder="Nome do instrumento" required maxLength={80}
             className="max-w-xs" value={name} onChange={(event) => setName(event.target.value)} />
           <Button type="submit" disabled={saving}>Criar instrumento</Button>
-        </form>
+        </form>}
         <ListState loading={loading} error={error} empty={!data.instruments.length}
           emptyMessage="Nenhum instrumento encontrado" />
         {!loading && !error && data.instruments.length > 0 && (

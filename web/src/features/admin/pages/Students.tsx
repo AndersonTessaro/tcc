@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Badge, Button, Card, Drawer, Input, PageHeader, Table, Toolbar, cell } from "@/components/ui";
 import { adminService } from "../adminService";
 import type { NewUser } from "../adminService";
-import { UserForm } from "../components/UserForm";
+import { SchoolUserForm } from "../components/SchoolUserForm";
 import { ListState } from "../components/ListState";
 import { useAdminList } from "../hooks/useAdminList";
 import { useCreateDrawer } from "../hooks/useCreateDrawer";
@@ -62,7 +62,7 @@ export default function Students() {
 
       <Drawer open={creating.open} title="Novo aluno" description="O aluno entra no app com o usuário e a senha definidos aqui."
         onClose={creating.hide}>
-        <UserForm label="Aluno" onSubmit={create} onDone={creating.hide} />
+        <SchoolUserForm label="Aluno" onSubmit={create} onDone={creating.hide} />
       </Drawer>
     </>
   );
