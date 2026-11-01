@@ -55,9 +55,11 @@ teste de carga de contexto virou `ApplicationContextIT` justamente para não pes
 - `harmonia-app`: `*ST` sobem a app num porta real (`RANDOM_PORT`) e falam HTTP de
   verdade (`java.net.http.HttpClient`) contra PostgreSQL real. Sem MockMvc, sem
   colaborador stubado. `AuthJourneyST` cobre login → `/auth/me` e a rejeição sem token.
-- Mobile e web não têm etapa de sistema: E2E de app exigiria Detox/Playwright e
-  emulador/browser no runner — fora do escopo do TCC. O smoke E2E manual continua
-  sendo o previsto em `CLAUDE.md`.
+- Mobile e web têm E2E Playwright de fluxo do usuário, rodado à mão (não no CI: exige
+  backend no ar e browser): `cd mobile && npm run test:e2e` (Expo web, `e2e/*.spec.ts`)
+  e `cd web && npm run test:e2e` (painel Vite, `e2e/*.spec.ts`). Os dois sobem o próprio
+  servidor de dev e semeiam dados pela API do admin em `E2E_API_URL`
+  (padrão `http://localhost:8080`).
 
 ## Convenções de nomenclatura
 
