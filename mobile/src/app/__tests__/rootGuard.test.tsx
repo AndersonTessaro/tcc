@@ -8,7 +8,7 @@ const mockReplace = jest.fn();
 let mockSegments: string[] = [];
 jest.mock("expo-router", () => ({
   Slot: () => null,
-  useRouter: () => ({ replace: mockReplace }),
+  useRouter: () => ({ canGoBack: () => true, replace: mockReplace }),
   useSegments: () => mockSegments,
 }));
 jest.mock("@/features/auth/useAuth", () => ({

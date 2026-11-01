@@ -14,7 +14,7 @@ let mockParams: Record<string, string> = { id: "student-1" };
 jest.mock("@/ui/Toast", () => ({ useToast: () => ({ show: mockToast }) }));
 jest.mock("@/lib/files/saveDownload", () => ({ saveDownload: jest.fn() }));
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush, back: jest.fn() }),
+  useRouter: () => ({ canGoBack: () => true, push: mockPush, back: jest.fn() }),
   useLocalSearchParams: () => mockParams,
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));

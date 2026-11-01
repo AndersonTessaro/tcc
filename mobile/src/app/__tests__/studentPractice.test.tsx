@@ -7,7 +7,7 @@ import { addDays, formatFullDate, formatMinutes, parseIsoDate, todayIso } from "
 
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush, back: jest.fn() }),
+  useRouter: () => ({ canGoBack: () => true, push: mockPush, back: jest.fn() }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
 jest.mock("@/features/student/studentService", () => ({ studentService: { practices: jest.fn(), downloadPracticeRecording: jest.fn() } }));

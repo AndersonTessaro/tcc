@@ -9,7 +9,7 @@ import { authService } from "@/features/auth/authService";
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush, replace: mockReplace, back: jest.fn() }),
+  useRouter: () => ({ canGoBack: () => true, push: mockPush, replace: mockReplace, back: jest.fn() }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
 jest.mock("@/features/student/studentService", () => ({ studentService: { materials: jest.fn(), downloadMaterialItem: jest.fn() } }));

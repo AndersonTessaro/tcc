@@ -27,6 +27,7 @@ import { StatusChip } from "@/ui/StatusChip";
 import { TextField } from "@/ui/TextField";
 import { useToast } from "@/ui/Toast";
 import { colors, space, type } from "@/ui/theme";
+import { goBack } from "@/lib/navigation";
 
 const DEFAULT_START = "10:00";
 const DEFAULT_DURATION = "60";
@@ -238,7 +239,7 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
     } else {
       toast.show(completed ? "Aula registrada como concluída" : "Aula agendada", "success");
     }
-    router.back();
+    goBack(router);
   };
 
   const updateLesson = async (lessonId: string) => {
@@ -264,7 +265,7 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
     }
     markSaved();
     toast.show("Aula atualizada", "success");
-    router.back();
+    goBack(router);
   };
 
   const save = async () => {

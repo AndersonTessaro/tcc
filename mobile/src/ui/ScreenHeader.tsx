@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { IconButton } from "./IconButton";
 import { colors, space, type } from "./theme";
+import { goBack } from "@/lib/navigation";
 
 type ScreenHeaderProps = {
   title: string;
@@ -21,7 +22,7 @@ export function ScreenHeader({ title, back = false, onBack, action, subtitle }: 
   return (
     <View style={[styles.header, { paddingTop: insets.top + space.sm }]}>
       <View style={styles.side}>
-        {back ? <IconButton icon="arrow-back" label="Voltar" size={26} onPress={onBack ?? (() => router.back())} /> : null}
+        {back ? <IconButton icon="arrow-back" label="Voltar" size={26} onPress={onBack ?? (() => goBack(router))} /> : null}
       </View>
       <View style={styles.center}>
         <Text accessibilityRole="header" numberOfLines={1} style={styles.title}>{title}</Text>

@@ -11,7 +11,7 @@ import TeacherSchedule from "@/app/teacher/(tabs)/schedule";
 import TeacherReports from "@/app/teacher/(tabs)/reports";
 import TeacherMore from "@/app/teacher/(tabs)/more";
 
-jest.mock("expo-router", () => ({ useRouter: () => ({ push: jest.fn() }), useLocalSearchParams: () => ({}), useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]) }));
+jest.mock("expo-router", () => ({ useRouter: () => ({ canGoBack: () => true, push: jest.fn() }), useLocalSearchParams: () => ({}), useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]) }));
 jest.mock("@/features/auth/useAuth", () => ({ useAuth: () => ({ user: { username: "ana", authorities: [] } }) }));
 jest.mock("@/features/account/accountService", () => ({ accountService: { get: jest.fn().mockResolvedValue({ displayName: "Ana", hasAvatar: false }) } }));
 jest.mock("@/features/student/studentService", () => ({ studentService: {

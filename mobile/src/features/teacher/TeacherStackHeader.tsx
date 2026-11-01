@@ -3,13 +3,14 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { IconButton } from "@/ui/IconButton";
 import { space, type } from "@/ui/theme";
+import { goBack } from "@/lib/navigation";
 
 export function TeacherStackHeader({ title }: { title?: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.header, { paddingTop: insets.top + space.sm }]}>
-      <IconButton icon="arrow-back" label="Voltar" size={26} onPress={() => router.back()} />
+      <IconButton icon="arrow-back" label="Voltar" size={26} onPress={() => goBack(router)} />
       {title ? <Text accessibilityRole="header" numberOfLines={1} style={styles.title}>{title}</Text> : null}
     </View>
   );

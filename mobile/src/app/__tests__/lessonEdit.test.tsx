@@ -8,7 +8,7 @@ const mockBack = jest.fn();
 const mockShow = jest.fn();
 jest.mock("expo-router", () => ({
   useNavigation: () => ({ addListener: jest.fn(() => () => undefined), setOptions: jest.fn(), dispatch: jest.fn() }),
-  useRouter: () => ({ back: mockBack, replace: jest.fn() }),
+  useRouter: () => ({ canGoBack: () => true, back: mockBack, replace: jest.fn() }),
   useLocalSearchParams: () => ({ id: "lesson-1" }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));

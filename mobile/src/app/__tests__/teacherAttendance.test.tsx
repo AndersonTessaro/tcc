@@ -5,7 +5,7 @@ import { teacherService, type TeacherStudentDetailData } from "@/features/teache
 const mockPush = jest.fn();
 jest.mock("@/features/auth/useAuth", () => ({ useAuth: () => ({ user: { authorities: [] } }) }));
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush, back: jest.fn() }),
+  useRouter: () => ({ canGoBack: () => true, push: mockPush, back: jest.fn() }),
   useLocalSearchParams: () => ({ id: "student-1" }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));

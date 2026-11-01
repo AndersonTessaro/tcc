@@ -7,7 +7,7 @@ import { addDays, formatLessonWhen, todayIso } from "@/lib/format";
 
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush, back: jest.fn() }),
+  useRouter: () => ({ canGoBack: () => true, push: mockPush, back: jest.fn() }),
   useLocalSearchParams: () => ({ id: "lesson-1" }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));

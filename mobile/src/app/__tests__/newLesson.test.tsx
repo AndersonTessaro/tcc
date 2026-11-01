@@ -21,7 +21,7 @@ const mockReplace = jest.fn();
 let mockParams: Record<string, string> = {};
 jest.mock("expo-router", () => ({
   useNavigation: () => mockNavigation,
-  useRouter: () => ({ back: () => {
+  useRouter: () => ({ canGoBack: () => true, back: () => {
     let prevented = false;
     mockBeforeRemove?.({ preventDefault: () => { prevented = true; }, data: { action: { type: "GO_BACK" } } });
     if (!prevented) mockBack();

@@ -13,6 +13,7 @@ import { useToast } from "@/ui/Toast";
 import { colors, space, type } from "@/ui/theme";
 import { FIELDS, fieldFromApiError, validateStudentForm, type StudentFormErrors, type StudentFormField, type StudentFormValues } from "./studentForm";
 import { teacherService, type TeacherInstrument, type TeacherStudentProfile } from "./teacherService";
+import { goBack } from "@/lib/navigation";
 
 const readOnlyProps = { fieldStyle: { backgroundColor: colors.screen }, style: { color: colors.muted }, hint: "Só a administração pode alterar." };
 
@@ -95,7 +96,7 @@ export default function TeacherStudentForm({ id }: { id?: string }) {
       if (!mounted.current) return;
       markSaved();
       toast.show(id ? "Alterações salvas." : "Aluno cadastrado.", "success");
-      if (id) router.back();
+      if (id) goBack(router);
       else router.replace({ pathname: "/teacher/student/[id]", params: { id: student.id } });
     } catch (error) {
       if (!mounted.current) return;
@@ -110,7 +111,7 @@ export default function TeacherStudentForm({ id }: { id?: string }) {
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScreenHeader title={id ? "Editar aluno" : "Novo aluno"} back onBack={() => { if (!savingRef.current) router.back(); }} />
+      <ScreenHeader title={id ? "Editar aluno" : "Novo aluno"} back onBack={() => { if (!savingRef.current) goBack(router); }} />
       {resource.loading ? <ScreenState loading skeleton /> : resource.error || !resource.data ? (
         <ScreenState message={apiErrorMessage(resource.error, "Não foi possível carregar o formulário.")} retry={resource.reload} />
       ) : !id && !resource.data.instruments.length ? (

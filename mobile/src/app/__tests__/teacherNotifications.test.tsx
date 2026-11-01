@@ -9,7 +9,7 @@ const mockPush = jest.fn();
 const mockToast = jest.fn();
 const mockFocusCallbacks = new Set<() => void>();
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush, back: jest.fn() }),
+  useRouter: () => ({ canGoBack: () => true, push: mockPush, back: jest.fn() }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(() => {
     mockFocusCallbacks.add(callback);
     callback();

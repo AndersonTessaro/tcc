@@ -12,7 +12,7 @@ const mockBack = jest.fn();
 const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
 jest.mock("expo-router", () => ({
   useNavigation: () => ({ addListener: jest.fn(() => jest.fn()), setOptions: jest.fn(), dispatch: jest.fn() }),
-  useRouter: () => ({ push: jest.fn(), back: mockBack }),
+  useRouter: () => ({ canGoBack: () => true, push: jest.fn(), back: mockBack }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
 jest.mock("@/features/student/studentService", () => ({ studentService: { progress: jest.fn(), registerPractice: jest.fn(), uploadPracticeRecording: jest.fn() } }));

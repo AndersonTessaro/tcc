@@ -7,7 +7,7 @@ import * as DocumentPicker from "expo-document-picker";
 const mockUpdateProfile = jest.fn();
 jest.mock("@/features/auth/useAuth", () => ({ useAuth: () => ({ updateProfile: mockUpdateProfile }) }));
 
-jest.mock("expo-router", () => ({ useRouter: () => ({ back: jest.fn() }), useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]) }));
+jest.mock("expo-router", () => ({ useRouter: () => ({ canGoBack: () => true, back: jest.fn() }), useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]) }));
 jest.mock("@/features/account/accountService", () => ({ accountService: { get: jest.fn(), update: jest.fn() } }));
 jest.mock("@/features/account/avatarService", () => ({ AvatarValidationError: class extends Error {}, avatarService: { get: jest.fn().mockResolvedValue(null), upload: jest.fn().mockResolvedValue(undefined), remove: jest.fn().mockResolvedValue(undefined), subscribe: () => () => {}, getVersion: () => 0 } }));
 jest.mock("expo-document-picker", () => ({ getDocumentAsync: jest.fn() }));

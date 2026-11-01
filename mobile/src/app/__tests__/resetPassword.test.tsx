@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import ResetPassword from "@/app/(auth)/reset-password";
 import { authService } from "@/features/auth/authService";
 import { ApiError } from "@/lib/http/apiError";
-jest.mock("expo-router", () => ({ useRouter: () => ({ replace: jest.fn() }), useLocalSearchParams: () => ({}) }));
+jest.mock("expo-router", () => ({ useRouter: () => ({ canGoBack: () => true, replace: jest.fn() }), useLocalSearchParams: () => ({}) }));
 jest.mock("@/features/auth/authService", () => ({ authService: { reset: jest.fn() } }));
 const service = authService as jest.Mocked<typeof authService>;
 beforeEach(() => jest.clearAllMocks());

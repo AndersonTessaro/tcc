@@ -13,7 +13,7 @@ jest.mock("@/features/auth/useAuth", () => ({ useAuth: () => ({ user: mockUser }
 const mockDismissTo = jest.fn();
 jest.mock("expo-router", () => ({
   Stack: () => null,
-  useRouter: () => ({ dismissTo: mockDismissTo }),
+  useRouter: () => ({ canGoBack: () => true, dismissTo: mockDismissTo }),
   useSegments: () => mockSegments,
   useGlobalSearchParams: () => mockParams,
 }));

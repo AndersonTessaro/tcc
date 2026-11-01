@@ -7,7 +7,7 @@ import { addDays, relativeDayLabel, todayIso } from "@/lib/format";
 const mockPush = jest.fn();
 const mockBack = jest.fn();
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush, back: mockBack }),
+  useRouter: () => ({ canGoBack: () => true, push: mockPush, back: mockBack }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
 jest.mock("@/features/student/studentService", () => ({ studentService: { practices: jest.fn() } }));

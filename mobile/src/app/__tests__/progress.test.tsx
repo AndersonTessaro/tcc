@@ -4,7 +4,7 @@ import { studentService } from "@/features/student/studentService";
 
 let mockFocus: (() => void) | undefined;
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: jest.fn() }),
+  useRouter: () => ({ canGoBack: () => true, push: jest.fn() }),
   useFocusEffect: (callback: () => void) => {
     mockFocus = callback;
     require("react").useEffect(callback, [callback]);

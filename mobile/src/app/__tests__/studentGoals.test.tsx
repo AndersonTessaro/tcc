@@ -7,7 +7,7 @@ import { ApiError } from "@/lib/http/apiError";
 const mockToast = jest.fn();
 jest.mock("@/ui/Toast", () => ({ useToast: () => ({ show: mockToast }) }));
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ canGoBack: () => true, push: jest.fn(), back: jest.fn() }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
 jest.mock("@/features/student/studentService", () => ({

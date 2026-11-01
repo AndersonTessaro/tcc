@@ -37,9 +37,10 @@ test.describe.serial("Fluxo da escola: professor e aluno", () => {
     expect(auth.ok(), "admin login — backend no ar e seed do admin?").toBeTruthy();
     const { accessToken } = await auth.json();
     const { id: instrumentId } = await post(request, "/admin/instruments", accessToken, { name: instrument });
+    const { id: schoolId } = await post(request, "/admin/schools", accessToken, { name: `Escola ${run}` });
     const { id: teacherId } = await post(request, "/admin/teachers", accessToken,
-      { ...teacher, password: PASSWORD, instrumentIds: [instrumentId] });
-    const { id: studentId } = await post(request, "/admin/students", accessToken, { ...student, password: PASSWORD });
+      { ...teacher, password: PASSWORD, instrumentIds: [instrumentId], schoolId });
+    const { id: studentId } = await post(request, "/admin/students", accessToken, { ...student, password: PASSWORD, schoolId });
     await post(request, "/admin/enrollments", accessToken, { studentId, teacherId, instrumentId, monthlyFee: 200 });
   });
 

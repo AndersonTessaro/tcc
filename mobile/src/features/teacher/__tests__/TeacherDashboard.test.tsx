@@ -4,7 +4,7 @@ import { teacherService, type TeacherDashboardData, type TeacherLesson } from ".
 import { todayIso } from "@/lib/format";
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: jest.fn() }),
+  useRouter: () => ({ canGoBack: () => true, push: jest.fn() }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
 jest.mock("@/features/notifications/notificationService", () => ({ notificationService: { unreadCount: jest.fn().mockResolvedValue({ unreadCount: 0 }) } }));

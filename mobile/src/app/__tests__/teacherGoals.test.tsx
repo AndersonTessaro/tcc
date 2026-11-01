@@ -10,7 +10,7 @@ jest.mock("@/ui/Toast", () => ({ useToast: () => ({ show: mockToast }) }));
 jest.mock("@/features/auth/useAuth", () => ({ useAuth: () => ({ user: { authorities: mockAuthorities } }) }));
 jest.mock("@/lib/confirm", () => ({ confirm: jest.fn().mockResolvedValue(true) }));
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ canGoBack: () => true, push: jest.fn(), back: jest.fn() }),
   useLocalSearchParams: () => ({ id: "student-1" }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));

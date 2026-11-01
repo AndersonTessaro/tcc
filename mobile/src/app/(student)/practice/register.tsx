@@ -17,6 +17,7 @@ import { DateTimeField, type DateTimeFieldHandle } from "@/ui/DateTimeField";
 import { ScreenHeader } from "@/ui/ScreenHeader";
 import { TextField } from "@/ui/TextField";
 import { colors, MIN_TOUCH, radius, space, type } from "@/ui/theme";
+import { goBack } from "@/lib/navigation";
 
 type DateChoice = "today" | "yesterday" | "other";
 type DurationChoice = "15" | "30" | "45" | "60" | "custom";
@@ -146,7 +147,7 @@ export default function RegisterPractice() {
     return (
       <View style={styles.screen}>
         <StatusBar style="dark" />
-        <PracticeRewardView reward={reward} onDone={() => router.back()} />
+        <PracticeRewardView reward={reward} onDone={() => goBack(router)} />
       </View>
     );
   }

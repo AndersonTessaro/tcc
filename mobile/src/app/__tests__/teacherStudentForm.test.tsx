@@ -15,7 +15,7 @@ const mockNavigation = { addListener: jest.fn((event, callback) => { if (event =
 jest.mock("expo-router", () => ({
   useLocalSearchParams: () => mockParams,
   useNavigation: () => mockNavigation,
-  useRouter: () => ({ back: mockBack, replace: mockReplace }),
+  useRouter: () => ({ canGoBack: () => true, back: mockBack, replace: mockReplace }),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
 jest.mock("@/lib/confirm", () => ({ confirm: jest.fn() }));
