@@ -128,6 +128,14 @@ class SchoolManagementIT {
             .andExpect(status().isNotFound());
     }
 
+    @Test
+    void currentUserShowsOwnSchoolNameAndNoneForSystemAdmin() throws Exception {
+        call("GET", "/auth/me", manager, null).andExpect(status().isOk())
+            .andExpect(jsonPath("$.schoolName").value("School A " + suffix));
+        call("GET", "/auth/me", admin, null).andExpect(status().isOk())
+            .andExpect(jsonPath("$.schoolName").doesNotExist());
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"teacherInstruments", "enrollmentStudent", "enrollmentTeacher", "enrollmentStatus", "enrollmentFee",
         "userRoles", "userStatus", "userPassword", "userDelete", "lessonCreate", "lessonRead", "lessonEdit",

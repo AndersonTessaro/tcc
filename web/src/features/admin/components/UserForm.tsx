@@ -9,7 +9,7 @@ const EMPTY_USER: NewUser = { username: "", email: "", password: "", name: "" };
 
 const FIELDS = [
   { key: "name", title: "Nome", type: "text", maxLength: 150, autoComplete: "off", hint: undefined },
-  { key: "username", title: "Usuário", type: "text", maxLength: 100, autoComplete: "off", hint: "Usado para entrar no app." },
+  { key: "username", title: "Usuário", type: "text", maxLength: 100, autoComplete: "off", hint: "Usado para entrar no app e no painel." },
   { key: "email", title: "E-mail", type: "email", maxLength: 255, autoComplete: "off", hint: undefined },
   { key: "password", title: "Senha", type: "password", maxLength: undefined, autoComplete: "new-password",
     hint: "Senha inicial, com pelo menos 8 caracteres." },

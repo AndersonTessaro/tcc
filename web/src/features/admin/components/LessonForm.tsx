@@ -8,8 +8,13 @@ import type { EnrollmentDto } from "../adminService";
 import { localDate } from "../agendaDates";
 import { OptionSelect } from "./OptionSelect";
 
+const oneHourLater = (time: string) => {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours >= 23 ? "23:59" : `${String(hours + 1).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+};
+
 export function LessonForm({ lesson, enrollments, initialDate, onSaved }: {
-  lesson?: LessonDto; enrollments: EnrollmentDto[]; initialDate: string; onSaved: () => Promise<void>;
+  lesson?: LessonDto; enrollments: EnrollmentDto[]; initialDate: string; onSaved: (date: string) => Promise<void>;
 }) {
   const [enrollmentId, setEnrollmentId] = useState(lesson?.enrollmentId ?? "");
   const [fields, setFields] = useState<LessonFields>({
@@ -22,7 +27,8 @@ export function LessonForm({ lesson, enrollments, initialDate, onSaved }: {
   const request = useRef(0);
   const canReschedule = !lesson || (lesson.status === "SCHEDULED" && !lesson.attendance);
   const setField = (key: keyof LessonFields, value: string) => {
-    setFields((current) => ({ ...current, [key]: value }));
+    setFields((current) => ({ ...current, [key]: value,
+      ...(key === "startTime" && value && !current.endTime ? { endTime: oneHourLater(value) } : {}) }));
     if (["date", "startTime", "endTime"].includes(key)) {
       request.current++;
       setChecking(false);
@@ -58,7 +64,7 @@ export function LessonForm({ lesson, enrollments, initialDate, onSaved }: {
       if (lesson) await agendaService.update(lesson.id, fields);
       else await agendaService.create({ enrollmentId, ...fields });
       toast.success(lesson ? "Aula atualizada" : "Aula criada");
-      await onSaved();
+      await onSaved(fields.date);
     } catch (cause) {
       toast.error(apiErrorMessage(cause, "Erro ao salvar aula"));
     } finally { setSaving(false); }

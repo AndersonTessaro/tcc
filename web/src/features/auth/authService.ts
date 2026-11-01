@@ -7,7 +7,7 @@ export type AuthResponse = {
   authorities: string[];
 };
 
-export type Me = { username: string; authorities: string[]; displayName: string };
+export type Me = { username: string; authorities: string[]; displayName: string; schoolName?: string | null };
 
 export const authService = {
   async login(login: string, password: string) {

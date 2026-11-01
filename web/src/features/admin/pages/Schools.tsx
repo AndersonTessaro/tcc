@@ -60,7 +60,7 @@ function SchoolForm({ school, onSaved }: { school: SchoolDto | null; onSaved: ()
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!name.trim()) { toast.error("Informe o nome da escola"); return; }
-    if (school?.active && !active && !window.confirm(`Desativar ${school.name}? Novos cadastros não poderão ser vinculados a esta escola.`)) return;
+    if (school?.active && !active && !window.confirm(`Desativar ${school.name}? Gestores, professores e alunos desta escola não conseguirão mais entrar, e novos cadastros não poderão ser vinculados a ela.`)) return;
     setSaving(true);
     try {
       if (school) await adminService.updateSchool(school.id, { name: name.trim(), active });

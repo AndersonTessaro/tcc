@@ -24,7 +24,7 @@ const NAV_GROUPS: { title: string; items: { to: string; label: string; adminOnly
   ] },
 ];
 
-function Wordmark() {
+function Wordmark({ subtitle }: { subtitle: string }) {
   return (
     <div className="px-3 pt-2">
       <div className="relative py-1">
@@ -34,7 +34,7 @@ function Wordmark() {
         </svg>
         <p className="relative text-xl font-extrabold tracking-tight text-ink">Harmonia</p>
       </div>
-      <p className="mt-2 text-xs font-medium text-ink-muted">Administração da escola</p>
+      <p className="mt-2 truncate text-xs font-medium text-ink-muted">{subtitle}</p>
     </div>
   );
 }
@@ -48,7 +48,7 @@ export default function AppLayout() {
 
   const sidebar = (
     <nav aria-label="Menu principal" className="flex h-full flex-col gap-6 p-4">
-      <Wordmark />
+      <Wordmark subtitle={isAdmin ? "Administração do sistema" : user?.schoolName ?? "Administração da escola"} />
       <div className="flex-1 space-y-5 overflow-y-auto">
         {groups.map((group) => (
           <div key={group.title}>

@@ -22,7 +22,8 @@ const loadOptions = async () => {
 
 export default function Agenda() {
   const options = useAdminList(loadOptions, { teachers: [], enrollments: [] }, "Erro ao carregar professores e matrículas");
-  const [teacherId, setTeacherId] = useState("");
+  const [pickedTeacherId, setTeacherId] = useState("");
+  const teacherId = pickedTeacherId || options.data.teachers[0]?.id || "";
   const [monday, setMonday] = useState(() => weekStart(localDate()));
   const [editing, setEditing] = useState<LessonDto | null>(null);
   const [attendance, setAttendance] = useState<LessonDto | null>(null);
@@ -32,7 +33,14 @@ export default function Agenda() {
   const { data, loading, error, reload } = useAdminList(load, [], "Erro ao carregar agenda");
   const enrollments = options.data.enrollments.filter((enrollment) => enrollment.teacher.id === teacherId && enrollment.status === "ACTIVE");
   const ready = !!teacherId && !options.loading && !options.error;
-  const saved = async () => { creating.hide(); setEditing(null); setAttendance(null); await reload(); };
+  const saved = async (date?: string) => {
+    creating.hide(); setEditing(null); setAttendance(null);
+    const savedWeek = date ? weekStart(date) : monday;
+    if (savedWeek !== monday) setMonday(savedWeek);
+    else await reload();
+  };
+  const today = localDate();
+  const newLessonDate = today >= monday && today <= addDays(monday, 6) ? today : monday;
   const edit = async (lesson: LessonDto) => {
     setBusy(true);
     try {
@@ -75,7 +83,7 @@ export default function Agenda() {
           <p className="p-4 text-sm text-ink-muted">Selecione um professor para consultar a agenda.</p>}
       </Card>
       {ready && <>
-        <ListState loading={loading} error={error} empty={!data.length} emptyMessage="Nenhuma aula nesta semana" />
+        <ListState loading={loading} error={error} empty={false} emptyMessage="" />
         {!loading && !error && <div className="space-y-4">
           {weekDates(monday).map((date, index) => <AgendaDay key={date} date={date} index={index} busy={busy}
             lessons={data.filter((lesson) => lesson.date === date).sort((a, b) => a.startTime.localeCompare(b.startTime))}
@@ -84,10 +92,10 @@ export default function Agenda() {
       </>}
       <Drawer open={(creating.open && ready) || editing !== null} title={editing ? "Editar aula" : "Nova aula"}
         onClose={() => { creating.hide(); setEditing(null); }}>
-        <LessonForm key={editing?.id ?? `${teacherId}-${monday}`} lesson={editing ?? undefined} enrollments={enrollments} initialDate={monday} onSaved={saved} />
+        <LessonForm key={editing?.id ?? `${teacherId}-${monday}`} lesson={editing ?? undefined} enrollments={enrollments} initialDate={newLessonDate} onSaved={saved} />
       </Drawer>
       <Drawer open={attendance !== null} title="Registrar frequência" onClose={() => setAttendance(null)}>
-        {attendance && <AttendanceForm key={attendance.id} lesson={attendance} onSaved={saved} />}
+        {attendance && <AttendanceForm key={attendance.id} lesson={attendance} onSaved={() => saved()} />}
       </Drawer>
     </>
   );

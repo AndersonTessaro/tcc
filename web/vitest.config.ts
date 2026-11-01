@@ -12,7 +12,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: "./src/test/setup.ts",
-    exclude: [...configDefaults.exclude, "**/*.integration.test.{ts,tsx}"],
+    exclude: [...configDefaults.exclude, "**/*.integration.test.{ts,tsx}", "e2e/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
