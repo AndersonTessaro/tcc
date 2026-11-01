@@ -180,7 +180,7 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
     if (!field) return;
     const fieldRef = field === "enrollment" ? enrollmentRef : field === "date" ? dateRef : timeRef;
     fieldRef.current?.focus();
-    const y = fieldPositions.current[field] + (field === "time" ? fieldPositions.current.scheduling : 0);
+    const y = fieldPositions.current[field] + (field !== "enrollment" ? fieldPositions.current.scheduling : 0);
     scrollRef.current?.scrollTo({ y: Math.max(0, y - space.sm), animated: true });
   };
 
@@ -330,20 +330,87 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
           )}
           {errors.enrollment && enrollmentId ? <Text accessibilityLiveRegion="polite" style={styles.error}>{errors.enrollment}</Text> : null}
         </View>
-        <View onLayout={(event) => { fieldPositions.current.date = event.nativeEvent.layout.y; }}>
+        <View style={styles.scheduling} onLayout={(event) => { fieldPositions.current.scheduling = event.nativeEvent.layout.y; }}>
+          <Text accessibilityRole="header" style={styles.section}>Quando</Text>
+          <View onLayout={(event) => { fieldPositions.current.date = event.nativeEvent.layout.y; }}>
+            {canSchedule ? (
+              <>
+                <DateTimeField ref={dateRef} mode="date" label="Data" value={date} onChange={(value) => { setDate(value); clearError("date"); }} error={errors.date} />
+                {!validateDate(date) ? <Text style={styles.caption}>{relativeDayLabel(date)} · {formatFullDate(date)}</Text> : null}
+              </>
+            ) : lesson ? (
+              <View style={styles.readOnlyField}>
+                <Text style={styles.label}>Data</Text>
+                <Text style={styles.statusText}>{formatFullDate(lesson.date)} · {hhmm(lesson.startTime)}–{hhmm(lesson.endTime)}</Text>
+                {readOnly ? null : <Text style={styles.caption}>Aula concluída: a data não muda. Conteúdo, tarefa e anexos podem ser editados.</Text>}
+              </View>
+            ) : null}
+          </View>
           {canSchedule ? (
             <>
-              <DateTimeField ref={dateRef} mode="date" label="Data" value={date} onChange={(value) => { setDate(value); clearError("date"); }} error={errors.date} />
-              {!validateDate(date) ? <Text style={styles.caption}>{relativeDayLabel(date)} · {formatFullDate(date)}</Text> : null}
+              <View style={styles.row} onLayout={(event) => { fieldPositions.current.time = event.nativeEvent.layout.y; }}>
+                <DateTimeField ref={timeRef} mode="time" label="Início" value={startTime} onChange={changeStart} />
+              </View>
+              <ChipGroup label="Duração" options={durationOptions} value={duration} onChange={changeDuration} />
+              <View style={styles.row}>
+                {duration === CUSTOM ? (
+                  <DateTimeField mode="time" label="Fim" value={customEnd} onChange={(value) => { setCustomEnd(value); clearError("time"); }} />
+                ) : (
+                  <View style={styles.endPreview} accessible accessibilityLabel={`Fim às ${endTime}`}>
+                    <Text style={styles.label}>Fim</Text>
+                    <Text style={styles.endValue}>{endTime}</Text>
+                  </View>
+                )}
+              </View>
+
+              <Text accessibilityRole="header" style={styles.section}>Disponibilidade</Text>
+              <SlotPlanner
+                availability={slot.data ?? null}
+                checking={slot.checking}
+                error={slot.error}
+                verified={verified}
+                startTime={startTime}
+                durationMin={durationMin}
+                earliestStart={date === todayIso() ? nowHhmm() : null}
+                onPickStart={changeStart}
+                onUseSchedule={(block) => applySchedule(shortTime(block.startTime), shortTime(block.endTime))}
+              />
+              {errors.time ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{errors.time}</Text> : null}
             </>
-          ) : lesson ? (
-            <View style={styles.readOnlyField}>
-              <Text style={styles.label}>Data</Text>
-              <Text style={styles.statusText}>{formatFullDate(lesson.date)} · {hhmm(lesson.startTime)}–{hhmm(lesson.endTime)}</Text>
-              {readOnly ? null : <Text style={styles.caption}>Aula concluída: a data não muda. Conteúdo, tarefa e anexos podem ser editados.</Text>}
-            </View>
           ) : null}
         </View>
+        {editing ? null : (
+          <>
+            <Text accessibilityRole="header" style={styles.section}>Situação da aula</Text>
+            <Card style={styles.statusCard}>
+              <View style={styles.statusRow}>
+                <StatusChip label={completed ? "Concluída" : "Agendada"} tone={completed ? "success" : "info"} />
+                <Text style={styles.statusText}>
+                  {completed
+                    ? "Data de hoje ou passada: a aula já nasce concluída."
+                    : "Data futura: a aula nasce agendada. Depois você conclui ou cancela pela agenda."}
+                </Text>
+              </View>
+              {completed ? (
+                <>
+                  <Text style={styles.label}>Frequência (opcional)</Text>
+                  <ChipGroup
+                    label="Frequência"
+                    options={ATTENDANCE_OPTIONS.map((option) => ({ value: option.status, label: option.label }))}
+                    value={attendance}
+                    onChange={(value) => setAttendance((current) => (current === value ? null : value))}
+                  />
+                  <Text style={styles.caption}>Presente soma XP ao aluno. Falta ou justificada não soma; trocar depois de "Presente" retira o XP.</Text>
+                  {attendance === "EXCUSED" ? (
+                    <TextField label="Justificativa" placeholder="Motivo da ausência" value={justification} onChangeText={setJustification} maxLength={500} />
+                  ) : null}
+                </>
+              ) : (
+                <Text style={styles.caption}>A frequência fica disponível a partir do dia da aula.</Text>
+              )}
+            </Card>
+          </>
+        )}
         <TextField label="Conteúdo trabalhado" placeholder="Ex.: escalas maiores, música X" value={content} onChangeText={setContent} multiline maxLength={TEXT_LIMIT} editable={!readOnly} />
         <TextField label="Tarefa para casa" placeholder="O que o aluno deve praticar" value={homework} onChangeText={setHomework} style={[styles.homeworkInput, { height: homeworkHeight }]} onContentSizeChange={(event) => setHomeworkHeight(Math.max(32, event.nativeEvent.contentSize.height))} multiline maxLength={TEXT_LIMIT} editable={!readOnly} />
         <LessonAttachmentList
@@ -356,70 +423,6 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
           readOnly={readOnly}
           disabled={saving}
         />
-        {canSchedule ? (
-          <View style={styles.scheduling} onLayout={(event) => { fieldPositions.current.scheduling = event.nativeEvent.layout.y; }}>
-            <Text accessibilityRole="header" style={styles.section}>Agendamento</Text>
-            <View style={styles.row} onLayout={(event) => { fieldPositions.current.time = event.nativeEvent.layout.y; }}>
-              <DateTimeField ref={timeRef} mode="time" label="Início" value={startTime} onChange={changeStart} />
-              {duration === CUSTOM ? (
-                <DateTimeField mode="time" label="Fim" value={customEnd} onChange={(value) => { setCustomEnd(value); clearError("time"); }} />
-              ) : (
-                <View style={styles.endPreview} accessible accessibilityLabel={`Fim às ${endTime}`}>
-                  <Text style={styles.label}>Fim</Text>
-                  <Text style={styles.endValue}>{endTime}</Text>
-                </View>
-              )}
-            </View>
-            <ChipGroup label="Duração" options={durationOptions} value={duration} onChange={changeDuration} />
-            {errors.time ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{errors.time}</Text> : null}
-
-            <Text accessibilityRole="header" style={styles.section}>Disponibilidade</Text>
-            <SlotPlanner
-              availability={slot.data ?? null}
-              checking={slot.checking}
-              error={slot.error}
-              verified={verified}
-              startTime={startTime}
-              durationMin={durationMin}
-              earliestStart={date === todayIso() ? nowHhmm() : null}
-              onPickStart={changeStart}
-              onUseSchedule={(block) => applySchedule(shortTime(block.startTime), shortTime(block.endTime))}
-            />
-
-            {editing ? null : (
-              <>
-                <Text accessibilityRole="header" style={styles.section}>Situação da aula</Text>
-                <Card style={styles.statusCard}>
-                  <View style={styles.statusRow}>
-                    <StatusChip label={completed ? "Concluída" : "Agendada"} tone={completed ? "success" : "info"} />
-                    <Text style={styles.statusText}>
-                      {completed
-                        ? "Data de hoje ou passada: a aula já nasce concluída."
-                        : "Data futura: a aula nasce agendada. Depois você conclui ou cancela pela agenda."}
-                    </Text>
-                  </View>
-                  {completed ? (
-                    <>
-                      <Text style={styles.label}>Frequência (opcional)</Text>
-                      <ChipGroup
-                        label="Frequência"
-                        options={ATTENDANCE_OPTIONS.map((option) => ({ value: option.status, label: option.label }))}
-                        value={attendance}
-                        onChange={(value) => setAttendance((current) => (current === value ? null : value))}
-                      />
-                      <Text style={styles.caption}>Presente soma XP ao aluno. Falta ou justificada não soma; trocar depois de "Presente" retira o XP.</Text>
-                      {attendance === "EXCUSED" ? (
-                        <TextField label="Justificativa" placeholder="Motivo da ausência" value={justification} onChangeText={setJustification} maxLength={500} />
-                      ) : null}
-                    </>
-                  ) : (
-                    <Text style={styles.caption}>A frequência fica disponível a partir do dia da aula.</Text>
-                  )}
-                </Card>
-              </>
-            )}
-          </View>
-        ) : null}
 
         {errors.form ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{errors.form}</Text> : null}
         {readOnly ? (

@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
 import { formatFileSize } from "@/lib/format";
 import type { PickedFile } from "@/lib/http/formFile";
 import { Button } from "@/ui/Button";
@@ -23,14 +24,30 @@ export function PracticeRecordingPicker({ file, onChange, error, onError, disabl
   const toast = useToast();
   const pickingRef = useRef(false);
   const [picking, setPicking] = useState(false);
-  const pick = async () => {
+  const pick = async (source: "video" | "audio") => {
     if (disabled || pickingRef.current) return;
     pickingRef.current = true;
     setPicking(true);
     onPickingChange(true);
     try {
-      const result = await DocumentPicker.getDocumentAsync({ type: ["audio/*", "video/*"], copyToCacheDirectory: true });
-      const chosen = result.canceled ? null : result.assets[0];
+      let chosen: PickedFile | null = null;
+      if (source === "video") {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          toast.show("Permita o acesso à galeria para escolher um vídeo.", "error");
+          return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["videos"], allowsEditing: false, quality: 1 });
+        const asset = result.canceled ? null : result.assets[0];
+        if (asset) {
+          let name = asset.fileName || asset.uri.split("/").pop() || "practice";
+          if (!recordingMimeType(name)) name += asset.mimeType === "video/quicktime" ? ".mov" : ".mp4";
+          chosen = { uri: asset.uri, name, mimeType: asset.mimeType ?? "video/mp4", size: asset.fileSize, file: asset.file };
+        }
+      } else {
+        const result = await DocumentPicker.getDocumentAsync({ type: "audio/*", copyToCacheDirectory: true });
+        chosen = result.canceled ? null : result.assets[0];
+      }
       if (chosen) {
         const nextError = recordingError(chosen);
         onError(nextError);
@@ -45,6 +62,7 @@ export function PracticeRecordingPicker({ file, onChange, error, onError, disabl
     }
   };
   const size = formatFileSize(file?.size ?? file?.file?.size);
+  const video = !!file && !!recordingMimeType(file.name, file.mimeType)?.startsWith("video/");
 
   return (
     <View style={styles.block}>
@@ -52,18 +70,21 @@ export function PracticeRecordingPicker({ file, onChange, error, onError, disabl
       {file ? (
         <>
           <Card variant="outlined" style={styles.file}>
-            <Ionicons name={recordingMimeType(file.name, file.mimeType)?.startsWith("video/") ? "videocam-outline" : "musical-note-outline"} size={22} color={colors.muted} accessible={false} />
+            <Ionicons name={video ? "videocam-outline" : "musical-note-outline"} size={22} color={colors.muted} accessible={false} />
             <Text style={styles.fileName}>{file.name}{size ? ` · ${size}` : ""}</Text>
           </Card>
           <View style={styles.actions}>
-            <Button label="Trocar" accessibilityLabel={`Trocar gravação ${file.name}`} variant="secondary" compact onPress={pick} disabled={disabled || picking} style={styles.action} />
+            <Button label="Trocar" accessibilityLabel={`Trocar gravação ${file.name}`} variant="secondary" compact onPress={() => pick(video ? "video" : "audio")} disabled={disabled || picking} style={styles.action} />
             <Button label="Remover" accessibilityLabel={`Remover gravação ${file.name}`} variant="ghost" compact disabled={disabled || picking} onPress={() => { onChange(null); onError(null); }} style={styles.action} />
           </View>
         </>
       ) : (
-        <Button label="Escolher áudio ou vídeo" variant="secondary" icon="attach" onPress={pick} disabled={disabled} loading={picking} />
+        <>
+          <Button label="Vídeo da galeria" variant="secondary" icon="videocam-outline" onPress={() => pick("video")} disabled={disabled || picking} />
+          <Button label="Arquivo de áudio" variant="secondary" icon="musical-note-outline" onPress={() => pick("audio")} disabled={disabled || picking} />
+        </>
       )}
-      <Text style={styles.hint}>Áudio ou vídeo, até 50 MB.</Text>
+      <Text style={styles.hint}>Vídeo até 150 MB · áudio até 50 MB.</Text>
       {error ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
     </View>
   );

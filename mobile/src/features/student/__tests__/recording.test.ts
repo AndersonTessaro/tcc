@@ -1,4 +1,4 @@
-import { recordingError, recordingMimeType, RECORDING_MAX_BYTES } from "../recording";
+import { recordingError, recordingMimeType, AUDIO_RECORDING_MAX_BYTES, VIDEO_RECORDING_MAX_BYTES } from "../recording";
 
 it.each([
   ["Prática.MP4", "video/mp4"], ["clip.mov", "video/quicktime"],
@@ -18,11 +18,18 @@ it("keeps the declared audio/video MIME only for allowed extensions", () => {
   expect(recordingMimeType("document.pdf", "application/pdf")).toBeNull();
 });
 
-it("accepts exactly 50 MB and unknown size, rejects wrong type, empty and oversized files", () => {
-  const file = { uri: "file:///practice", name: "Prática.mp4", size: RECORDING_MAX_BYTES };
+it("accepts 150 MB video and unknown size, rejects wrong type, empty and oversized files", () => {
+  const file = { uri: "file:///practice", name: "Prática.mp4", size: VIDEO_RECORDING_MAX_BYTES };
   expect(recordingError(file)).toBeNull();
   expect(recordingError({ ...file, size: undefined })).toBeNull();
   expect(recordingError({ ...file, name: "document.pdf" })).toBe("Escolha um arquivo de áudio ou vídeo.");
   expect(recordingError({ ...file, size: 0 })).toBe("O arquivo está vazio.");
-  expect(recordingError({ ...file, size: RECORDING_MAX_BYTES + 1 })).toBe("O arquivo passa de 50 MB. Grave um vídeo mais curto ou envie só o áudio.");
+  expect(recordingError({ ...file, size: VIDEO_RECORDING_MAX_BYTES + 1 })).toBe("O vídeo passa de 150 MB. Grave um vídeo mais curto.");
+});
+
+it("accepts 50 MB audio and rejects larger audio, including the web file size fallback", () => {
+  const file = { uri: "file:///practice", name: "Prática.m4a", size: AUDIO_RECORDING_MAX_BYTES };
+  expect(recordingError(file)).toBeNull();
+  expect(recordingError({ ...file, size: AUDIO_RECORDING_MAX_BYTES + 1 })).toBe("O áudio passa de 50 MB. Envie um arquivo menor.");
+  expect(recordingError({ ...file, size: undefined, file: { size: AUDIO_RECORDING_MAX_BYTES + 1 } as Blob })).toBe("O áudio passa de 50 MB. Envie um arquivo menor.");
 });
