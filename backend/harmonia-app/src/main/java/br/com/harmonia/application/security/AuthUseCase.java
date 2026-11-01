@@ -4,6 +4,7 @@ import br.com.harmonia.application.security.port.UserRepository;
 import br.com.harmonia.infrastructure.persistence.security.RefreshToken;
 import br.com.harmonia.infrastructure.persistence.security.User;
 import br.com.harmonia.infrastructure.security.TokenService;
+import br.com.harmonia.infrastructure.security.TokenService.BadRefreshTokenException;
 import br.com.harmonia.presentation.auth.dto.AuthResponse;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -36,8 +37,9 @@ public class AuthUseCase {
     @Transactional
     public AuthResponse refresh(String rawRefresh) {
         RefreshToken rt = tokens.validateRefreshToken(rawRefresh);
-        tokens.revoke(rt);
         User user = rt.getUser();
+        if (!user.isEnabled()) throw new BadRefreshTokenException("User is disabled");
+        tokens.revoke(rt);
         return build(user, user, tokens.issueRefreshToken(user));
     }
 

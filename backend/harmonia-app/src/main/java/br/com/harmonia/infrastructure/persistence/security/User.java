@@ -3,6 +3,7 @@ package br.com.harmonia.infrastructure.persistence.security;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Formula;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -46,6 +47,10 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private Boolean active = true;
 
+    @Setter(AccessLevel.NONE)
+    @Formula("coalesce((select s.active from school s where s.id = school_id), true)")
+    private boolean schoolActive = true;
+
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;
 
@@ -72,7 +77,7 @@ public class User implements UserDetails {
     }
 
     @Override public boolean isAccountNonExpired() { return true; }
-    @Override public boolean isAccountNonLocked() { return active; }
+    @Override public boolean isAccountNonLocked() { return isEnabled(); }
     @Override public boolean isCredentialsNonExpired() { return true; }
-    @Override public boolean isEnabled() { return active; }
+    @Override public boolean isEnabled() { return active && schoolActive; }
 }

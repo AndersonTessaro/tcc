@@ -3,6 +3,7 @@ package br.com.harmonia.admin;
 import br.com.harmonia.TestcontainersConfiguration;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.persistence.EntityManager;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -15,6 +16,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -299,5 +301,39 @@ class SchoolManagementIT {
             "{\"instrumentIds\":[\"" + instrument + "\"]}").andExpect(status().isOk());
         String otherEnrollment = create(admin, "/admin/enrollments", enrollment(studentA, sameSchoolTeacher));
         call("POST", "/teacher/lessons", teacher, lesson(otherEnrollment)).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void inactiveSchoolBlocksLoginAndRefreshLikeADisabledUser() throws Exception {
+        String teacherBUser = jdbc.queryForObject("select user_id from teacher where id = ?", UUID.class,
+            UUID.fromString(teacherB)).toString();
+        call("PUT", "/admin/security/users/" + teacherBUser + "/status", admin, "{\"active\":false}").andExpect(status().isOk());
+        MvcResult disabledUser = attemptLogin("teacherB" + suffix);
+
+        Cookie refresh = attemptLogin(teacherLogin).getResponse().getCookie("refresh_token");
+        setSchoolActive(schoolA, false);
+
+        MvcResult inactiveSchool = attemptLogin(teacherLogin);
+        assertThat(disabledUser.getResponse().getStatus()).isEqualTo(401);
+        assertThat(inactiveSchool.getResponse().getStatus()).isEqualTo(disabledUser.getResponse().getStatus());
+        assertThat(inactiveSchool.getResponse().getContentAsString()).isEqualTo(disabledUser.getResponse().getContentAsString());
+        mvc.perform(request(HttpMethod.POST, "/auth/refresh").cookie(refresh))
+            .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("BAD_REFRESH_TOKEN"));
+        login("admin", "Admin@123");
+
+        setSchoolActive(schoolA, true);
+        login(teacherLogin, "School@123");
+    }
+
+    private MvcResult attemptLogin(String name) throws Exception {
+        return call("POST", "/auth/login", null, "{\"login\":\"" + name + "\",\"password\":\"School@123\"}").andReturn();
+    }
+
+    private void setSchoolActive(String school, boolean active) throws Exception {
+        call("PUT", "/admin/schools/" + school, admin, "{\"name\":\"School A " + suffix + "\",\"active\":" + active + "}")
+            .andExpect(status().isOk());
+        // auth_user.school_active is a @Formula: re-read it from the database on the next login.
+        entityManager.flush();
+        entityManager.clear();
     }
 }
