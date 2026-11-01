@@ -14,6 +14,7 @@ import br.com.harmonia.infrastructure.persistence.security.Role;
 import br.com.harmonia.infrastructure.persistence.security.User;
 import br.com.harmonia.infrastructure.security.TokenService;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,7 +51,7 @@ public class SecurityAdminUseCase {
 
     @Transactional
     public void deleteUser(UUID userId) {
-        User user = users.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User"));
+        User user = scopedUser(userId);
         if (current.userId().equals(userId)) throw new DuplicateResourceException("Cannot delete your own account");
         if (user.getRoles().stream().anyMatch(role -> "ADMIN".equals(role.getName())))
             throw new DuplicateResourceException("Cannot delete an administrator");
@@ -60,7 +61,7 @@ public class SecurityAdminUseCase {
     }
 
     public List<User> listUsers() {
-        return users.findAll();
+        return users.findAll().stream().filter(u -> current.canManageSchool(u.getSchoolId())).toList();
     }
 
     public List<Role> listRoles() {
@@ -73,14 +74,18 @@ public class SecurityAdminUseCase {
 
     @Transactional
     public User setRoles(UUID userId, Set<Long> roleIds) {
-        User u = users.findById(userId).orElseThrow(() -> new NoSuchElementException("user"));
-        u.setRoles(new LinkedHashSet<>(roles.findAllById(roleIds)));
+        User u = scopedUser(userId);
+        var assigned = new LinkedHashSet<>(roles.findAllById(roleIds));
+        if (!current.isSystemAdmin() && assigned.stream().anyMatch(this::privileged))
+            throw new AccessDeniedException("Cannot assign administrative roles");
+        u.setRoles(assigned);
+        if (assigned.stream().anyMatch(r -> "ADMIN".equals(r.getName()))) u.setSchoolId(null);
         return users.save(u);
     }
 
     @Transactional
     public void setStatus(UUID userId, boolean active) {
-        User u = users.findById(userId).orElseThrow(() -> new NoSuchElementException("user"));
+        User u = scopedUser(userId);
         u.setActive(active);
         users.save(u);
         if (!active) tokenService.revokeAllForUser(userId);
@@ -88,10 +93,24 @@ public class SecurityAdminUseCase {
 
     @Transactional
     public void resetPassword(UUID userId, String newPassword) {
-        User u = users.findById(userId).orElseThrow(() -> new NoSuchElementException("user"));
+        User u = scopedUser(userId);
         u.setPassword(encoder.encode(newPassword));
         users.save(u);
         tokenService.revokeAllForUser(userId);
+    }
+
+    private User scopedUser(UUID id) {
+        User user = users.findById(id).orElseThrow(() -> new ResourceNotFoundException("User"));
+        current.assertSchool(user.getSchoolId());
+        if (!current.isSystemAdmin() && user.getRoles().stream().anyMatch(this::privileged))
+            throw new AccessDeniedException("Cannot change administrative accounts");
+        return user;
+    }
+
+    private boolean privileged(Role role) {
+        return Set.of("ADMIN", "MANAGER").contains(role.getName()) || role.getPermissions().stream()
+            .anyMatch(p -> Set.of("school.manage", "auth.role.manage", "auth.permission.manage", "config.manage",
+                "instrument.manage").contains(p.getName()));
     }
 
     @Transactional

@@ -44,6 +44,8 @@ public class LessonAttachmentUseCase {
         Lesson lesson = teacherLesson(lessonId);
         lifecyclePolicy.validateContentEdit(LessonStatuses.toSessionStatus(lesson.getStatus()));
         String fileName = displayName(file.getOriginalFilename());
+        if (file.getSize() > LessonAttachmentRule.MAX_BYTES)
+            throw new org.springframework.web.multipart.MaxUploadSizeExceededException(LessonAttachmentRule.MAX_BYTES);
         try {
             byte[] content = file.getBytes();
             LessonAttachmentRule.validate(fileName, file.getContentType(), file.getSize(),

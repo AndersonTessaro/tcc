@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/admin/settings")
-@PreAuthorize("hasRole('ADMIN') or hasAuthority('config.manage')")
+@PreAuthorize("hasRole('ADMIN') and hasAuthority('config.manage')")
 public class SettingController {
     private final SettingUseCase uc;
 

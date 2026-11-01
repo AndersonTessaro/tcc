@@ -68,7 +68,8 @@ public class AvatarUseCase {
 
     public Avatar forUser(UUID userId) {
         User user = find(userId);
-        if (!current.isAdmin() && !current.userId().equals(userId)) assertLinked(userId);
+        if (current.isManager() && !current.isSystemAdmin()) current.assertSchool(user.getSchoolId());
+        if (!current.canManageSchool(user.getSchoolId()) && !current.userId().equals(userId)) assertLinked(userId);
         return read(user);
     }
 

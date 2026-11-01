@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static br.com.harmonia.SchoolTestSupport.school;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -52,7 +54,7 @@ class TeacherStudentManagementIT {
     }
 
     private ResultActions postJson(String token, String route, Map<String, Object> body) throws Exception {
-        return mvc.perform(post(route).header("Authorization", "Bearer " + token)
+        return mvc.perform(post(route).with(school(mvc)).header("Authorization", "Bearer " + token)
             .contentType("application/json").content(json.writeValueAsString(body)));
     }
 

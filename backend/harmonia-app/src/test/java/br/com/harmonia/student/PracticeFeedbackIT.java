@@ -13,6 +13,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
+import static br.com.harmonia.SchoolTestSupport.school;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -36,7 +38,7 @@ class PracticeFeedbackIT {
     }
 
     private String postId(String token, String path, String json) throws Exception {
-        String body = mvc.perform(post(path).header("Authorization", "Bearer " + token)
+        String body = mvc.perform(post(path).with(school(mvc)).header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON).content(json))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return JsonPath.read(body, "$.id");

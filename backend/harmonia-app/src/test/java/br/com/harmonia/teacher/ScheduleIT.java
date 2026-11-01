@@ -9,6 +9,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static br.com.harmonia.SchoolTestSupport.school;
+
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -31,7 +33,7 @@ class ScheduleIT {
     }
 
     private String postId(String token, String path, String json) throws Exception {
-        String body = mvc.perform(post(path).header("Authorization", "Bearer " + token)
+        String body = mvc.perform(post(path).with(school(mvc)).header("Authorization", "Bearer " + token)
                 .contentType("application/json").content(json))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return JsonPath.read(body, "$.id");

@@ -18,6 +18,8 @@ import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 
+import static br.com.harmonia.SchoolTestSupport.school;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -74,7 +76,7 @@ class LessonEditIT {
     }
 
     private String postId(String token, String path, String json) throws Exception {
-        String body = mvc.perform(post(path).header("Authorization", "Bearer " + token)
+        String body = mvc.perform(post(path).with(school(mvc)).header("Authorization", "Bearer " + token)
                 .contentType("application/json").content(json))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return JsonPath.read(body, "$.id");
@@ -296,7 +298,7 @@ class LessonEditIT {
         LocalDate today = LocalDate.now();
         update(teacher, id, today, "00:00", "01:00")
             .andExpect(status().isOk()).andExpect(jsonPath("$.status", is("SCHEDULED")));
-        mvc.perform(post("/teacher/lessons/" + id + "/attendance").header("Authorization", "Bearer " + teacher)
+        mvc.perform(post("/teacher/lessons/" + id + "/attendance").with(school(mvc)).header("Authorization", "Bearer " + teacher)
                 .contentType("application/json").content("{\"status\":\"PRESENT\"}"))
             .andExpect(status().isOk());
 

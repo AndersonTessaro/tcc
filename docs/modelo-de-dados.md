@@ -1,6 +1,6 @@
 # Modelo de Dados — Harmonia
 
-Modelo do **domínio completo** (todas as 20 entidades). MVP = Aluno + Professor;
+Modelo do **domínio completo** (entidades do sistema). MVP = Aluno + Professor;
 entidades de Admin existem no schema mas seus fluxos/telas são fase 2.
 
 > **Clean Architecture:** este modelo é o **domínio** (regras de negócio). As entidades JPA
@@ -15,6 +15,9 @@ entidades de Admin existem no schema mas seus fluxos/telas são fase 2.
 
 ```mermaid
 erDiagram
+    SCHOOL |o--o{ USER : "vincula"
+    SCHOOL ||--o{ FINANCIAL_TRANSACTION : "registra"
+
     USER ||--o| STUDENT : "é"
     USER ||--o| TEACHER : "é"
     USER ||--o{ PASSWORD_RESET_TOKEN : "solicita"
@@ -51,8 +54,15 @@ erDiagram
 
     STUDENT |o--o{ FINANCIAL_TRANSACTION : "referente"
 
+    SCHOOL {
+        uuid id PK
+        string name UK "varchar(120)"
+        boolean active
+        timestamp created_at
+    }
     USER {
         uuid id PK
+        uuid school_id FK "nullable; ON DELETE CASCADE"
         string username UK
         string email UK
         string password "BCrypt"
@@ -63,7 +73,7 @@ erDiagram
     }
     ROLE {
         bigint id PK
-        string name UK "STUDENT|TEACHER|ADMIN|..."
+        string name UK "STUDENT|TEACHER|MANAGER|ADMIN|..."
         string description
     }
     PERMISSION {
@@ -211,6 +221,7 @@ erDiagram
     }
     FINANCIAL_TRANSACTION {
         uuid id PK
+        uuid school_id FK "NOT NULL; ON DELETE CASCADE"
         enum type "INCOME|EXPENSE"
         decimal amount
         string description
@@ -248,8 +259,9 @@ Construído **completo já no MVP** (fundação de segurança), JWT RSA + Refres
 
 | Entidade | Papel | Notas |
 |---|---|---|
-| **Usuario** | Conta + auth (RF01). Implementa `UserDetails` | `username`/`email` únicos, senha BCrypt. Autoridades = roles (`ROLE_<name>`) + permissions. |
-| **Role** | Papel (RBAC) | Seed: `ALUNO`, `PROFESSOR`, `ADMIN`. n:n Permission. |
+| **School** | Escola | `school`: nome único de até 120 caracteres, `active` e `created_at`; seed **Escola Harmonia**. |
+| **Usuario** | Conta + auth (RF01). Implementa `UserDetails` | `auth_user.school_id` opcional; ADMIN sem escola, demais usuários vinculados à escola. `username`/`email` únicos, senha BCrypt. Autoridades = roles (`ROLE_<name>`) + permissions. |
+| **Role** | Papel (RBAC) | Seed: `STUDENT`, `TEACHER`, `MANAGER`, `ADMIN`. n:n Permission. |
 | **Permission** | Permissão fina (PBAC, RF28) | Nome `dominio.acao` (ex.: `aula.manage`). Catálogo abaixo. |
 | **RefreshToken** | Sessão stateless | `token_hash` SHA-256, `expires_at`, `revoked_at`. Access JWT curto + refresh longo. |
 | **Aluno** | Perfil aluno (1:1 Usuario) | Dados pedagógicos/pessoais. |
@@ -276,11 +288,15 @@ Construído **completo já no MVP** (fundação de segurança), JWT RSA + Refres
 | financeiro | `financeiro.manage` |
 | relatório | `relatorio.read` |
 | config | `config.manage` |
+| school | `school.manage` (somente ADMIN) |
 
 #### Seed de roles → permissões
 - **ALUNO** — `aula.read`, `material.read`, `meta.read`, `meta.manage`, `pratica.register`, `progresso.read`, `nota.read` (sempre + ownership = só os próprios).
 - **PROFESSOR** — `aluno.read`, `aula.read`, `aula.manage`, `frequencia.manage`, `material.read`, `material.manage`, `meta.read`, `meta.manage`, `relatorio.read`, `aluno.register` (cadastra aluno já matriculado consigo), `aluno.update` (nome, telefone, notas; exige matrícula ativa) (+ ownership = só alunos vinculados).
-- **ADMIN** — todas. `hasRole('ADMIN')` faz bypass de ownership (RN13).
+- **MANAGER** — "Gestor da escola": `student.read`, `student.manage`, `student.register`, `student.update`, `teacher.read`, `teacher.manage`, `enrollment.manage`, `lesson.read`, `lesson.manage`, `attendance.manage`, `report.read`, `finance.manage`, `auth.user.manage`. Acesso limitado pela escola do usuário proprietário; instrumentos globais somente para consulta.
+- **ADMIN** — "Administrador do sistema": todas, incluindo `school.manage`. `hasRole('ADMIN')` faz bypass de ownership (RN13).
+
+V25 associa os usuários existentes sem ADMIN à **Escola Harmonia**. `financial_transaction.school_id` é obrigatório (backfill para a mesma escola), inclusive quando não há aluno associado; lançamentos e saldo são filtrados por escola. As FKs de escola usam `ON DELETE CASCADE`.
 
 ### Estrutura pedagógica
 | Entidade | Papel | Notas |

@@ -11,6 +11,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
 
+import static br.com.harmonia.SchoolTestSupport.school;
+
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -32,7 +34,7 @@ class MakeupIT {
     }
 
     private String postId(String token, String path, String json) throws Exception {
-        String body = mvc.perform(post(path).header("Authorization", "Bearer " + token)
+        String body = mvc.perform(post(path).with(school(mvc)).header("Authorization", "Bearer " + token)
                 .contentType("application/json").content(json))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return JsonPath.read(body, "$.id");
@@ -56,7 +58,7 @@ class MakeupIT {
         String originalLesson = postId(t, "/teacher/lessons",
             "{\"enrollmentId\":\"" + enrollment + "\",\"date\":\"" + yesterday + "\",\"startTime\":\"09:00\",\"endTime\":\"10:00\",\"content\":\"Bow\"}");
 
-        mvc.perform(post("/teacher/lessons/" + originalLesson + "/makeup").header("Authorization", "Bearer " + t)
+        mvc.perform(post("/teacher/lessons/" + originalLesson + "/makeup").with(school(mvc)).header("Authorization", "Bearer " + t)
                 .contentType("application/json")
                 .content("{\"date\":\"" + today + "\",\"startTime\":\"11:00\",\"endTime\":\"12:00\",\"reason\":\"Aluno faltou\"}"))
             .andExpect(status().isOk())
@@ -92,11 +94,11 @@ class MakeupIT {
             "{\"enrollmentId\":\"" + enrollment + "\",\"date\":\"" + yesterday + "\",\"startTime\":\"09:00\",\"endTime\":\"10:00\",\"content\":\"Scales\"}");
 
         String makeupBody = "{\"date\":\"" + today + "\",\"startTime\":\"11:00\",\"endTime\":\"12:00\",\"reason\":\"Aluno faltou\"}";
-        mvc.perform(post("/teacher/lessons/" + originalLesson + "/makeup").header("Authorization", "Bearer " + t)
+        mvc.perform(post("/teacher/lessons/" + originalLesson + "/makeup").with(school(mvc)).header("Authorization", "Bearer " + t)
                 .contentType("application/json").content(makeupBody))
             .andExpect(status().isOk());
 
-        mvc.perform(post("/teacher/lessons/" + originalLesson + "/makeup").header("Authorization", "Bearer " + t)
+        mvc.perform(post("/teacher/lessons/" + originalLesson + "/makeup").with(school(mvc)).header("Authorization", "Bearer " + t)
                 .contentType("application/json").content(makeupBody))
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.code", org.hamcrest.Matchers.is("INVALID_MAKEUP_LINK")));

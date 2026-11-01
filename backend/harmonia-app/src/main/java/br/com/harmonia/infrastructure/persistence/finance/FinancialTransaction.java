@@ -17,6 +17,9 @@ public class FinancialTransaction {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "school_id", nullable = false)
+    private UUID schoolId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TransactionType type;

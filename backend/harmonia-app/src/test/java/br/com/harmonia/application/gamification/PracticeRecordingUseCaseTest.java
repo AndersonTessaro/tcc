@@ -71,7 +71,7 @@ class PracticeRecordingUseCaseTest {
     }
 
     private void stubSave() {
-        when(storage.save("practice.mp4", new byte[] {0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm'})).thenReturn("new_path");
+        when(storage.save(eq("practice.mp4"), any(java.io.InputStream.class), eq(12L))).thenReturn("new_path");
         when(practices.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }
 
@@ -128,7 +128,7 @@ class PracticeRecordingUseCaseTest {
         assertThat(saved.getRecording().getSizeBytes()).isEqualTo(12L);
         assertThat(saved.getRecording().getUploadedAt()).isNotNull();
         verify(current).assertOwnedByCurrentStudent(practice.getStudent());
-        verify(storage).save("practice.mp4", new byte[] {0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm'});
+        verify(storage).save(eq("practice.mp4"), any(java.io.InputStream.class), eq(12L));
         verify(practices).save(practice);
         complete(TransactionSynchronization.STATUS_COMMITTED);
         verify(storage, never()).delete(any());
@@ -165,7 +165,7 @@ class PracticeRecordingUseCaseTest {
     void attach_saveFailureRollback_deletesNewAndKeepsOld() {
         Practice practice = practice();
         recording(practice);
-        when(storage.save(any(), any())).thenReturn("new_path");
+        when(storage.save(any(), any(java.io.InputStream.class), anyLong())).thenReturn("new_path");
         when(practices.save(any())).thenThrow(new IllegalStateException("Save failed"));
 
         assertThatThrownBy(() -> useCase().attach(practice.getId(), file()))
@@ -180,7 +180,7 @@ class PracticeRecordingUseCaseTest {
     void attach_readFailure_wrapsIOExceptionWithoutStorage() throws Exception {
         Practice practice = practice();
         var file = mock(org.springframework.web.multipart.MultipartFile.class);
-        when(file.getBytes()).thenThrow(new IOException("Cannot read upload"));
+        when(file.getInputStream()).thenThrow(new IOException("Cannot read upload"));
 
         assertThatThrownBy(() -> useCase().attach(practice.getId(), file))
             .isInstanceOf(UncheckedIOException.class).hasCauseInstanceOf(IOException.class);
@@ -251,7 +251,7 @@ class PracticeRecordingUseCaseTest {
     void downloadAsTeacher_admin_bypassesTeacherProfileAndEnrollment() {
         Practice practice = practice();
         recording(practice);
-        when(current.isAdmin()).thenReturn(true);
+        when(current.canManageStudent(any())).thenReturn(true);
         when(storage.read("old_path")).thenReturn(new byte[] {4});
 
         assertThat(useCase().downloadAsTeacher(practice.getId())).containsExactly((byte) 4);

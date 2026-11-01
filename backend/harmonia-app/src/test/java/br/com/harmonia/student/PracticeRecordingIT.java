@@ -4,6 +4,9 @@ import br.com.harmonia.TestcontainersConfiguration;
 import br.com.harmonia.application.gamification.port.PracticeRepository;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import br.com.harmonia.SyntheticMultipartFile;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,6 +21,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
+
+import static br.com.harmonia.SchoolTestSupport.school;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -48,7 +53,7 @@ class PracticeRecordingIT {
     }
 
     private String postId(String token, String path, String json) throws Exception {
-        String body = mvc.perform(post(path).header("Authorization", "Bearer " + token)
+        String body = mvc.perform(post(path).with(school(mvc)).header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON).content(json))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return JsonPath.read(body, "$.id");
@@ -89,6 +94,31 @@ class PracticeRecordingIT {
 
     private MockMultipartFile video() {
         return new MockMultipartFile("file", "practice.mp4", "video/mp4", new byte[] {0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm'});
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {50L * 1024 * 1024 + 1, 150L * 1024 * 1024})
+    void largePracticeVideoIsStreamedToStorage(long size) throws Exception {
+        Fixture fixture = fixture();
+        var file = new SyntheticMultipartFile("practice.mp4", "video/mp4", size,
+            new byte[] {0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm'});
+        mvc.perform(multipart(mine(fixture)).file(file).header("Authorization", "Bearer " + fixture.studentToken()))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.recording.sizeBytes").value(size));
+        var practice = practices.findById(UUID.fromString(fixture.practiceId())).orElseThrow();
+        assertThat(Files.size(storageDir.resolve(practice.getRecording().getStoragePath()))).isEqualTo(size);
+    }
+
+    @Test
+    void oversizedVideoAndAudioKeepTheFileTooLargeErrorContract() throws Exception {
+        Fixture fixture = fixture();
+        var video = new SyntheticMultipartFile("practice.mp4", "video/mp4", 150L * 1024 * 1024 + 1,
+            new byte[] {0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm'});
+        var audio = new SyntheticMultipartFile("practice.mp3", "audio/mpeg", 50L * 1024 * 1024 + 1,
+            new byte[] {'I', 'D', '3', 4});
+        for (var file : new SyntheticMultipartFile[] {video, audio}) {
+            mvc.perform(multipart(mine(fixture)).file(file).header("Authorization", "Bearer " + fixture.studentToken()))
+                .andExpect(status().isPayloadTooLarge()).andExpect(jsonPath("$.code").value("FILE_TOO_LARGE"));
+        }
     }
 
     private String mine(Fixture fixture) {

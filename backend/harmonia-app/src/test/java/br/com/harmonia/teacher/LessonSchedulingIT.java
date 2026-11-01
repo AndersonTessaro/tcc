@@ -15,6 +15,8 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
+import static br.com.harmonia.SchoolTestSupport.school;
+
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -41,7 +43,7 @@ class LessonSchedulingIT {
     }
 
     private String postId(String token, String path, String json) throws Exception {
-        String body = mvc.perform(post(path).header("Authorization", "Bearer " + token)
+        String body = mvc.perform(post(path).with(school(mvc)).header("Authorization", "Bearer " + token)
                 .contentType("application/json").content(json))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return JsonPath.read(body, "$.id");
@@ -96,7 +98,7 @@ class LessonSchedulingIT {
     }
 
     private void attendance(String token, String lessonId, int expectedStatus) throws Exception {
-        mvc.perform(post("/teacher/lessons/" + lessonId + "/attendance").header("Authorization", "Bearer " + token)
+        mvc.perform(post("/teacher/lessons/" + lessonId + "/attendance").with(school(mvc)).header("Authorization", "Bearer " + token)
                 .contentType("application/json").content("{\"status\":\"PRESENT\"}"))
             .andExpect(status().is(expectedStatus));
     }
@@ -107,7 +109,7 @@ class LessonSchedulingIT {
     }
 
     private String makeupOf(String token, String lessonId, String date, String start, String end) throws Exception {
-        String body = mvc.perform(post("/teacher/lessons/" + lessonId + "/makeup")
+        String body = mvc.perform(post("/teacher/lessons/" + lessonId + "/makeup").with(school(mvc))
                 .header("Authorization", "Bearer " + token).contentType("application/json")
                 .content("{\"date\":\"" + date + "\",\"startTime\":\"" + start + "\",\"endTime\":\"" + end
                     + "\",\"reason\":\"Aluno faltou\"}"))
@@ -278,7 +280,7 @@ class LessonSchedulingIT {
             .andReturn().getResponse().getContentAsString();
         String lessonId = JsonPath.read(body, "$.id");
 
-        mvc.perform(post("/teacher/lessons/" + lessonId + "/makeup").header("Authorization", "Bearer " + t)
+        mvc.perform(post("/teacher/lessons/" + lessonId + "/makeup").with(school(mvc)).header("Authorization", "Bearer " + t)
                 .contentType("application/json")
                 .content("{\"date\":\"" + today + "\",\"startTime\":\"11:00\",\"endTime\":\"12:00\"}"))
             .andExpect(status().isOk())

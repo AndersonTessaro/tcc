@@ -56,7 +56,8 @@ class RegistrationST {
     private Map<String, Object> user() {
         String name = "reg-" + UUID.randomUUID();
         return new LinkedHashMap<>(Map.of("username", name, "email", name + "@test.local",
-            "password", "Register@123", "name", "Registration Test"));
+            "password", "Register@123", "name", "Registration Test", "schoolId",
+            jdbc.queryForObject("select id from school where name = 'Escola Harmonia'", UUID.class).toString()));
     }
 
     private String create(String path, Object body) throws Exception {

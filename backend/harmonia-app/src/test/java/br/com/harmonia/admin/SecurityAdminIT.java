@@ -12,6 +12,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static br.com.harmonia.SchoolTestSupport.school;
+
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -71,7 +73,7 @@ class SecurityAdminIT {
             .andExpect(jsonPath("$.permissions.length()", greaterThan(0)));
 
         // create a student; find the User (auth_user) id by username
-        mvc.perform(post("/admin/students").header("Authorization", "Bearer " + t)
+        mvc.perform(post("/admin/students").with(school(mvc)).header("Authorization", "Bearer " + t)
                 .contentType("application/json")
                 .content("{\"username\":\"mon1\",\"email\":\"mon1@h.local\",\"password\":\"Mon@1234\",\"name\":\"Monitor One\"}"))
             .andExpect(status().isOk());
@@ -106,7 +108,7 @@ class SecurityAdminIT {
     @Test
     void resetPassword_revokesExistingRefreshTokens() throws Exception {
         String t = token("admin", "Admin@123");
-        mvc.perform(post("/admin/students").header("Authorization", "Bearer " + t)
+        mvc.perform(post("/admin/students").with(school(mvc)).header("Authorization", "Bearer " + t)
                 .contentType("application/json")
                 .content("{\"username\":\"resetpwuser\",\"email\":\"resetpwuser@h.local\",\"password\":\"Pw@12345\",\"name\":\"Reset Pw User\"}"))
             .andExpect(status().isOk());
@@ -132,7 +134,7 @@ class SecurityAdminIT {
     @Test
     void nonPrivilegedUser_cannotAccessSecurityAdmin() throws Exception {
         String t = token("admin", "Admin@123");
-        mvc.perform(post("/admin/students").header("Authorization", "Bearer " + t)
+        mvc.perform(post("/admin/students").with(school(mvc)).header("Authorization", "Bearer " + t)
                 .contentType("application/json")
                 .content("{\"username\":\"noperm\",\"email\":\"noperm@h.local\",\"password\":\"Nop@1234\",\"name\":\"No Perm\"}"))
             .andExpect(status().isOk());

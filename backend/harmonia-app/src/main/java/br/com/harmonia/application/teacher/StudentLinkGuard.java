@@ -19,7 +19,7 @@ public class StudentLinkGuard {
     }
 
     public void assertLinked(UUID studentId) {
-        if (!current.isAdmin()
+        if (!current.canManageStudent(studentId)
                 && enrollments.findByTeacherIdAndStudentId(current.currentTeacher().getId(), studentId).isEmpty())
             throw new OwnershipException("Student not linked");
     }

@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static br.com.harmonia.SchoolTestSupport.school;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -83,7 +85,7 @@ class DeleteUserIT extends MoreMenuITSupport {
         String original = lesson(teacherToken, enrollment, today.minusDays(1), "09:00", "10:00");
         String replacement = lesson(teacherToken, enrollment, today.plusDays(2), "09:00", "10:00");
         jdbc.update("INSERT INTO makeup_lesson (original_lesson_id, new_lesson_id) VALUES (?, ?)", uuid(original), uuid(replacement));
-        mvc.perform(post("/teacher/lessons/" + original + "/attendance").header("Authorization", "Bearer " + teacherToken)
+        mvc.perform(post("/teacher/lessons/" + original + "/attendance").with(school(mvc)).header("Authorization", "Bearer " + teacherToken)
                 .contentType("application/json").content("{\"status\":\"PRESENT\"}"))
             .andExpect(status().isOk());
         jdbc.update("INSERT INTO schedule (enrollment_id, weekday, start_time, end_time) VALUES (?, 'MONDAY', '14:00', '15:00')", uuid(enrollment));
@@ -119,8 +121,8 @@ class DeleteUserIT extends MoreMenuITSupport {
             {"title":"Practice","type":"PRACTICE_TIME","period":"WEEKLY","target":120}
             """);
         UUID financialTransaction = UUID.randomUUID();
-        jdbc.update("INSERT INTO financial_transaction (id, type, amount, date, student_id) VALUES (?, 'INCOME', 100, ?, ?)",
-            financialTransaction, today, uuid(studentId));
+        jdbc.update("INSERT INTO financial_transaction (id, type, amount, date, student_id, school_id) VALUES (?, 'INCOME', 100, ?, ?, (select school_id from auth_user where id = ?))",
+            financialTransaction, today, uuid(studentId), studentUserId);
         jdbc.update("INSERT INTO auth_password_reset_token (token_hash, user_id, expires_at) VALUES (?, ?, now() + interval '1 day')",
             UUID.randomUUID().toString(), studentUserId);
         jdbc.update("""
@@ -233,11 +235,7 @@ class DeleteUserIT extends MoreMenuITSupport {
         mvc.perform(delete("/admin/users/" + studentUserId)).andExpect(status().isUnauthorized());
         mvc.perform(delete("/admin/users/" + studentUserId).header("Authorization", "Bearer " + teacherToken))
             .andExpect(status().isForbidden());
-        UUID managerRole = UUID.randomUUID();
-        String roleName = "MANAGER_" + managerRole;
-        Long roleId = jdbc.queryForObject("INSERT INTO auth_role (name, description) VALUES (?, 'User manager') RETURNING id", Long.class, roleName);
-        jdbc.update("INSERT INTO auth_role_permissions (role_id, permission_id) SELECT ?, id FROM auth_permission WHERE name = 'auth.user.manage'", roleId);
-        jdbc.update("INSERT INTO auth_user_roles (user_id, role_id) VALUES (?, ?)", teacherUserId, roleId);
+        jdbc.update("INSERT INTO auth_user_roles (user_id, role_id) SELECT ?, id FROM auth_role WHERE name = 'MANAGER'", teacherUserId);
         String manager = login("deleteT" + suffix, "Teach@1234");
         mvc.perform(delete("/admin/users/" + studentUserId).header("Authorization", "Bearer " + manager))
             .andExpect(status().isNoContent());

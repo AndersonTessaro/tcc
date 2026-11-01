@@ -48,7 +48,7 @@ public class TeacherMaterialUseCase {
     @Transactional(readOnly = true)
     public List<MaterialItem> forStudent(UUID studentId) {
         assertLinked(studentId);
-        var lessonItems = current.isAdmin() ? attachments.findByLessonEnrollmentStudentId(studentId)
+        var lessonItems = current.canManageStudent(studentId) ? attachments.findByLessonEnrollmentStudentId(studentId)
             : attachments.findByLessonEnrollmentStudentIdAndLessonEnrollmentTeacherId(studentId, current.currentTeacher().getId());
         return Stream.concat(materials.findByStudentId(studentId).stream().map(MaterialItem::of),
                 lessonItems.stream().map(MaterialItem::of))
@@ -63,7 +63,7 @@ public class TeacherMaterialUseCase {
     }
 
     private void assertLinked(UUID studentId) {
-        if (!current.isAdmin() && enrollments.findByTeacherIdAndStudentId(
+        if (!current.canManageStudent(studentId) && enrollments.findByTeacherIdAndStudentId(
             current.currentTeacher().getId(), studentId).isEmpty())
             throw new OwnershipException("Student is not linked to this teacher");
     }
@@ -74,6 +74,8 @@ public class TeacherMaterialUseCase {
         Student student = students.findById(studentId).orElseThrow(() -> new ResourceNotFoundException("Student"));
         if (enrollments.findByTeacherIdAndStudentId(teacher.getId(), studentId).isEmpty())
             throw new OwnershipException("Student is not linked to this teacher");
+        if (file.getSize() > MaterialFileRule.MAX_BYTES)
+            throw new org.springframework.web.multipart.MaxUploadSizeExceededException(MaterialFileRule.MAX_BYTES);
         try {
             byte[] content = file.getBytes();
             MaterialFileRule.validate(file.getOriginalFilename(), file.getSize(),

@@ -26,7 +26,7 @@ public class FinanceController {
     }
 
     public record NewTransaction(@NotNull TransactionType type, @NotNull @Positive BigDecimal amount,
-                                 String description, String category, LocalDate date, UUID studentId) {}
+                                 String description, String category, LocalDate date, UUID studentId, UUID schoolId) {}
 
     @GetMapping("/transactions")
     public List<FinancialTransaction> list() {
@@ -40,6 +40,6 @@ public class FinanceController {
 
     @PostMapping("/transactions")
     public FinancialTransaction create(@Valid @RequestBody NewTransaction r) {
-        return uc.create(r.type(), r.amount(), r.description(), r.category(), r.date(), r.studentId());
+        return uc.create(r.type(), r.amount(), r.description(), r.category(), r.date(), r.studentId(), r.schoolId());
     }
 }

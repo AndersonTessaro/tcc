@@ -40,6 +40,16 @@ class PracticeRecordingRuleTest {
     }
 
     @Test
+    void videoAccepts150MbWhileAudioStaysAt50Mb() {
+        assertThatCode(() -> PracticeRecordingRule.validate("p.mp4", "video/mp4", 150L * 1024 * 1024, MP4))
+            .doesNotThrowAnyException();
+        assertThatThrownBy(() -> PracticeRecordingRule.validate("p.mp3", "audio/mpeg", 50L * 1024 * 1024 + 1, MP3))
+            .isInstanceOf(DomainValidationException.class);
+        assertThatThrownBy(() -> PracticeRecordingRule.validate("p.mp3", "video/mp4", 50L * 1024 * 1024 + 1, MP3))
+            .isInstanceOf(DomainValidationException.class);
+    }
+
+    @Test
     void validate_exactLimit_accepts() {
         assertThatCode(() -> PracticeRecordingRule.validate("p.mp4", "video/mp4", PracticeRecordingRule.MAX_BYTES, MP4))
             .doesNotThrowAnyException();
@@ -77,9 +87,9 @@ class PracticeRecordingRuleTest {
 
     @Test
     void validate_overLimit_rejects() {
-        assertThatThrownBy(() -> PracticeRecordingRule.validate("p.mp4", "video/mp4", PracticeRecordingRule.MAX_BYTES + 1, MP4))
+        assertThatThrownBy(() -> PracticeRecordingRule.validate("p.mp4", "video/mp4", PracticeRecordingRule.MAX_VIDEO_BYTES + 1, MP4))
             .isInstanceOf(DomainValidationException.class)
-            .hasMessage("Recording exceeds 50 MB");
+            .hasMessage("Recording exceeds 150 MB");
     }
 
     private static void assertNotMedia(String name, String type, byte[] head) {

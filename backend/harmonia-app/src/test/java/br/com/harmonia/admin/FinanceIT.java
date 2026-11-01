@@ -9,6 +9,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static br.com.harmonia.SchoolTestSupport.school;
+
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -33,13 +35,13 @@ class FinanceIT {
     void admin_recordsTransactionsAndComputesBalance() throws Exception {
         String t = token();
 
-        mvc.perform(post("/admin/finance/transactions").header("Authorization", "Bearer " + t)
+        mvc.perform(post("/admin/finance/transactions").with(school(mvc)).header("Authorization", "Bearer " + t)
                 .contentType("application/json")
                 .content("{\"type\":\"INCOME\",\"amount\":300.00,\"description\":\"Mensalidade\",\"date\":\"2026-06-01\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.type", is("INCOME")));
 
-        mvc.perform(post("/admin/finance/transactions").header("Authorization", "Bearer " + t)
+        mvc.perform(post("/admin/finance/transactions").with(school(mvc)).header("Authorization", "Bearer " + t)
                 .contentType("application/json")
                 .content("{\"type\":\"EXPENSE\",\"amount\":100.00,\"description\":\"Aluguel\",\"date\":\"2026-06-01\"}"))
             .andExpect(status().isOk());

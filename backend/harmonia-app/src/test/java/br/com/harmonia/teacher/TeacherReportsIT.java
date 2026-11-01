@@ -14,6 +14,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import static br.com.harmonia.SchoolTestSupport.school;
+
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -166,7 +168,7 @@ class TeacherReportsIT {
     }
 
     private void attend(String token, String lessonId, String outcome) throws Exception {
-        mvc.perform(post("/teacher/lessons/" + lessonId + "/attendance").header("Authorization", "Bearer " + token)
+        mvc.perform(post("/teacher/lessons/" + lessonId + "/attendance").with(school(mvc)).header("Authorization", "Bearer " + token)
                 .contentType("application/json").content("{\"status\":\"" + outcome + "\"}"))
             .andExpect(status().isOk());
     }
@@ -184,7 +186,7 @@ class TeacherReportsIT {
     }
 
     private String postId(String token, String path, String json) throws Exception {
-        String body = mvc.perform(post(path).header("Authorization", "Bearer " + token)
+        String body = mvc.perform(post(path).with(school(mvc)).header("Authorization", "Bearer " + token)
                 .contentType("application/json").content(json))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return JsonPath.read(body, "$.id");

@@ -103,7 +103,7 @@ public class TeacherUseCase {
     public List<Lesson> studentLessons(UUID studentId) {
         assertLinked(studentId);
         return lessons.findByEnrollmentStudentIdOrderByDateDesc(studentId).stream()
-            .filter(l -> current.isAdmin() || l.getEnrollment().getTeacher().getId()
+            .filter(l -> current.canManageStudent(studentId) || l.getEnrollment().getTeacher().getId()
                 .equals(current.currentTeacher().getId()))
             .limit(100).toList();
     }
@@ -162,7 +162,7 @@ public class TeacherUseCase {
         body.put("nextGoal", goals.findByStudentIdAndStatus(studentId, GoalStatus.ACTIVE).stream()
             .min(Comparator.comparing(g -> g.getDeadline() == null ? LocalDate.MAX : g.getDeadline()))
             .map(g -> g.getTitle()).orElse(""));
-        List<Enrollment> studentEnrollments = current.isAdmin()
+        List<Enrollment> studentEnrollments = current.canManageStudent(studentId)
             ? enrollments.findByStudentId(studentId)
             : enrollments.findByTeacherIdAndStudentId(current.currentTeacher().getId(), studentId);
         body.put("enrollmentDate", studentEnrollments.stream()

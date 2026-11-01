@@ -15,6 +15,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 
+import static br.com.harmonia.SchoolTestSupport.school;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -48,7 +50,7 @@ class PasswordResetIT {
                 .content("{\"login\":\"admin\",\"password\":\"Admin@123\"}"))
             .andReturn().getResponse().getContentAsString();
         String adminToken = com.jayway.jsonpath.JsonPath.read(admin, "$.accessToken");
-        mvc.perform(post("/admin/students").header("Authorization", "Bearer " + adminToken)
+        mvc.perform(post("/admin/students").with(school(mvc)).header("Authorization", "Bearer " + adminToken)
                 .contentType("application/json")
                 .content("{\"username\":\"resetflowuser\",\"email\":\"resetflowuser@h.local\",\"password\":\"Flow@1234\",\"name\":\"Reset Flow User\"}"))
             .andExpect(status().isOk());

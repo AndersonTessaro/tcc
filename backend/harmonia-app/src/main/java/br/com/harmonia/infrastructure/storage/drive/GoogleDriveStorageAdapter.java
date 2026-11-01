@@ -9,6 +9,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -25,26 +26,24 @@ public class GoogleDriveStorageAdapter implements FileStoragePort {
     public GoogleDriveStorageAdapter(RestClient.Builder builder, GoogleCredentials credentials, String folderId) {
         this.folderId = folderId;
         this.client = builder
-            .requestInterceptor((request, body, execution) -> {
-                request.getHeaders().setBearerAuth(accessToken(credentials));
-                return execution.execute(request, body);
-            })
+            .defaultRequest(request -> request.headers(headers -> headers.setBearerAuth(accessToken(credentials))))
             .build();
     }
 
     @Override
-    public String save(String fileName, byte[] content) {
+    public String save(String fileName, InputStream content, long size) {
         return call(() -> {
             URI session = client.post().uri(UPLOAD_URL)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("X-Upload-Content-Type", MediaType.APPLICATION_OCTET_STREAM_VALUE)
-                .header("X-Upload-Content-Length", String.valueOf(content.length))
+                .header("X-Upload-Content-Length", String.valueOf(size))
                 .body(Map.of("name", FileStoragePort.uniqueName(fileName), "parents", List.of(folderId)))
                 .retrieve().toBodilessEntity().getHeaders().getLocation();
             if (session == null) throw new RestClientException("Drive upload session without Location");
             DriveFile file = client.put().uri(session)
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(content)
+                .contentLength(size)
+                .body(output -> content.transferTo(output))
                 .retrieve().body(DriveFile.class);
             if (file == null || file.id() == null) throw new RestClientException("Drive upload without file id");
             return file.id();
@@ -65,9 +64,13 @@ public class GoogleDriveStorageAdapter implements FileStoragePort {
             .toBodilessEntity());
     }
 
-    private static String accessToken(GoogleCredentials credentials) throws IOException {
-        credentials.refreshIfExpired();
-        return credentials.getAccessToken().getTokenValue();
+    private static String accessToken(GoogleCredentials credentials) {
+        try {
+            credentials.refreshIfExpired();
+            return credentials.getAccessToken().getTokenValue();
+        } catch (IOException e) {
+            throw new StorageUnavailableException(e);
+        }
     }
 
     private static <T> T call(Supplier<T> request) {

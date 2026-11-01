@@ -25,10 +25,14 @@ public final class FileSignatures {
             || startsWith(head, 4, "ftyp");
     }
 
+    public static boolean isVideo(byte[] head) {
+        return head != null && (startsWith(head, 4, "ftyp")
+            || startsWith(head, 0, new byte[] {0x1A, 0x45, (byte) 0xDF, (byte) 0xA3}));
+    }
+
     public static boolean isMedia(byte[] head) {
         if (head == null || head.length < 4) return false;
-        return startsWith(head, 4, "ftyp")
-            || startsWith(head, 0, new byte[] {0x1A, 0x45, (byte) 0xDF, (byte) 0xA3})
+        return isVideo(head)
             || startsWith(head, 0, "ID3")
             || ((head[0] & 0xFF) == 0xFF && (head[1] & 0xE0) == 0xE0)
             || (startsWith(head, 0, "RIFF") && startsWith(head, 8, "WAVE"))

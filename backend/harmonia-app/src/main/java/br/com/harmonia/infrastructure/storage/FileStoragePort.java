@@ -1,12 +1,16 @@
 package br.com.harmonia.infrastructure.storage;
 
 import java.util.UUID;
+import java.io.InputStream;
+import java.io.ByteArrayInputStream;
 
 public interface FileStoragePort {
     int MAX_KEY_NAME_LENGTH = 218;
 
-    /** Saves bytes and returns the storage_path. */
-    String save(String fileName, byte[] content);
+    default String save(String fileName, byte[] content) {
+        return save(fileName, new ByteArrayInputStream(content), content.length);
+    }
+    String save(String fileName, InputStream content, long size);
     byte[] read(String storagePath);
     void delete(String storagePath);
 

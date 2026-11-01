@@ -181,7 +181,7 @@ class TeacherStudentUseCaseTest {
 
     @Test
     void profile_adminGetsNullNotesWithoutTeacherProfile() {
-        when(current.isAdmin()).thenReturn(true);
+        when(current.canManageStudent(any())).thenReturn(true);
         when(students.findById(studentId)).thenReturn(Optional.of(student()));
 
         var profile = useCase().profile(studentId);
@@ -233,7 +233,7 @@ class TeacherStudentUseCaseTest {
 
         guard.assertLinked(studentId);
         assertThatThrownBy(() -> guard.assertActivelyLinked(studentId)).isInstanceOf(OwnershipException.class);
-        when(current.isAdmin()).thenReturn(true);
+        when(current.canManageStudent(any())).thenReturn(true);
         guard.assertLinked(studentId);
         assertThatThrownBy(() -> guard.assertActivelyLinked(studentId)).isInstanceOf(OwnershipException.class);
     }

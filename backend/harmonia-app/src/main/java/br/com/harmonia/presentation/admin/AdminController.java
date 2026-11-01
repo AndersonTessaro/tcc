@@ -36,7 +36,7 @@ public class AdminController {
     public record NewUser(@NotBlank @Size(max = 100) String username,
                           @NotBlank @Email @Size(max = 255) String email,
                           @NotBlank @Size(min = 8) String password,
-                          @NotBlank @Size(max = 150) String name) {
+                          @NotBlank @Size(max = 150) String name, UUID schoolId) {
         @AssertTrue(message = "password must contain at most 72 UTF-8 bytes")
         public boolean isPasswordWithinByteLimit() {
             return Passwords.fitsBcrypt(password);
@@ -46,7 +46,7 @@ public class AdminController {
                              @NotBlank @Email @Size(max = 255) String email,
                              @NotBlank @Size(min = 8) String password,
                              @NotBlank @Size(max = 150) String name,
-                             List<@NotNull UUID> instrumentIds) {
+                             List<@NotNull UUID> instrumentIds, UUID schoolId) {
         @AssertTrue(message = "password must contain at most 72 UTF-8 bytes")
         public boolean isPasswordWithinByteLimit() {
             return Passwords.fitsBcrypt(password);
@@ -108,17 +108,17 @@ public class AdminController {
     @PostMapping("/students")
     @PreAuthorize("hasAuthority('student.manage')")
     public Map<String, UUID> student(@Valid @RequestBody NewUser r) {
-        return Map.of("id", uc.createStudent(r.username(), r.email(), r.password(), r.name(), null));
+        return Map.of("id", uc.createStudent(r.username(), r.email(), r.password(), r.name(), null, r.schoolId()));
     }
 
     @PostMapping("/teachers")
     @PreAuthorize("hasAuthority('teacher.manage')")
     public Map<String, UUID> teacher(@Valid @RequestBody NewTeacher r) {
-        return Map.of("id", uc.createTeacher(r.username(), r.email(), r.password(), r.name(), r.instrumentIds()));
+        return Map.of("id", uc.createTeacher(r.username(), r.email(), r.password(), r.name(), r.instrumentIds(), r.schoolId()));
     }
 
     @PostMapping("/instruments")
-    @PreAuthorize("hasAuthority('instrument.manage')")
+    @PreAuthorize("hasRole('ADMIN') and hasAuthority('instrument.manage')")
     public Map<String, UUID> instrument(@Valid @RequestBody NewInstrument r) {
         return Map.of("id", uc.createInstrument(r.name()));
     }
@@ -129,7 +129,7 @@ public class AdminController {
         return Map.of("id", uc.createEnrollment(r.studentId(), r.teacherId(), r.instrumentId(), r.monthlyFee()));
     }
     @PutMapping("/enrollments/{id}/fee")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('enrollment.manage')")
     public ResponseEntity<Void> enrollmentFee(@PathVariable UUID id, @Valid @RequestBody EnrollmentFee r) {
         uc.setEnrollmentFee(id, r.monthlyFee());
         return ResponseEntity.noContent().build();

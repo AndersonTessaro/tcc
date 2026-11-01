@@ -66,13 +66,13 @@ public class SecurityAdminController {
     }
 
     @PostMapping("/roles")
-    @PreAuthorize("hasAuthority('auth.role.manage')")
+    @PreAuthorize("hasRole('ADMIN') and hasAuthority('auth.role.manage')")
     public Role createRole(@Valid @RequestBody NewRole r) {
         return uc.createRole(r.name(), r.description());
     }
 
     @PutMapping("/roles/{id}/permissions")
-    @PreAuthorize("hasAuthority('auth.role.manage')")
+    @PreAuthorize("hasRole('ADMIN') and hasAuthority('auth.role.manage')")
     public Role setPermissions(@PathVariable Long id, @Valid @RequestBody SetPermissions r) {
         return uc.setRolePermissions(id, r.permissionIds());
     }

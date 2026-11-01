@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface LessonRepository extends JpaRepository<Lesson, UUID> {
+    List<Lesson> findByDateBetween(LocalDate from, LocalDate to);
     List<Lesson> findByEnrollmentStudentIdOrderByDateDesc(UUID studentId);
     List<Lesson> findByEnrollmentTeacherIdAndDateBetween(UUID teacherId, LocalDate start, LocalDate end);
     List<Lesson> findByEnrollmentTeacherIdAndDate(UUID teacherId, LocalDate date);

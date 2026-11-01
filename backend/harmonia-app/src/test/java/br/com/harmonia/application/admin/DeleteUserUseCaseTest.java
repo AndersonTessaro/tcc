@@ -104,6 +104,7 @@ class DeleteUserUseCaseTest {
     @Test
     void refusesAnyUserWithAdminRole() {
         User user = user();
+        when(current.isSystemAdmin()).thenReturn(true);
         Role admin = new Role();
         admin.setName("ADMIN");
         user.setRoles(Set.of(admin));

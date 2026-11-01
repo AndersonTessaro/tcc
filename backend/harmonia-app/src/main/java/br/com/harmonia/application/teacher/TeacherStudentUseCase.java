@@ -70,7 +70,7 @@ public class TeacherStudentUseCase {
     public StudentProfile profile(UUID studentId) {
         links.assertLinked(studentId);
         Student student = student(studentId);
-        TeacherStudentNote note = current.isAdmin() ? null : notes.findByTeacherIdAndStudentId(
+        TeacherStudentNote note = current.canManageStudent(studentId) ? null : notes.findByTeacherIdAndStudentId(
             current.currentTeacher().getId(), studentId).orElse(null);
         return profileOf(student, note);
     }

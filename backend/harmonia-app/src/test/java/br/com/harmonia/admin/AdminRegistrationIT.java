@@ -11,6 +11,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
+import static br.com.harmonia.SchoolTestSupport.school;
+
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -38,7 +40,7 @@ class AdminRegistrationIT {
     }
 
     private String postId(String token, String path, String json) throws Exception {
-        String body = mvc.perform(post(path).header("Authorization", "Bearer " + token)
+        String body = mvc.perform(post(path).with(school(mvc)).header("Authorization", "Bearer " + token)
                 .contentType("application/json").content(json))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id", notNullValue()))
@@ -189,7 +191,7 @@ class AdminRegistrationIT {
             "{\"username\":\"" + username + "\",\"email\":\"" + username
                 + "@h.local\",\"password\":\"Student@123\",\"name\":\"Student\"}");
 
-        mvc.perform(post("/admin/students").header("Authorization", "Bearer " + t)
+        mvc.perform(post("/admin/students").with(school(mvc)).header("Authorization", "Bearer " + t)
                 .contentType("application/json")
                 .content("{\"username\":\"" + username + "\",\"email\":\"" + UUID.randomUUID()
                     + "@h.local\",\"password\":\"Student@123\",\"name\":\"Other Student\"}"))

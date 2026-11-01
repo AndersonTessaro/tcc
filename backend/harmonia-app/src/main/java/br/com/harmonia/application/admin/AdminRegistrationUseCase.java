@@ -1,6 +1,7 @@
 package br.com.harmonia.application.admin;
 
 import br.com.harmonia.application.profile.port.*;
+import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.domain.common.DuplicateResourceException;
 import br.com.harmonia.domain.common.ResourceNotFoundException;
 import br.com.harmonia.lessoncore.DomainValidationException;
@@ -29,10 +30,13 @@ public class AdminRegistrationUseCase {
     private final InstrumentRepository instruments;
     private final EnrollmentRepository enrollments;
     private final PasswordEncoder encoder;
+    private final CurrentUserService current;
+    private final SchoolRepository schools;
 
     public AdminRegistrationUseCase(UserRepository users, RoleRepository roles, StudentRepository students,
                                     TeacherRepository teachers, InstrumentRepository instruments,
-                                    EnrollmentRepository enrollments, PasswordEncoder encoder) {
+                                    EnrollmentRepository enrollments, PasswordEncoder encoder,
+                                    CurrentUserService current, SchoolRepository schools) {
         this.users = users;
         this.roles = roles;
         this.students = students;
@@ -40,9 +44,11 @@ public class AdminRegistrationUseCase {
         this.instruments = instruments;
         this.enrollments = enrollments;
         this.encoder = encoder;
+        this.current = current;
+        this.schools = schools;
     }
 
-    private User newUser(String username, String email, String password, String name, String role) {
+    private User newUser(String username, String email, String password, String name, String role, UUID schoolId) {
         // Login matches username OR email, so a value may not repeat across the two columns either.
         if (users.findByUsername(username).isPresent() || users.findByEmail(username).isPresent()) {
             throw new DuplicateResourceException("Username already in use");
@@ -51,6 +57,7 @@ public class AdminRegistrationUseCase {
             throw new DuplicateResourceException("Email already in use");
         }
         User u = new User();
+        u.setSchoolId(schoolId);
         u.setUsername(username);
         u.setEmail(email);
         u.setDisplayName(name);
@@ -61,18 +68,25 @@ public class AdminRegistrationUseCase {
 
     @Transactional
     public UUID createStudent(String username, String email, String password, String name, String phone) {
+        return createStudent(username, email, password, name, phone, null);
+    }
+
+    @Transactional
+    public UUID createStudent(String username, String email, String password, String name, String phone, UUID schoolId) {
+        UUID assignedSchool = activeSchool(current.registrationSchoolId(schoolId));
         Student s = new Student();
-        s.setUser(newUser(username, email, password, name, "STUDENT"));
+        s.setUser(newUser(username, email, password, name, "STUDENT", assignedSchool));
         s.setPhone(phone);
         return students.save(s).getId();
     }
 
     @Transactional
     public UUID createTeacher(String username, String email, String password, String name,
-                              Collection<UUID> instrumentIds) {
+                              Collection<UUID> instrumentIds, UUID schoolId) {
+        UUID assignedSchool = activeSchool(current.registrationSchoolId(schoolId));
         Teacher t = new Teacher();
         t.setInstruments(activeInstrumentsById(instrumentIds));
-        t.setUser(newUser(username, email, password, name, "TEACHER"));
+        t.setUser(newUser(username, email, password, name, "TEACHER", assignedSchool));
         return teachers.save(t).getId();
     }
 
@@ -80,6 +94,7 @@ public class AdminRegistrationUseCase {
     public Teacher setTeacherInstruments(UUID teacherId, Collection<UUID> instrumentIds) {
         Teacher teacher = teachers.findWithInstrumentsById(teacherId)
             .orElseThrow(() -> new ResourceNotFoundException("Teacher"));
+        current.assertSchool(teacher.getUser().getSchoolId());
         teacher.setInstruments(activeInstrumentsById(instrumentIds));
         return teachers.save(teacher);
     }
@@ -115,10 +130,11 @@ public class AdminRegistrationUseCase {
         Teacher teacher = teachers.findById(teacherId).orElseThrow(() -> new ResourceNotFoundException("Teacher"));
         Instrument instrument = instruments.findById(instrumentId)
             .orElseThrow(() -> new ResourceNotFoundException("Instrument"));
-        requireEnrollable(student, teacher, instrument);
         Enrollment e = new Enrollment();
         e.setStudent(student);
         e.setTeacher(teacher);
+        current.assertOwnedByCurrentTeacher(e);
+        requireEnrollable(student, teacher, instrument);
         e.setInstrument(instrument);
         e.setMonthlyFee(monthlyFee);
         return enrollments.save(e).getId();
@@ -128,19 +144,22 @@ public class AdminRegistrationUseCase {
     public void setEnrollmentFee(UUID id, BigDecimal monthlyFee) {
         Enrollment enrollment = enrollments.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Enrollment"));
+        current.assertOwnedByCurrentTeacher(enrollment);
         enrollment.setMonthlyFee(monthlyFee);
     }
 
     @Transactional(readOnly = true)
     public List<Enrollment> listEnrollments(EnrollmentStatus status) {
         List<Enrollment> found = status == null ? enrollments.findAllBy() : enrollments.findByStatus(status);
-        return found.stream().sorted(Comparator.comparing(e -> e.getStudent().getUser().nameForDisplay())).toList();
+        return found.stream().filter(e -> current.canManageSchool(e.getTeacher().getUser().getSchoolId())
+            && current.canManageSchool(e.getStudent().getUser().getSchoolId())).sorted(Comparator.comparing(e -> e.getStudent().getUser().nameForDisplay())).toList();
     }
 
     @Transactional
     public void setEnrollmentStatus(UUID id, EnrollmentStatus status) {
         Enrollment enrollment = enrollments.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Enrollment"));
+        current.assertOwnedByCurrentTeacher(enrollment);
         if (status == EnrollmentStatus.ACTIVE && enrollment.getStatus() != EnrollmentStatus.ACTIVE) {
             requireEnrollable(enrollment.getStudent(), enrollment.getTeacher(), enrollment.getInstrument());
         }
@@ -148,6 +167,8 @@ public class AdminRegistrationUseCase {
     }
 
     private void requireEnrollable(Student student, Teacher teacher, Instrument instrument) {
+        if (!java.util.Objects.equals(student.getUser().getSchoolId(), teacher.getUser().getSchoolId()))
+            throw new DomainValidationException("Student and teacher must belong to the same school");
         requireActive(student.getActive(), "Student");
         requireActive(teacher.getActive(), "Teacher");
         requireActive(instrument.getActive(), "Instrument");
@@ -169,12 +190,25 @@ public class AdminRegistrationUseCase {
 
     public List<Student> activeStudents() {
         return students.findAll().stream().filter(Student::getActive)
+            .filter(s -> current.canManageSchool(s.getUser().getSchoolId()))
             .sorted(Comparator.comparing(s -> s.getUser().nameForDisplay())).toList();
     }
 
     public List<Teacher> activeTeachers() {
         return teachers.findByActiveTrue().stream()
+            .filter(t -> current.canManageSchool(t.getUser().getSchoolId()))
             .sorted(Comparator.comparing(t -> t.getUser().nameForDisplay())).toList();
+    }
+
+    @Transactional
+    public UUID createManager(UUID schoolId, String username, String email, String password, String name) {
+        return newUser(username, email, password, name, "MANAGER", activeSchool(schoolId)).getId();
+    }
+
+    private UUID activeSchool(UUID id) {
+        School school = schools.findById(id).orElseThrow(() -> new ResourceNotFoundException("School"));
+        requireActive(school.isActive(), "School");
+        return school.getId();
     }
 
     public List<Instrument> activeInstruments() {

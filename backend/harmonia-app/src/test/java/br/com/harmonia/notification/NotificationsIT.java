@@ -13,6 +13,8 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
+import static br.com.harmonia.SchoolTestSupport.school;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
@@ -109,7 +111,7 @@ class NotificationsIT extends MoreMenuITSupport {
             String attended = lesson(teacherToken, enrollment, today.minusDays(3),
                 outcome.equals("PRESENT") ? "09:00" : outcome.equals("ABSENT") ? "11:00" : "13:00",
                 outcome.equals("PRESENT") ? "10:00" : outcome.equals("ABSENT") ? "12:00" : "14:00");
-            mvc.perform(post("/teacher/lessons/" + attended + "/attendance").header("Authorization", "Bearer " + teacherToken)
+            mvc.perform(post("/teacher/lessons/" + attended + "/attendance").with(school(mvc)).header("Authorization", "Bearer " + teacherToken)
                 .contentType("application/json").content("{\"status\":\"" + outcome + "\"}"))
                 .andExpect(status().isOk());
         }

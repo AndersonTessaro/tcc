@@ -74,7 +74,7 @@ public class GoalUseCase {
     public GoalView createForStudent(UUID studentId, NewGoal command) {
         assertCanManage(studentId);
         Student student = students.findById(studentId).orElseThrow(() -> new ResourceNotFoundException("Student"));
-        Teacher author = current.isAdmin() ? null : current.currentTeacher();
+        Teacher author = current.canManageStudent(studentId) ? null : current.currentTeacher();
         return view(create(student, author, command), this::teacherCanEnd);
     }
 
@@ -89,7 +89,7 @@ public class GoalUseCase {
     }
 
     private void assertCanManage(UUID studentId) {
-        if (!current.isAdmin()) links.assertActivelyLinked(studentId);
+        if (!current.canManageStudent(studentId)) links.assertActivelyLinked(studentId);
     }
 
     private Goal create(Student student, Teacher author, NewGoal command) {
@@ -119,11 +119,11 @@ public class GoalUseCase {
     }
 
     private boolean studentCanEnd(Goal goal) {
-        return goal.getStatus() == GoalStatus.ACTIVE && (goal.getCreatedByTeacher() == null || current.isAdmin());
+        return goal.getStatus() == GoalStatus.ACTIVE && (goal.getCreatedByTeacher() == null || current.canManageStudent(goal.getStudent().getId()));
     }
 
     private boolean teacherCanEnd(Goal goal) {
-        return goal.getStatus() == GoalStatus.ACTIVE && (current.isAdmin() || goal.getCreatedByTeacher() != null
+        return goal.getStatus() == GoalStatus.ACTIVE && (current.canManageStudent(goal.getStudent().getId()) || goal.getCreatedByTeacher() != null
             && goal.getCreatedByTeacher().getId().equals(current.currentTeacher().getId()));
     }
 

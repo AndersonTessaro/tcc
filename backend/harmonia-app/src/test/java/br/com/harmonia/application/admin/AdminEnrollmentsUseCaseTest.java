@@ -19,10 +19,16 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class AdminEnrollmentsUseCaseTest {
+    private final br.com.harmonia.application.context.CurrentUserService current = mock(br.com.harmonia.application.context.CurrentUserService.class);
     private final EnrollmentRepository enrollments = mock(EnrollmentRepository.class);
     private final AdminRegistrationUseCase uc = new AdminRegistrationUseCase(mock(UserRepository.class),
         mock(RoleRepository.class), mock(StudentRepository.class), mock(TeacherRepository.class),
-        mock(InstrumentRepository.class), enrollments, mock(PasswordEncoder.class));
+        mock(InstrumentRepository.class), enrollments, mock(PasswordEncoder.class), current, mock(SchoolRepository.class));
+
+    @org.junit.jupiter.api.BeforeEach
+    void allowSystemAdmin() {
+        when(current.canManageSchool(any())).thenReturn(true);
+    }
 
     @Test
     void listsAllStatusesOrderedByStudentDisplayName() {
@@ -105,8 +111,10 @@ class AdminEnrollmentsUseCaseTest {
     private Enrollment enrollment(EnrollmentStatus status) {
         Student student = new Student();
         student.setId(UUID.randomUUID());
+        student.setUser(new User());
         Teacher teacher = new Teacher();
         teacher.setId(UUID.randomUUID());
+        teacher.setUser(new User());
         Instrument instrument = new Instrument();
         instrument.setId(UUID.randomUUID());
         teacher.getInstruments().add(instrument);

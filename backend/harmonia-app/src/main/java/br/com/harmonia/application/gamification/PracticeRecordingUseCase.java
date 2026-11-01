@@ -17,7 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import java.util.UUID;
 
 @Service
@@ -40,12 +40,17 @@ public class PracticeRecordingUseCase {
         Practice practice = findPractice(practiceId);
         current.assertOwnedByCurrentStudent(practice.getStudent());
         String fileName = displayName(file.getOriginalFilename());
+        long limit = PracticeRecordingRule.maxBytes(fileName, file.getContentType());
+        if (file.getSize() > limit) throw new MaxUploadSizeExceededException(limit);
         try {
-            // ponytail: whole file in memory; switch to InputStream if uploads grow.
-            byte[] content = file.getBytes();
-            PracticeRecordingRule.validate(fileName, file.getContentType(), file.getSize(),
-                Arrays.copyOf(content, Math.min(content.length, PracticeRecordingRule.HEAD_BYTES)));
-            String newPath = storage.save(fileName, content);
+            try (var header = file.getInputStream()) {
+                PracticeRecordingRule.validate(fileName, file.getContentType(), file.getSize(),
+                    header.readNBytes(PracticeRecordingRule.HEAD_BYTES));
+            }
+            String newPath;
+            try (var content = file.getInputStream()) {
+                newPath = storage.save(fileName, content, file.getSize());
+            }
             String oldPath = practice.getRecording() == null ? null : practice.getRecording().getStoragePath();
             StorageTransactions.deleteOnRollback(storage, newPath);
             StorageTransactions.deleteAfterCommit(storage, oldPath);
@@ -67,7 +72,7 @@ public class PracticeRecordingUseCase {
     @Transactional(readOnly = true)
     public byte[] downloadAsTeacher(UUID practiceId) {
         Practice practice = findPractice(practiceId);
-        if (!current.isAdmin() && enrollments.findByTeacherIdAndStudentId(
+        if (!current.canManageStudent(practice.getStudent().getId()) && enrollments.findByTeacherIdAndStudentId(
             current.currentTeacher().getId(), practice.getStudent().getId()).isEmpty())
             throw new OwnershipException("Student is not linked to this teacher");
         return storage.read(requireRecording(practice).getStoragePath());

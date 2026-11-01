@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,10 +21,15 @@ public class LocalStorageAdapter implements FileStoragePort {
     }
 
     @Override
-    public String save(String fileName, byte[] content) {
+    public String save(String fileName, InputStream content, long size) {
         try {
             String key = FileStoragePort.uniqueName(fileName);
-            Files.write(root.resolve(key), content);
+            try {
+                Files.copy(content, root.resolve(key));
+            } catch (IOException e) {
+                Files.deleteIfExists(root.resolve(key));
+                throw e;
+            }
             return key;
         } catch (IOException e) {
             throw new UncheckedIOException(e);

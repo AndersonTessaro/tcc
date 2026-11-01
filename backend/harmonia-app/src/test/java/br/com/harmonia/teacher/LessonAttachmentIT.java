@@ -1,6 +1,7 @@
 package br.com.harmonia.teacher;
 
 import br.com.harmonia.TestcontainersConfiguration;
+import br.com.harmonia.SyntheticMultipartFile;
 import br.com.harmonia.application.lesson.port.LessonAttachmentRepository;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +23,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.UUID;
+
+import static br.com.harmonia.SchoolTestSupport.school;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -75,7 +78,7 @@ class LessonAttachmentIT {
     }
 
     private String postId(String token, String path, String json) throws Exception {
-        String body = mvc.perform(post(path).header("Authorization", "Bearer " + token)
+        String body = mvc.perform(post(path).with(school(mvc)).header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON).content(json))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return JsonPath.read(body, "$.id");
@@ -104,6 +107,13 @@ class LessonAttachmentIT {
 
     private MockMultipartFile pdf() {
         return new MockMultipartFile("file", "score.pdf", "application/pdf", PDF);
+    }
+
+    @Test
+    void lessonAttachmentStillRejectsFilesAbove50Mb() throws Exception {
+        var file = new SyntheticMultipartFile("score.pdf", "application/pdf", 50L * 1024 * 1024 + 1, PDF);
+        upload(teacher, lessonId, file).andExpect(status().isPayloadTooLarge())
+            .andExpect(jsonPath("$.code").value("FILE_TOO_LARGE"));
     }
 
     private ResultActions upload(String token, String id, MockMultipartFile file) throws Exception {
