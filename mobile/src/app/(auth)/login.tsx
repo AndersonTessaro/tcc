@@ -17,6 +17,7 @@ function loginErrorMessage(cause: unknown): string {
     return "O app é destinado a alunos e professores. Use o portal para acessar a administração.";
   }
   if (cause instanceof Error && cause.message === "HTTP_401") return "Login ou senha inválidos";
+  if (cause instanceof Error && cause.message === "HTTP_429") return "Muitas tentativas. Aguarde um minuto e tente de novo.";
   return "Não foi possível conectar ao servidor";
 }
 
