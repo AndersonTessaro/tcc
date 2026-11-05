@@ -76,6 +76,15 @@ class BotProtectionIT {
     }
 
     @Test
+    @DisplayName("logins corretos repetidos (usuário legítimo, testes E2E) não são bloqueados")
+    void successfulLoginsDoNotSpendTheQuota() throws Exception {
+        RequestPostProcessor user = fromNewIp();
+        for (int attempt = 0; attempt < LIMIT * 3; attempt++) {
+            login(user, "Admin@123").andExpect(status().isOk());
+        }
+    }
+
+    @Test
     @DisplayName("flood no 'esqueci a senha' (spam de e-mail) é bloqueado")
     void forgotPasswordFloodIsBlocked() throws Exception {
         RequestPostProcessor bot = fromNewIp();

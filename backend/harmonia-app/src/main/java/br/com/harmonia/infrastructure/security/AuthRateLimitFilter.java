@@ -21,7 +21,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class AuthRateLimitFilter extends OncePerRequestFilter {
-    private static final Set<String> LIMITED_PATHS = Set.of("/auth/login", "/auth/forgot-password", "/auth/reset-password");
+    private static final String LOGIN_PATH = "/auth/login";
+    private static final Set<String> LIMITED_PATHS = Set.of(LOGIN_PATH, "/auth/forgot-password", "/auth/reset-password");
     private static final long WINDOW_SECONDS = 60;
     private static final int MAX_TRACKED_KEYS = 10_000;
     // Decoded, ";params" stripped and "//" collapsed, so "/auth//login" or "/auth/%6Cogin" can't dodge the limit.
@@ -55,6 +56,9 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
 
         if (window.count() <= maxRequestsPerWindow) {
             chain.doFilter(request, response);
+            // Successful logins don't spend the quota: only failed guesses (brute force) do.
+            if (LOGIN_PATH.equals(path(request)) && response.getStatus() < 400)
+                windows.computeIfPresent(key, (k, w) -> new Window(w.startEpochSecond(), w.count() - 1));
             return;
         }
         response.setStatus(429);
