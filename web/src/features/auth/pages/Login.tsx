@@ -21,7 +21,8 @@ export default function Login() {
     } catch (err) {
       // HTTP_401 = credenciais erradas; qualquer outro erro (rede/CORS/servidor) é de conexão.
       const msg = err instanceof Error ? err.message : "";
-      toast.error(
+      if (msg.includes("429")) toast.error("Muitas tentativas. Aguarde um minuto e tente de novo.");
+      else toast.error(
         msg.includes("401") || msg === "UNAUTHENTICATED"
           ? "Login ou senha inválidos"
           : "Falha ao conectar ao servidor",

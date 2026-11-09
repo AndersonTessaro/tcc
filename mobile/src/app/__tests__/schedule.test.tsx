@@ -29,8 +29,8 @@ const lesson = (overrides: Partial<TeacherLesson>): TeacherLesson => ({
   teacherName: "Carlos",
   instrument: "Piano",
   date: today,
-  startTime: "09:00:00",
-  endTime: "10:00:00",
+  startTime: "00:00:00",
+  endTime: "01:00:00",
   status: "DONE",
   content: null,
   homework: null,
@@ -51,8 +51,8 @@ describe("Schedule screen", () => {
     await render(<Schedule />);
 
     expect(await screen.findByText("Ana Souza")).toBeVisible();
-    expect(screen.getByText("09:00")).toBeVisible();
-    expect(screen.getByLabelText("Até 10:00")).toBeVisible();
+    expect(screen.getByText("00:00")).toBeVisible();
+    expect(screen.getByLabelText("Até 01:00")).toBeVisible();
     expect(screen.getByRole("radio", { name: "Presente" })).toBeChecked();
   });
 

@@ -13,7 +13,8 @@ jest.mock("../teacherService", () => ({ teacherService: { dashboard: jest.fn(), 
 const service = teacherService as jest.Mocked<typeof teacherService>;
 const lesson: TeacherLesson = {
   id: "l1", enrollmentId: "e1", studentId: "s1", studentName: "Ana Souza", teacherName: "Carlos", instrument: "Piano",
-  date: todayIso(), startTime: "09:00:00", endTime: "10:00:00", status: "SCHEDULED", content: null, homework: null, attendance: null,
+  // 00:00 so the lesson has always started: attendance radios only render after the start time.
+  date: todayIso(), startTime: "00:00:00", endTime: "01:00:00", status: "SCHEDULED", content: null, homework: null, attendance: null,
 };
 const dashboard: TeacherDashboardData = {
   totalStudents: 4, attendancePercent: 80, weeklyPracticeMin: 90, classes: ["Piano", "Violão"], selectedClass: "Piano",
@@ -35,7 +36,7 @@ it("uses fresh attendance from the silent refetch instead of a local override", 
   await waitFor(() => expect(service.dashboard).toHaveBeenCalledTimes(2));
   await waitFor(() => expect(screen.getByRole("radio", { name: "Falta" })).toBeChecked());
   expect(screen.getByRole("radio", { name: "Presente" })).not.toBeChecked();
-  expect(screen.getByText("09:00–10:00 · Ana Souza")).toBeVisible();
+  expect(screen.getByText("00:00–01:00 · Ana Souza")).toBeVisible();
 });
 
 it("switches class from the picker", async () => {
@@ -58,7 +59,7 @@ it("keeps Presente selected after the dashboard reloads with PRESENT", async () 
 
 it("shows informational metrics without duplicate tab navigation", async () => {
   await render(<TeacherDashboard />);
-  await screen.findByText("09:00–10:00 · Ana Souza");
+  await screen.findByText("00:00–01:00 · Ana Souza");
   for (const label of ["Ver todos", "Ver agenda", "Ver relatórios", "Ver agenda completa"]) {
     expect(screen.queryByText(label)).toBeNull();
   }
@@ -68,5 +69,5 @@ it("offers a retry when the dashboard fails", async () => {
   service.dashboard.mockRejectedValueOnce(new TypeError("Failed to fetch"));
   await render(<TeacherDashboard />);
   await fireEvent.press(await screen.findByRole("button", { name: "Tentar novamente" }));
-  expect(await screen.findByText("09:00–10:00 · Ana Souza")).toBeVisible();
+  expect(await screen.findByText("00:00–01:00 · Ana Souza")).toBeVisible();
 });

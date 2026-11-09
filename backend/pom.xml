@@ -29,6 +29,10 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
+		<!-- Test JVM in the app's zone (app.notifications.zone): tests use LocalDate.now(); on a UTC runner
+		     after 21h BRT "today" differs from the app Clock and practices/attendance fail as future dates.
+		     JaCoCo prepends its agent to this property. -->
+		<argLine>-Duser.timezone=America/Sao_Paulo</argLine>
 	</properties>
 
 	<modules>

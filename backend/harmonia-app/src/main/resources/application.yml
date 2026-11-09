@@ -21,6 +21,8 @@ spring:
       file: ../../docker-compose.yml
 
 server:
+  # Behind Azure ingress/nginx the client IP arrives in X-Forwarded-For; the rate limiter keys on it.
+  forward-headers-strategy: native
   tomcat:
     max-swallow-size: 60MB
 
