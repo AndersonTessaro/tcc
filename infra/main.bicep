@@ -2,6 +2,7 @@ param location string = resourceGroup().location
 param acrName string
 param apiImage string
 param webImage string
+param appImage string
 param pgHost string
 param pgUser string
 @secure()
@@ -108,5 +109,38 @@ resource web 'Microsoft.App/containerApps@2024-03-01' = {
   }
 }
 
+resource app 'Microsoft.App/containerApps@2024-03-01' = {
+  name: 'harmonia-app'
+  location: location
+  properties: {
+    managedEnvironmentId: env.id
+    configuration: {
+      ingress: {
+        external: true
+        targetPort: 80
+      }
+      registries: registries
+      secrets: [
+        { name: 'acr-password', value: acr.listCredentials().passwords[0].value }
+      ]
+    }
+    template: {
+      containers: [
+        {
+          name: 'app'
+          image: appImage
+          resources: { cpu: json('0.25'), memory: '0.5Gi' }
+          env: [
+            { name: 'API_URL', value: 'https://${api.properties.configuration.ingress.fqdn}' }
+            { name: 'API_HOST', value: api.properties.configuration.ingress.fqdn }
+          ]
+        }
+      ]
+      scale: { minReplicas: 0, maxReplicas: 1 }
+    }
+  }
+}
+
 output apiUrl string = 'https://${api.properties.configuration.ingress.fqdn}'
 output webUrl string = 'https://${web.properties.configuration.ingress.fqdn}'
+output appUrl string = 'https://${app.properties.configuration.ingress.fqdn}'

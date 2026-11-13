@@ -22,6 +22,7 @@ jobs:
     outputs:
       api: ${{ steps.filter.outputs.api }}
       web: ${{ steps.filter.outputs.web }}
+      app: ${{ steps.filter.outputs.app }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
@@ -32,6 +33,8 @@ jobs:
               - 'backend/**'
             web:
               - 'web/**'
+            app:
+              - 'mobile/**'
 
   deploy:
     name: Deploy ${{ matrix.app }}
@@ -48,6 +51,8 @@ jobs:
             context: backend
           - app: web
             context: web
+          - app: app
+            context: mobile
     steps:
       - name: Skip unchanged
         if: needs.changes.outputs[matrix.app] != 'true'

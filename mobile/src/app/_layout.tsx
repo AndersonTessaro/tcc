@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Slot, useRouter, useSegments } from "expo-router";
+import Head from "expo-router/head";
 import { ActivityIndicator, View } from "react-native";
 import { AuthProvider, useAuth } from "@/features/auth/useAuth";
 import { isTeacher } from "@/features/auth/authService";
@@ -31,6 +32,7 @@ function Guard() {
 export default function RootLayout() {
   return (
     <AuthProvider>
+      <Head><title>Harmonia</title></Head>
       <ToastProvider>
         <Guard />
       </ToastProvider>
