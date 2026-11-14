@@ -83,7 +83,7 @@ class LessonAttachmentUseCaseTest {
     }
 
     private void stubSave() {
-        when(storage.save(any(), any())).thenReturn("new_path");
+        when(storage.save(any(), any(java.io.InputStream.class), anyLong())).thenReturn("new_path");
         when(attachments.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }
 
@@ -153,7 +153,7 @@ class LessonAttachmentUseCaseTest {
         assertThat(saved.getStoragePath()).isEqualTo("new_path");
         verify(current).assertOwnedByCurrentTeacher(lesson.getEnrollment());
         verify(attachments).countByLessonId(lesson.getId());
-        verify(storage).save("score.pdf", PDF);
+        verify(storage).save(eq("score.pdf"), any(java.io.InputStream.class), eq((long) PDF.length));
         complete(TransactionSynchronization.STATUS_COMMITTED);
         verify(storage, never()).delete(any());
     }
@@ -185,7 +185,7 @@ class LessonAttachmentUseCaseTest {
     @Test
     void upload_databaseFailure_deletesNewFileOnRollback() {
         Lesson lesson = lesson(LessonStatus.DONE);
-        when(storage.save(any(), any())).thenReturn("new_path");
+        when(storage.save(any(), any(java.io.InputStream.class), anyLong())).thenReturn("new_path");
         when(attachments.save(any())).thenThrow(new IllegalStateException("Save failed"));
 
         assertThatThrownBy(() -> useCase().upload(lesson.getId(), file()))
@@ -211,7 +211,7 @@ class LessonAttachmentUseCaseTest {
     void upload_readFailure_wrapsIOExceptionWithoutStorage() throws IOException {
         Lesson lesson = lesson(LessonStatus.SCHEDULED);
         MultipartFile file = mock(MultipartFile.class);
-        when(file.getBytes()).thenThrow(new IOException("Cannot read upload"));
+        when(file.getInputStream()).thenThrow(new IOException("Cannot read upload"));
 
         assertThatThrownBy(() -> useCase().upload(lesson.getId(), file))
             .isInstanceOf(UncheckedIOException.class).hasCauseInstanceOf(IOException.class);

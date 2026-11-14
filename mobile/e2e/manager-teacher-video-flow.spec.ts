@@ -86,7 +86,7 @@ test.describe.serial("Escola do gestor: professor cadastra aluno, agenda aula e 
     expect(names).toEqual([student.name]);
   });
 
-  test("formulário de aula segue a ordem Aluno → Quando → Situação → Conteúdo → Anexos", async ({ page }) => {
+  test("nova aula só agenda, na ordem Aluno → Quando → Repetição, e cria a série semanal", async ({ page }) => {
     await login(page, teacher.username);
     await page.goto("/teacher/new-lesson");
     await page.getByRole("radio", { name: new RegExp(student.name) }).click();
@@ -94,23 +94,49 @@ test.describe.serial("Escola do gestor: professor cadastra aluno, agenda aula e 
     const sections = [
       page.getByRole("radio", { name: new RegExp(student.name) }),
       page.getByRole("heading", { name: "Quando" }),
-      page.getByRole("heading", { name: "Situação da aula" }),
-      page.getByRole("textbox", { name: "Conteúdo trabalhado" }),
-      page.getByRole("heading", { name: "Anexos" }),
+      page.getByRole("heading", { name: "Repetição" }),
       page.getByRole("button", { name: /Salvar aula|Agendar aula/ }),
     ];
     const positions: number[] = [];
     for (const section of sections) positions.push(await offsetTop(section));
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    await expect(page.getByText("Situação da aula")).toHaveCount(0);
+    await expect(page.getByRole("textbox", { name: "Conteúdo trabalhado" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Anexos" })).toHaveCount(0);
 
     await page.getByRole("textbox", { name: "Data" }).fill(isoDate(1));
     await page.getByRole("textbox", { name: "Início" }).fill("16:00");
-    await expect(page.getByText(/a aula nasce agendada/)).toBeVisible();
-    await page.getByRole("textbox", { name: "Conteúdo trabalhado" }).fill(practiced);
-    await page.getByRole("button", { name: /Agendar aula/ }).click();
+    await page.getByRole("radio", { name: "Semanal" }).click();
+    await page.getByRole("textbox", { name: "Repetir até" }).fill(isoDate(15));
+    await page.getByRole("button", { name: "Agendar aulas" }).click();
 
-    await expect(page.getByText("Aula agendada", { exact: true })).toBeVisible();
+    await expect(page.getByText(/^3 aulas agendadas até/)).toBeVisible();
     await expect(page).not.toHaveURL(/new-lesson/);
+  });
+
+  test("professor e aluno conversam pelo chat", async ({ page }) => {
+    const hello = `Trouxe a partitura? ${run}`;
+    const reply = `Trouxe sim ${run}`;
+
+    await login(page, teacher.username);
+    await page.goto("/teacher/chats");
+    await page.getByRole("button", { name: new RegExp(student.name) }).click();
+    await page.getByRole("textbox", { name: "Mensagem" }).fill(hello);
+    await page.getByRole("button", { name: "Enviar mensagem" }).click();
+    await expect(page.getByText(hello)).toBeVisible();
+
+    await page.context().clearCookies();
+    await page.evaluate(() => window.localStorage.clear());
+    await login(page, student.username);
+    await page.goto("/chats");
+    const conversation = page.getByRole("button", { name: new RegExp(teacher.name) });
+    await expect(conversation).toContainText(hello);
+    await conversation.click();
+    const thread = page.getByLabel("Mensagens da conversa");
+    await expect(thread.getByText(hello)).toBeVisible();
+    await page.getByRole("textbox", { name: "Mensagem" }).fill(reply);
+    await page.getByRole("button", { name: "Enviar mensagem" }).click();
+    await expect(thread.getByText(reply)).toBeVisible();
   });
 
   test("tela aberta direto volta para o início pelo botão Voltar", async ({ page }) => {

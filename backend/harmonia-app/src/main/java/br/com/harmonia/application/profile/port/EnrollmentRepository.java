@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.UUID;
 
 public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {
+    boolean existsByInstrumentId(UUID instrumentId);
+
     @EntityGraph(attributePaths = {"student.user", "teacher.user", "instrument", "classGroup"})
     List<Enrollment> findAllBy();
     @EntityGraph(attributePaths = {"student.user", "teacher.user", "instrument", "classGroup"})

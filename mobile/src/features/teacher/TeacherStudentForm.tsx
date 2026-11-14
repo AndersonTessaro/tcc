@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardScreen } from "@/ui/KeyboardScreen";
 import { useRouter } from "expo-router";
 import { useResource } from "@/hooks/use-resource";
 import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
@@ -110,7 +111,7 @@ export default function TeacherStudentForm({ id }: { id?: string }) {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardScreen style={styles.screen}>
       <ScreenHeader title={id ? "Editar aluno" : "Novo aluno"} back onBack={() => { if (!savingRef.current) goBack(router); }} />
       {resource.loading ? <ScreenState loading skeleton /> : resource.error || !resource.data ? (
         <ScreenState message={apiErrorMessage(resource.error, "Não foi possível carregar o formulário.")} retry={resource.reload} />
@@ -152,7 +153,7 @@ export default function TeacherStudentForm({ id }: { id?: string }) {
           </View>
         </>
       )}
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
   );
 }
 

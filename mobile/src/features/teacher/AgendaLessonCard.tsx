@@ -4,7 +4,7 @@ import { Card } from "@/ui/Card";
 import { StatusChip } from "@/ui/StatusChip";
 import { colors, radius, space, type } from "@/ui/theme";
 import { AttendanceControl } from "./AttendanceControl";
-import { canRecordAttendance, hhmm, lessonActions, lessonStatusLabel, lessonStatusTone } from "./agenda";
+import { canRecordAttendance, hhmm, lessonActions, lessonStatusLabel, lessonStatusTone, type LessonSection } from "./agenda";
 import type { AttendanceStatus, LessonStatus, TeacherLesson } from "./teacherService";
 
 type AgendaLessonCardProps = {
@@ -15,10 +15,10 @@ type AgendaLessonCardProps = {
   onMark: (lesson: TeacherLesson, status: AttendanceStatus, justification?: string) => Promise<boolean>;
   onChangeStatus: (lesson: TeacherLesson, status: Exclude<LessonStatus, "SCHEDULED">) => Promise<boolean>;
   onReplace: (lesson: TeacherLesson) => void;
-  onEdit: (lesson: TeacherLesson) => void;
+  onOpen: (lesson: TeacherLesson, section: LessonSection) => void;
 };
 
-export function AgendaLessonCard({ lesson, today, busy, error, onMark, onChangeStatus, onReplace, onEdit }: AgendaLessonCardProps) {
+export function AgendaLessonCard({ lesson, today, busy, error, onMark, onChangeStatus, onReplace, onOpen }: AgendaLessonCardProps) {
   const actions = lessonActions(lesson, today);
   const attendanceOpen = canRecordAttendance(lesson, today);
 
@@ -36,7 +36,7 @@ export function AgendaLessonCard({ lesson, today, busy, error, onMark, onChangeS
       </View>
       <View style={styles.status}><StatusChip label={lessonStatusLabel(lesson.status)} tone={lessonStatusTone(lesson.status)} /></View>
       {lesson.content ? <Text numberOfLines={1} style={styles.detail}>Conteúdo: {lesson.content}</Text> : null}
-      {lesson.homework ? <Text numberOfLines={1} style={styles.detail}>Tarefa: {lesson.homework}</Text> : null}
+      {lesson.homework ? <Text numberOfLines={1} style={styles.detail}>Prática: {lesson.homework}</Text> : null}
       {attendanceOpen ? (
         <AttendanceControl lesson={lesson} busy={busy} onMark={(status, justification) => onMark(lesson, status, justification)} />
       ) : (
@@ -44,11 +44,13 @@ export function AgendaLessonCard({ lesson, today, busy, error, onMark, onChangeS
           : lesson.date === today ? `Frequência disponível a partir das ${hhmm(lesson.startTime)}` : "Frequência disponível no dia da aula"}</Text>
       )}
       {error ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
-      {actions.canComplete || actions.canCancel || actions.canReplace || actions.canEdit ? (
+      {actions.canComplete || actions.canCancel || actions.canReplace || actions.canReschedule || actions.canFill ? (
         <View style={styles.actions}>
           {actions.canComplete ? <Button label="Concluir" icon="checkmark" variant="secondary" compact disabled={busy} onPress={() => onChangeStatus(lesson, "DONE")} /> : null}
           {actions.canCancel ? <Button label="Cancelar aula" variant="danger" compact disabled={busy} onPress={() => onChangeStatus(lesson, "CANCELED")} /> : null}
-          {actions.canEdit ? <Button label="Editar" icon="create-outline" variant="secondary" compact disabled={busy} onPress={() => onEdit(lesson)} /> : null}
+          {actions.canFill ? <Button label="Conteúdo" icon="book-outline" variant="secondary" compact disabled={busy} accessibilityHint="Registrar o que foi trabalhado na aula" onPress={() => onOpen(lesson, "content")} /> : null}
+          {actions.canFill ? <Button label="Prática" icon="musical-notes-outline" variant="secondary" compact disabled={busy} accessibilityHint="Definir o que o aluno deve praticar" onPress={() => onOpen(lesson, "practice")} /> : null}
+          {actions.canReschedule ? <Button label="Remarcar" icon="calendar-outline" variant="secondary" compact disabled={busy} onPress={() => onOpen(lesson, "schedule")} /> : null}
           {actions.canReplace ? <Button label="Repor" icon="repeat" variant="secondary" compact disabled={busy} onPress={() => onReplace(lesson)} /> : null}
         </View>
       ) : null}

@@ -3,13 +3,19 @@ import EditLesson from "@/app/teacher/lesson/[id]";
 import { teacherService, type LessonAvailability, type TeacherLesson, type TeacherLessonDetail } from "@/features/teacher/teacherService";
 import { confirm } from "@/lib/confirm";
 import { ApiError } from "@/lib/http/apiError";
+import * as ImagePicker from "expo-image-picker";
 
 const mockBack = jest.fn();
 const mockShow = jest.fn();
+let mockParams: Record<string, string> = { id: "lesson-1" };
+jest.mock("expo-image-picker", () => ({
+  requestMediaLibraryPermissionsAsync: jest.fn().mockResolvedValue({ granted: true }),
+  launchImageLibraryAsync: jest.fn(),
+}));
 jest.mock("expo-router", () => ({
   useNavigation: () => ({ addListener: jest.fn(() => () => undefined), setOptions: jest.fn(), dispatch: jest.fn() }),
   useRouter: () => ({ canGoBack: () => true, back: mockBack, replace: jest.fn() }),
-  useLocalSearchParams: () => ({ id: "lesson-1" }),
+  useLocalSearchParams: () => mockParams,
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
 jest.mock("@/features/teacher/teacherService", () => ({
@@ -58,6 +64,8 @@ const detail = (overrides: Partial<TeacherLesson> = {}, attachments: TeacherLess
 describe("Edit lesson screen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockParams = { id: "lesson-1" };
+    (ImagePicker.requestMediaLibraryPermissionsAsync as jest.Mock).mockResolvedValue({ granted: true });
     confirmMock.mockResolvedValue(true);
     service.availability.mockResolvedValue(free);
     service.updateLesson.mockResolvedValue(lesson());
@@ -88,7 +96,7 @@ describe("Edit lesson screen", () => {
     expect(await screen.findByText(/Aula concluída: a data não muda/)).toBeVisible();
     expect(screen.queryByLabelText("Início")).toBeNull();
     expect(service.availability).not.toHaveBeenCalled();
-    await fireEvent.changeText(screen.getByLabelText("Tarefa para casa"), "Revisar");
+    await fireEvent.changeText(screen.getByLabelText("Prática para o aluno"), "Revisar");
     await fireEvent.press(screen.getByRole("button", { name: "Salvar aula" }));
 
     await waitFor(() => expect(service.updateLesson).toHaveBeenCalledWith("lesson-1", {
@@ -125,9 +133,87 @@ describe("Edit lesson screen", () => {
 
     expect(await screen.findByText("Aula cancelada: somente leitura.")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Salvar aula" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Adicionar anexo" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Foto ou vídeo" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Arquivo" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Remover anexo partitura.pdf" })).toBeNull();
     expect(screen.getByRole("button", { name: "Baixar anexo partitura.pdf" })).toBeVisible();
+  });
+
+  it("opens only the content and attachments when the agenda asks for the content section", async () => {
+    mockParams = { id: "lesson-1", section: "content" };
+    service.lesson.mockResolvedValue(detail());
+    await render(<EditLesson />);
+
+    expect(await screen.findByRole("header", { name: "Conteúdo da aula" })).toBeVisible();
+    expect(screen.getByLabelText("Conteúdo trabalhado")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Foto ou vídeo" })).toBeVisible();
+    expect(screen.queryByLabelText("Prática para o aluno")).toBeNull();
+    expect(screen.queryByLabelText("Início")).toBeNull();
+    expect(service.availability).not.toHaveBeenCalled();
+  });
+
+  it("opens only the practice field for the practice section and keeps the rest of the lesson", async () => {
+    mockParams = { id: "lesson-1", section: "practice" };
+    service.lesson.mockResolvedValue(detail());
+    await render(<EditLesson />);
+
+    expect(await screen.findByRole("header", { name: "Prática do aluno" })).toBeVisible();
+    expect(screen.queryByLabelText("Conteúdo trabalhado")).toBeNull();
+    expect(screen.queryByText("Anexos")).toBeNull();
+    await fireEvent.changeText(screen.getByLabelText("Prática para o aluno"), "Escala de dó, 10 min por dia");
+    await fireEvent.press(screen.getByRole("button", { name: "Salvar aula" }));
+
+    await waitFor(() => expect(service.updateLesson).toHaveBeenCalledWith("lesson-1", {
+      date: "2099-01-05", startTime: "09:00", endTime: "10:00", content: "Escalas", homework: "Escala de dó, 10 min por dia",
+    }));
+  });
+
+  it("opens only the schedule for the reschedule section", async () => {
+    mockParams = { id: "lesson-1", section: "schedule" };
+    service.lesson.mockResolvedValue(detail());
+    await render(<EditLesson />);
+
+    expect(await screen.findByRole("header", { name: "Remarcar aula" })).toBeVisible();
+    expect(screen.getByLabelText("Início")).toHaveProp("value", "09:00");
+    expect(screen.queryByLabelText("Conteúdo trabalhado")).toBeNull();
+    expect(screen.queryByLabelText("Prática para o aluno")).toBeNull();
+    expect(screen.queryByLabelText("Repetir até")).toBeNull();
+  });
+
+  it("attaches a gallery video that comes without an extension and uploads it on save", async () => {
+    mockParams = { id: "lesson-1", section: "content" };
+    service.lesson.mockResolvedValue(detail({ status: "DONE", date: "2026-09-22" }));
+    service.uploadLessonAttachment.mockResolvedValue({ id: "a", fileName: "x", contentType: "video/mp4", sizeBytes: 1 });
+    (ImagePicker.launchImageLibraryAsync as jest.Mock).mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: "content://media/1000012345", fileName: "1000012345", mimeType: "video/mp4", fileSize: 60 * 1024 * 1024, type: "video" }],
+    });
+    await render(<EditLesson />);
+
+    await fireEvent.press(await screen.findByRole("button", { name: "Foto ou vídeo" }));
+    expect(await screen.findByText(/1000012345\.mp4/)).toBeVisible();
+    await fireEvent.press(screen.getByRole("button", { name: "Salvar aula" }));
+
+    await waitFor(() => expect(service.uploadLessonAttachment).toHaveBeenCalledWith("lesson-1", expect.objectContaining({ name: "1000012345.mp4", mimeType: "video/mp4" })));
+    expect(mockBack).toHaveBeenCalled();
+  });
+
+  it("says why an attachment was not sent and keeps the screen open", async () => {
+    mockParams = { id: "lesson-1", section: "content" };
+    service.lesson.mockResolvedValue(detail({ status: "DONE", date: "2026-09-22" }));
+    service.uploadLessonAttachment.mockRejectedValue(new ApiError(503, "STORAGE_UNAVAILABLE", "File storage is unavailable"));
+    (ImagePicker.launchImageLibraryAsync as jest.Mock).mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: "file:///cache/foto.jpg", fileName: "foto.jpg", mimeType: "image/jpeg", fileSize: 2048, type: "image" }],
+    });
+    await render(<EditLesson />);
+
+    await fireEvent.press(await screen.findByRole("button", { name: "Foto ou vídeo" }));
+    await screen.findByText(/foto\.jpg/);
+    await fireEvent.press(screen.getByRole("button", { name: "Salvar aula" }));
+
+    await waitFor(() => expect(mockShow).toHaveBeenCalledWith(expect.stringMatching(/^Aula salva, mas 1 anexo\(s\) não foram enviados: .+/), "error"));
+    expect(mockBack).not.toHaveBeenCalled();
   });
 
   it("shows a schedule conflict from the server on the time field", async () => {

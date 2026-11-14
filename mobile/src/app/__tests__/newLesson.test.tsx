@@ -3,7 +3,6 @@ import NewLesson from "@/app/teacher/new-lesson";
 import { teacherService, type LessonAvailability, type TeacherLesson } from "@/features/teacher/teacherService";
 import { confirm } from "@/lib/confirm";
 import { ApiError } from "@/lib/http/apiError";
-import * as DocumentPicker from "expo-document-picker";
 
 const mockBack = jest.fn();
 type RemoveEvent = { preventDefault: () => void; data: { action: { type: string } } };
@@ -34,7 +33,6 @@ jest.mock("@/features/teacher/teacherService", () => ({
 }));
 jest.mock("@/ui/DateTimeField", () => require("@/features/teacher/__tests__/dateTimeFieldStub"));
 jest.mock("@/ui/Toast", () => ({ useToast: () => ({ show: mockShow }) }));
-jest.mock("expo-document-picker", () => ({ getDocumentAsync: jest.fn() }));
 jest.mock("@/lib/confirm", () => ({ confirm: jest.fn().mockResolvedValue(true) }));
 
 const service = teacherService as jest.Mocked<typeof teacherService>;
@@ -71,7 +69,6 @@ describe("NewLesson screen", () => {
     await fireEvent.changeText(screen.getByLabelText("Data"), PAST_DATE);
     await fireEvent.changeText(screen.getByLabelText("Início"), "14:00");
     await fireEvent.press(screen.getByRole("radio", { name: "45 min" }));
-    await fireEvent.changeText(screen.getByLabelText("Conteúdo trabalhado"), "  Escalas  ");
     await waitFor(() => expect(screen.getByRole("button", { name: "Salvar aula" })).toBeEnabled());
     await fireEvent.press(screen.getByRole("button", { name: "Salvar aula" }));
 
@@ -81,12 +78,73 @@ describe("NewLesson screen", () => {
         date: PAST_DATE,
         startTime: "14:00",
         endTime: "14:45",
-        content: "Escalas",
-        homework: undefined,
       }),
     );
-    expect(mockShow).toHaveBeenCalledWith("Aula registrada como concluída", "success");
+    expect(mockShow).toHaveBeenCalledWith("Aula registrada", "success");
     expect(mockBack).toHaveBeenCalled();
+  });
+
+  it("only schedules: no attendance, content, practice or attachments at creation", async () => {
+    await render(<NewLesson />);
+    await pickAna();
+    await fireEvent.changeText(screen.getByLabelText("Data"), PAST_DATE);
+
+    expect(screen.queryByText("Situação da aula")).toBeNull();
+    expect(screen.queryByRole("radio", { name: "Presente" })).toBeNull();
+    expect(screen.queryByLabelText("Conteúdo trabalhado")).toBeNull();
+    expect(screen.queryByLabelText("Prática para o aluno")).toBeNull();
+    expect(screen.queryByText("Anexos")).toBeNull();
+  });
+
+  it("schedules a weekly series until the chosen date", async () => {
+    service.availability.mockResolvedValue(free("SCHEDULED"));
+    service.newLesson.mockResolvedValue({ id: "lesson-1", status: "SCHEDULED", occurrences: 4 } as TeacherLesson & { occurrences: number });
+    await render(<NewLesson />);
+    await pickAna();
+    await fireEvent.changeText(screen.getByLabelText("Data"), FUTURE_DATE);
+    await fireEvent.press(screen.getByRole("radio", { name: "Semanal" }));
+    await fireEvent.changeText(screen.getByLabelText("Repetir até"), "2099-01-26");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Agendar aulas" })).toBeEnabled());
+    await fireEvent.press(screen.getByRole("button", { name: "Agendar aulas" }));
+
+    await waitFor(() =>
+      expect(service.newLesson).toHaveBeenCalledWith({
+        enrollmentId: "enr-1",
+        date: FUTURE_DATE,
+        startTime: "10:00",
+        endTime: "11:00",
+        recurrence: "WEEKLY",
+        repeatUntil: "2099-01-26",
+      }),
+    );
+    expect(mockShow).toHaveBeenCalledWith("4 aulas agendadas até 26/01/2099", "success");
+  });
+
+  it("refuses a repetition that ends before the first lesson", async () => {
+    await render(<NewLesson />);
+    await pickAna();
+    await fireEvent.changeText(screen.getByLabelText("Data"), FUTURE_DATE);
+    await fireEvent.press(screen.getByRole("radio", { name: "Mensal" }));
+    await fireEvent.changeText(screen.getByLabelText("Repetir até"), "2098-12-01");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Agendar aulas" })).toBeEnabled());
+    await fireEvent.press(screen.getByRole("button", { name: "Agendar aulas" }));
+
+    expect(await screen.findByText("Escolha uma data depois da primeira aula")).toBeVisible();
+    expect(service.newLesson).not.toHaveBeenCalled();
+  });
+
+  it("lists the conflicting dates of a series and creates nothing", async () => {
+    service.availability.mockResolvedValue(free("SCHEDULED"));
+    service.newLesson.mockRejectedValue(new ApiError(409, "SCHEDULE_CONFLICT", "Schedule conflict", ["2099-01-12", "2099-01-19"]));
+    await render(<NewLesson />);
+    await pickAna();
+    await fireEvent.changeText(screen.getByLabelText("Data"), FUTURE_DATE);
+    await fireEvent.press(screen.getByRole("radio", { name: "Semanal" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Agendar aulas" })).toBeEnabled());
+    await fireEvent.press(screen.getByRole("button", { name: "Agendar aulas" }));
+
+    expect(await screen.findByText("Conflito de horário em 12/01/2099, 19/01/2099. Nenhuma aula foi criada.")).toBeVisible();
+    expect(mockBack).not.toHaveBeenCalled();
   });
 
   it("checks the slot with the framework and lists every conflict, blocking the save", async () => {
@@ -129,27 +187,12 @@ describe("NewLesson screen", () => {
     expect(screen.getByLabelText("Início")).toHaveProp("value", "08:00");
   });
 
-  it("records attendance right away for a completed lesson", async () => {
-    await render(<NewLesson />);
-    await pickAna();
-    await fireEvent.changeText(screen.getByLabelText("Data"), PAST_DATE);
-    await fireEvent.press(await screen.findByRole("radio", { name: "Justificada" }));
-    await fireEvent.changeText(screen.getByLabelText("Justificativa"), "Consulta médica");
-    await waitFor(() => expect(screen.getByRole("button", { name: "Salvar aula" })).toBeEnabled());
-    await fireEvent.press(screen.getByRole("button", { name: "Salvar aula" }));
-
-    await waitFor(() => expect(service.attendance).toHaveBeenCalledWith("lesson-1", "EXCUSED", "Consulta médica"));
-    expect(mockBack).toHaveBeenCalled();
-  });
-
-  it("explains that a future lesson starts scheduled and hides attendance", async () => {
+  it("schedules a future lesson without touching attendance", async () => {
     service.availability.mockResolvedValue(free("SCHEDULED"));
     await render(<NewLesson />);
     await pickAna();
     await fireEvent.changeText(screen.getByLabelText("Data"), FUTURE_DATE);
 
-    expect(await screen.findByText(/a aula nasce agendada/)).toBeVisible();
-    expect(screen.queryByRole("radio", { name: "Presente" })).toBeNull();
     await waitFor(() => expect(screen.getByRole("button", { name: "Agendar aula" })).toBeEnabled());
     await fireEvent.press(screen.getByRole("button", { name: "Agendar aula" }));
     await waitFor(() => expect(mockShow).toHaveBeenCalledWith("Aula agendada", "success"));
@@ -157,10 +200,10 @@ describe("NewLesson screen", () => {
   });
 
   it.each([
-    ["15:00", "Agendar aula", false],
-    ["09:00", "Salvar aula", true],
-    ["10:00", "Salvar aula", true],
-  ])("previews today's %s lesson before availability answers", async (start, label, completed) => {
+    ["15:00", "Agendar aula"],
+    ["09:00", "Salvar aula"],
+    ["10:00", "Salvar aula"],
+  ])("previews today's %s lesson before availability answers", async (start, label) => {
     jest.useFakeTimers({
       now: new Date(2026, 8, 22, 10, 0),
       doNotFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "setImmediate", "clearImmediate", "nextTick", "queueMicrotask", "performance"],
@@ -172,11 +215,6 @@ describe("NewLesson screen", () => {
       await fireEvent.changeText(screen.getByLabelText("Início"), start);
 
       expect(screen.getByRole("button", { name: label })).toBeVisible();
-      if (completed) {
-        expect(screen.getByRole("radio", { name: "Presente" })).toBeVisible();
-      } else {
-        expect(screen.queryByRole("radio", { name: "Presente" })).toBeNull();
-      }
     } finally {
       jest.useRealTimers();
     }
@@ -244,63 +282,6 @@ describe("NewLesson screen", () => {
     await waitFor(() => expect(confirmMock).toHaveBeenCalledWith(expect.objectContaining({ destructive: true })));
     expect(mockBack).not.toHaveBeenCalled();
   });
-  describe("attachments", () => {
-    const pickerMock = DocumentPicker.getDocumentAsync as jest.Mock;
-    const asset = (name: string) => ({ canceled: false, assets: [{ uri: `file:///${name}`, name, size: 2048, mimeType: "application/pdf" }] });
-
-    async function addAttachments(...names: string[]) {
-      for (const name of names) {
-        pickerMock.mockResolvedValueOnce(asset(name));
-        await fireEvent.press(screen.getByRole("button", { name: "Adicionar anexo" }));
-        await screen.findByText(new RegExp(name.replace(".", "\\.")));
-      }
-    }
-
-    it("creates the lesson and then uploads each pending file in order", async () => {
-      service.uploadLessonAttachment.mockResolvedValue({ id: "a", fileName: "x", contentType: "application/pdf", sizeBytes: 1 });
-      await render(<NewLesson />);
-      await pickAna();
-      await fireEvent.changeText(screen.getByLabelText("Data"), PAST_DATE);
-      await addAttachments("partitura.pdf", "exercicio.pdf");
-      await waitFor(() => expect(screen.getByRole("button", { name: "Salvar aula" })).toBeEnabled());
-      await fireEvent.press(screen.getByRole("button", { name: "Salvar aula" }));
-
-      await waitFor(() => expect(service.uploadLessonAttachment).toHaveBeenCalledTimes(2));
-      expect(service.newLesson).toHaveBeenCalledTimes(1);
-      expect(service.uploadLessonAttachment.mock.calls.map(([lessonId, file]) => [lessonId, file.name])).toEqual([
-        ["lesson-1", "partitura.pdf"],
-        ["lesson-1", "exercicio.pdf"],
-      ]);
-      expect(mockBack).toHaveBeenCalled();
-    });
-
-    it("keeps the lesson and opens it when an upload fails", async () => {
-      service.uploadLessonAttachment
-        .mockResolvedValueOnce({ id: "a", fileName: "x", contentType: "application/pdf", sizeBytes: 1 })
-        .mockRejectedValueOnce(new ApiError(503, "STORAGE_UNAVAILABLE", "File storage is unavailable"));
-      await render(<NewLesson />);
-      await pickAna();
-      await fireEvent.changeText(screen.getByLabelText("Data"), PAST_DATE);
-      await addAttachments("partitura.pdf", "exercicio.pdf");
-      await waitFor(() => expect(screen.getByRole("button", { name: "Salvar aula" })).toBeEnabled());
-      await fireEvent.press(screen.getByRole("button", { name: "Salvar aula" }));
-
-      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith({ pathname: "/teacher/lesson/[id]", params: { id: "lesson-1" } }));
-      expect(mockShow).toHaveBeenCalledWith("Aula salva, mas 1 anexo(s) não foram enviados. Tente de novo na aula.", "error");
-      expect(mockBack).not.toHaveBeenCalled();
-    });
-
-    it("refuses a file type the server would reject", async () => {
-      pickerMock.mockResolvedValueOnce({ canceled: false, assets: [{ uri: "file:///setup.exe", name: "setup.exe", size: 10 }] });
-      await render(<NewLesson />);
-      await pickAna();
-      await fireEvent.press(screen.getByRole("button", { name: "Adicionar anexo" }));
-
-      expect(await screen.findByText("Escolha um PDF, imagem, áudio ou vídeo.")).toBeVisible();
-      expect(screen.queryByText(/setup\.exe/)).toBeNull();
-    });
-  });
-
 });
 
 it("blocks submission while checking a new slot and discards old availability", async () => {

@@ -21,7 +21,7 @@ public final class SchoolTestSupport {
                         .header("Authorization", request.getHeader("Authorization"))).andReturn().getResponse();
                 if (result.getStatus() != 200) return request;
                 String response = result.getContentAsString();
-                List<String> ids = JsonPath.read(response, "$[?(@.name == 'Escola Harmonia')].id");
+                List<String> ids = JsonPath.read(response, "$[?(@.name == 'Escola Sonetto')].id");
                 String body = JsonPath.parse(new String(request.getContentAsByteArray(), StandardCharsets.UTF_8))
                     .put("$", "schoolId", ids.getFirst()).jsonString();
                 request.setContent(body.getBytes(StandardCharsets.UTF_8));

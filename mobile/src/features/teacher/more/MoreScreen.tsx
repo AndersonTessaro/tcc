@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet } from "react-native";
+import { KeyboardScreen } from "@/ui/KeyboardScreen";
 import { StatusBar } from "expo-status-bar";
 import type { Resource } from "@/hooks/use-resource";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
@@ -11,7 +12,7 @@ type LoadState = Pick<Resource<unknown>, "loading" | "error" | "refreshing" | "r
 
 export function MoreScreen({ title, resource, action, children }: { title: string; resource?: LoadState; action?: ReactNode; children: ReactNode }) {
   return (
-    <KeyboardAvoidingView style={moreStyles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardScreen style={moreStyles.screen}>
       <StatusBar style="dark" />
       <ScreenHeader title={title} back action={action} />
       <ScrollView accessibilityLabel={title} contentContainerStyle={moreStyles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets
@@ -19,7 +20,7 @@ export function MoreScreen({ title, resource, action, children }: { title: strin
         {resource?.loading ? <ScreenState loading skeleton /> : resource?.error ?
           <ScreenState message={apiErrorMessage(resource.error, "Não foi possível carregar os dados.")} retry={() => void resource.reload()} /> : children}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
   );
 }
 

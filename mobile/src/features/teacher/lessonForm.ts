@@ -37,3 +37,32 @@ export function validateLessonForm(input: LessonFormInput): string | null {
   return validateDate(input.date) ?? validateTimeRange(input.startTime, input.endTime);
 }
 
+
+export type LessonRecurrence = "NONE" | "WEEKLY" | "BIWEEKLY" | "MONTHLY";
+
+export const RECURRENCE_OPTIONS: { value: LessonRecurrence; label: string }[] = [
+  { value: "NONE", label: "Única" },
+  { value: "WEEKLY", label: "Semanal" },
+  { value: "BIWEEKLY", label: "Quinzenal" },
+  { value: "MONTHLY", label: "Mensal" },
+];
+
+export const DEFAULT_REPEAT_MONTHS = 3;
+export const MAX_REPEAT_MONTHS = 12;
+
+// Clamps to the last day when the target month is shorter, like LocalDate.plusMonths on the server.
+export function addMonths(iso: string, months: number): string {
+  const [year, month, day] = iso.split("-").map(Number);
+  const target = new Date(year, month - 1 + months, 1);
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  const pad = (value: number) => `${value}`.padStart(2, "0");
+  return `${target.getFullYear()}-${pad(target.getMonth() + 1)}-${pad(Math.min(day, lastDay))}`;
+}
+
+export function validateRepeatUntil(date: string, repeatUntil: string): string | null {
+  const invalid = validateDate(repeatUntil);
+  if (invalid) return invalid;
+  if (repeatUntil < date) return "Escolha uma data depois da primeira aula";
+  if (repeatUntil > addMonths(date, MAX_REPEAT_MONTHS)) return "A repetição vai até 12 meses";
+  return null;
+}

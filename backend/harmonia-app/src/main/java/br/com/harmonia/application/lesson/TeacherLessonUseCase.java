@@ -14,6 +14,8 @@ import br.com.harmonia.infrastructure.persistence.lesson.LessonAttachment;
 import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
 import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
 import br.com.harmonia.lessoncore.LessonLifecyclePolicy;
+import br.com.harmonia.lessoncore.LessonRecurrence;
+import br.com.harmonia.lessoncore.ScheduleConflictException;
 import br.com.harmonia.lessoncore.SessionStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -86,18 +89,43 @@ public class TeacherLessonUseCase {
     @Transactional
     public Lesson register(UUID enrollmentId, LocalDate date, LocalTime start, LocalTime end,
                            String content, String homework) {
+        return register(enrollmentId, date, start, end, content, homework, LessonRecurrence.NONE, null).lesson();
+    }
+
+    public record Registration(Lesson lesson, int occurrences) {}
+
+    @Transactional
+    public Registration register(UUID enrollmentId, LocalDate date, LocalTime start, LocalTime end,
+                                 String content, String homework, LessonRecurrence recurrence, LocalDate repeatUntil) {
         Enrollment enrollment = EnrollmentRules.requireActive(teacherEnrollment(enrollmentId));
-        SessionStatus initialStatus = lifecyclePolicy.initialStatus(date, start, LocalDateTime.now());
-        schedulingGuard.assertSlotIsFree(enrollment, date, start, end, initialStatus);
-        Lesson l = new Lesson();
-        l.setEnrollment(enrollment);
-        l.setDate(date);
-        l.setStartTime(start);
-        l.setEndTime(end);
-        l.setContent(content);
-        l.setHomework(homework);
-        l.setStatus(LessonStatuses.toLessonStatus(initialStatus));
-        return lessons.save(l);
+        LessonRecurrence effectiveRecurrence = recurrence == null ? LessonRecurrence.NONE : recurrence;
+        List<LocalDate> dates = effectiveRecurrence.occurrences(date, repeatUntil);
+        UUID seriesId = effectiveRecurrence == LessonRecurrence.NONE ? null : UUID.randomUUID();
+        LocalDateTime now = LocalDateTime.now();
+        List<Lesson> occurrences = new ArrayList<>();
+        List<LocalDate> conflicts = new ArrayList<>();
+        for (LocalDate occurrenceDate : dates) {
+            SessionStatus initialStatus = lifecyclePolicy.initialStatus(occurrenceDate, start, now);
+            try {
+                schedulingGuard.assertSlotIsFree(enrollment, occurrenceDate, start, end, initialStatus);
+            } catch (ScheduleConflictException conflict) {
+                if (effectiveRecurrence == LessonRecurrence.NONE) throw conflict;
+                conflicts.add(occurrenceDate);
+            }
+            Lesson lesson = new Lesson();
+            lesson.setEnrollment(enrollment);
+            lesson.setDate(occurrenceDate);
+            lesson.setStartTime(start);
+            lesson.setEndTime(end);
+            lesson.setContent(occurrences.isEmpty() ? content : null);
+            lesson.setHomework(occurrences.isEmpty() ? homework : null);
+            lesson.setStatus(LessonStatuses.toLessonStatus(initialStatus));
+            lesson.setSeriesId(seriesId);
+            occurrences.add(lesson);
+        }
+        if (!conflicts.isEmpty()) throw new LessonSeriesConflictException(conflicts);
+        List<Lesson> saved = occurrences.stream().map(lessons::save).toList();
+        return new Registration(saved.getFirst(), saved.size());
     }
 
     @Transactional(readOnly = true)

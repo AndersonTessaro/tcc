@@ -6,6 +6,7 @@ const mockPush = jest.fn();
 jest.mock("expo-router", () => ({ useRouter: () => ({ canGoBack: () => true, push: mockPush }), useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]) }));
 jest.mock("@/features/auth/useAuth", () => ({ useAuth: () => ({ user: { username: "ana", displayName: "Nome antigo" } }) }));
 jest.mock("@/features/account/accountService", () => ({ accountService: { get: jest.fn() } }));
+jest.mock("@/features/chat/chatService", () => ({ studentChatService: { unreadCount: jest.fn(async () => ({ count: 0 })) } }));
 
 it("loads the current account and opens the student's profile from its header card", async () => {
   jest.mocked(accountService.get).mockResolvedValue({ username: "ana", email: "ana@h.local", displayName: "Ana Maria", roles: ["STUDENT"], teacher: null, hasAvatar: false });

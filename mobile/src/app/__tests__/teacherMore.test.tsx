@@ -13,6 +13,7 @@ import { ApiError } from "@/lib/http/apiError";
 import { tokenStorage } from "@/lib/http/tokenStorage";
 import { confirm } from "@/lib/confirm";
 import { authService } from "@/features/auth/authService";
+import { teacherChatService } from "@/features/chat/chatService";
 
 const mockPush = jest.fn();
 const mockLogout = jest.fn();
@@ -25,6 +26,7 @@ jest.mock("@/hooks/use-tab-scroll-to-top", () => ({ useTabScrollToTop: jest.fn()
 jest.mock("@/features/auth/useAuth", () => ({ useAuth: () => ({ user: { displayName: "Nome antigo", username: "teacher" }, logout: mockLogout }) }));
 jest.mock("@/features/auth/authService", () => ({ authService: { logout: jest.fn() } }));
 jest.mock("@/features/account/accountService", () => ({ accountService: { get: jest.fn(), update: jest.fn(), changePassword: jest.fn() } }));
+jest.mock("@/features/chat/chatService", () => ({ teacherChatService: { unreadCount: jest.fn() } }));
 jest.mock("@/features/teacher/teacherService", () => ({ teacherService: { enrollments: jest.fn(), finance: jest.fn(), makeups: jest.fn() } }));
 jest.mock("@/ui/Toast", () => ({ useToast: () => ({ show: mockToast }) }));
 jest.mock("@/lib/http/tokenStorage", () => ({ tokenStorage: { clear: jest.fn() } }));
@@ -45,6 +47,7 @@ const makeup: TeacherMakeup = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  jest.mocked(teacherChatService.unreadCount).mockResolvedValue({ count: 0 });
   account.get.mockResolvedValue(profile);
   account.update.mockResolvedValue(profile);
   account.changePassword.mockResolvedValue(undefined);
@@ -60,10 +63,10 @@ it("shows the Figma menu in order and navigates to every screen", async () => {
   await render(<More />);
   expect(await screen.findByText("Maria Souza")).toBeVisible();
   expect(screen.getAllByRole("button").map((button) => button.props.accessibilityLabel)).toEqual([
-    "Ver perfil", "Turmas", "Horários", "Reposições", "Histórico de aulas", "Financeiro", "Configurações", "Ajuda", "Sair",
+    "Ver perfil", "Chat", "Turmas", "Horários", "Reposições", "Histórico de aulas", "Financeiro", "Configurações", "Ajuda", "Sair",
   ]);
   for (const [label, route] of [
-    ["Ver perfil", "profile"], ["Turmas", "classes"], ["Horários", "schedules"], ["Reposições", "makeups"], ["Histórico de aulas", "history"],
+    ["Ver perfil", "profile"], ["Chat", "chats"], ["Turmas", "classes"], ["Horários", "schedules"], ["Reposições", "makeups"], ["Histórico de aulas", "history"],
     ["Financeiro", "finance"], ["Configurações", "settings"], ["Ajuda", "help"],
   ]) {
     await fireEvent.press(screen.getByRole("button", { name: label }));

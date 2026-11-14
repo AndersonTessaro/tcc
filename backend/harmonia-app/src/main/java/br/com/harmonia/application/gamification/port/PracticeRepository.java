@@ -10,6 +10,8 @@ import java.util.Collection;
 import java.util.UUID;
 
 public interface PracticeRepository extends JpaRepository<Practice, UUID> {
+    boolean existsByInstrumentId(UUID instrumentId);
+
     List<Practice> findByStudentIdAndDateBetween(UUID studentId, LocalDate start, LocalDate end);
 
     List<Practice> findTop100ByStudentIdOrderByDateDescCreatedAtDesc(UUID studentId);

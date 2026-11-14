@@ -17,11 +17,14 @@ import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
 import br.com.harmonia.infrastructure.persistence.profile.Enrollment;
 import br.com.harmonia.infrastructure.persistence.profile.EnrollmentStatus;
 import br.com.harmonia.lessoncore.DomainValidationException;
+import br.com.harmonia.lessoncore.LessonRecurrence;
+import br.com.harmonia.lessoncore.ScheduleConflictException;
 import br.com.harmonia.lessoncore.SessionStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -56,6 +59,101 @@ class TeacherLessonUseCaseTest {
 
     private TeacherLessonUseCase useCase() {
         return new TeacherLessonUseCase(lessons, attendances, enrollments, current, schedulingGuard, attachments);
+    }
+
+    private Enrollment activeEnrollment() {
+        Enrollment enrollment = new Enrollment();
+        enrollment.setId(UUID.randomUUID());
+        enrollment.setStatus(EnrollmentStatus.ACTIVE);
+        when(enrollments.findById(enrollment.getId())).thenReturn(Optional.of(enrollment));
+        when(current.assertOwnedByCurrentTeacher(enrollment)).thenReturn(enrollment);
+        return enrollment;
+    }
+
+    @Test
+    void register_calculatesEachInitialStatusAndCopiesContentOnlyToFirstOccurrence() {
+        Enrollment enrollment = activeEnrollment();
+        LocalDate first = LocalDate.now().minusDays(1);
+        LocalTime start = LocalTime.of(9, 0);
+        LocalTime end = LocalTime.of(10, 0);
+        when(lessons.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var result = useCase().register(enrollment.getId(), first, start, end, "Scales", "Practice",
+            LessonRecurrence.WEEKLY, first.plusWeeks(2));
+
+        var saved = ArgumentCaptor.forClass(Lesson.class);
+        verify(lessons, times(3)).save(saved.capture());
+        List<Lesson> occurrences = saved.getAllValues();
+        assertThat(result.lesson()).isSameAs(occurrences.getFirst());
+        assertThat(result.occurrences()).isEqualTo(3);
+        assertThat(occurrences).extracting(Lesson::getStatus)
+            .containsExactly(LessonStatus.DONE, LessonStatus.SCHEDULED, LessonStatus.SCHEDULED);
+        assertThat(occurrences).extracting(Lesson::getContent).containsExactly("Scales", null, null);
+        assertThat(occurrences).extracting(Lesson::getHomework).containsExactly("Practice", null, null);
+        assertThat(result.lesson().getSeriesId()).isNotNull();
+        assertThat(occurrences).extracting(Lesson::getSeriesId).containsOnly(result.lesson().getSeriesId());
+        verify(schedulingGuard).assertSlotIsFree(enrollment, first, start, end, SessionStatus.DONE);
+        verify(schedulingGuard).assertSlotIsFree(enrollment, first.plusWeeks(1), start, end, SessionStatus.SCHEDULED);
+        verify(schedulingGuard).assertSlotIsFree(enrollment, first.plusWeeks(2), start, end, SessionStatus.SCHEDULED);
+        var order = inOrder(schedulingGuard, lessons);
+        order.verify(schedulingGuard, times(3)).assertSlotIsFree(eq(enrollment), any(), eq(start), eq(end), any());
+        order.verify(lessons, times(3)).save(any());
+        verifyNoInteractions(attendances);
+    }
+
+    @Test
+    void register_collectsAllConflictingDatesBeforeAnySave() {
+        Enrollment enrollment = activeEnrollment();
+        LocalDate first = LocalDate.now().plusYears(2);
+        LocalTime start = LocalTime.of(9, 0);
+        LocalTime end = LocalTime.of(10, 0);
+        List<LocalDate> conflictDates = List.of(first.plusWeeks(1), first.plusWeeks(3));
+        doAnswer(invocation -> {
+            if (conflictDates.contains(invocation.<LocalDate>getArgument(1))) {
+                throw new ScheduleConflictException("Conflict");
+            }
+            return null;
+        }).when(schedulingGuard).assertSlotIsFree(eq(enrollment), any(LocalDate.class), eq(start), eq(end),
+            eq(SessionStatus.SCHEDULED));
+
+        assertThatThrownBy(() -> useCase().register(enrollment.getId(), first, start, end, null, null,
+                LessonRecurrence.WEEKLY, first.plusWeeks(4)))
+            .isInstanceOfSatisfying(LessonSeriesConflictException.class, conflict ->
+                assertThat(conflict.dates()).containsExactly(first.plusWeeks(1), first.plusWeeks(3)));
+
+        verify(schedulingGuard).assertSlotIsFree(enrollment, first.plusWeeks(4), start, end, SessionStatus.SCHEDULED);
+        verify(lessons, never()).save(any());
+        verify(lessons, never()).saveAll(any());
+    }
+
+    @Test
+    void register_sixArgumentSignatureCreatesOneIndependentLesson() {
+        Enrollment enrollment = activeEnrollment();
+        when(lessons.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Lesson saved = useCase().register(enrollment.getId(), LocalDate.now().plusDays(7),
+            LocalTime.of(9, 0), LocalTime.of(10, 0), null, null);
+
+        assertThat(saved.getSeriesId()).isNull();
+        assertThat(saved.getContent()).isNull();
+        assertThat(saved.getHomework()).isNull();
+        verify(lessons).save(saved);
+        verifyNoInteractions(attendances);
+    }
+
+    @Test
+    void register_preservesSingleLessonConflictException() {
+        Enrollment enrollment = activeEnrollment();
+        LocalDate date = LocalDate.now().plusDays(7);
+        LocalTime start = LocalTime.of(9, 0);
+        LocalTime end = LocalTime.of(10, 0);
+        var conflict = new ScheduleConflictException("Original policy message");
+        doThrow(conflict).when(schedulingGuard)
+            .assertSlotIsFree(enrollment, date, start, end, SessionStatus.SCHEDULED);
+
+        assertThatThrownBy(() -> useCase().register(enrollment.getId(), date, start, end, null, null))
+            .isSameAs(conflict);
+        verify(lessons, never()).save(any());
     }
 
     private Lesson lesson(LessonStatus status) {

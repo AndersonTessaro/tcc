@@ -1,3 +1,4 @@
+import type { LessonRecurrence } from "./lessonForm";
 import { api, MEDIA_TIMEOUT_MS } from "../../lib/http";
 import { appendFile, type PickedFile } from "../../lib/http/formFile";
 import type { LessonAttachment, MaterialSource, StudentPractice } from "../student/studentService";
@@ -198,9 +199,9 @@ export const teacherService = {
     date: string;
     startTime: string;
     endTime: string;
-    content?: string;
-    homework?: string;
-  }) => api.post<TeacherLesson>("/teacher/lessons", b),
+    recurrence?: LessonRecurrence;
+    repeatUntil?: string;
+  }) => api.post<TeacherLesson & { occurrences: number }>("/teacher/lessons", b),
   lesson: (id: string) => api.get<TeacherLessonDetail>(`/teacher/lessons/${id}`),
   updateLesson: (id: string, body: UpdateLesson) => api.put<TeacherLesson>(`/teacher/lessons/${id}`, body),
   uploadLessonAttachment: (lessonId: string, file: PickedFile) => {

@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/features/auth/useAuth";
 import { accountService } from "@/features/account/accountService";
+import { ChatMenuItem } from "@/features/chat/ChatMenuItem";
 import { useResource } from "@/hooks/use-resource";
 import { authService } from "@/features/auth/authService";
 import { useTabScrollToTop } from "@/hooks/use-tab-scroll-to-top";
@@ -49,6 +50,7 @@ export default function More() {
         </Pressable>
 
         <View>
+          <ChatMenuItem role="teacher" />
           <ListRow variant="plain" title="Turmas" accessibilityLabel="Turmas" leading={icon("people-outline")} onPress={() => router.push("/teacher/classes")} />
           <ListRow variant="plain" title="Horários" accessibilityLabel="Horários" leading={icon("time-outline")} onPress={() => router.push("/teacher/schedules")} />
           <ListRow variant="plain" title="Reposições" accessibilityLabel="Reposições" leading={icon("repeat")} onPress={() => router.push("/teacher/makeups")} />

@@ -6,6 +6,12 @@ const response = (status: number, body: unknown) =>
   ({ status, json: () => Promise.resolve(body) }) as Response;
 
 describe("apiErrorMessage", () => {
+  it("translates instruments that are still in use", () => {
+    expect(apiErrorMessage(new ApiError(409, "RESOURCE_IN_USE", "Instrument is in use"), "fallback")).toBe(
+      "Este instrumento está em uso (matrícula, turma ou prática) e não pode ser excluído.",
+    );
+  });
+
   it("reads the backend error code from the response body", async () => {
     const error = await toApiError(response(409, { code: "SCHEDULE_CONFLICT", message: "x" }));
     expect(error).toBeInstanceOf(ApiError);

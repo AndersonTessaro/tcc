@@ -12,6 +12,9 @@ public interface TeacherRepository extends JpaRepository<Teacher, UUID> {
     Optional<Teacher> findByUserId(UUID userId);
 
     @EntityGraph(attributePaths = {"instruments", "user"})
+    List<Teacher> findByInstrumentsId(UUID instrumentId);
+
+    @EntityGraph(attributePaths = {"instruments", "user"})
     List<Teacher> findByActiveTrue();
 
     @EntityGraph(attributePaths = {"instruments", "user"})

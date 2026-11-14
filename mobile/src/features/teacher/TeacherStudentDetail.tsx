@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardScreen } from "@/ui/KeyboardScreen";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { DownloadButton } from "@/features/files/DownloadButton";
@@ -221,7 +222,7 @@ export default function TeacherStudentDetail() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardScreen style={styles.screen}>
       <TeacherStackHeader />
       {resource.loading ? (
         <ScreenState loading skeleton />
@@ -260,7 +261,7 @@ export default function TeacherStudentDetail() {
         />
       ) : null}
       {creatingGoal ? <GoalForm onSubmit={(body) => teacherService.createGoal(id, body)} onClose={() => setCreatingGoal(false)} onSaved={() => { setCreatingGoal(false); toast.show("Meta criada", "success"); void goals.reload(); }} /> : null}
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
   );
 }
 

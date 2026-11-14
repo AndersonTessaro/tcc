@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardScreen } from "@/ui/KeyboardScreen";
 import { teacherService, type TeacherSchedule, type Weekday } from "@/features/teacher/teacherService";
 import { EnrollmentPicker } from "@/features/teacher/EnrollmentPicker";
 import { hhmm } from "@/features/teacher/agenda";
@@ -103,7 +104,7 @@ export default function Schedules() {
   const unavailable = resource.loading || !!resource.error;
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardScreen style={styles.screen}>
       <ScreenHeader title="Horários fixos" back />
       <ScrollView
         contentContainerStyle={styles.content}
@@ -157,7 +158,7 @@ export default function Schedules() {
           </>
         )}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
   );
 }
 

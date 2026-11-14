@@ -1,13 +1,12 @@
+import { Platform } from "react-native";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { api } from "@/lib/http";
 import { ApiError } from "@/lib/http/apiError";
 import { appendFile, type PickedFile } from "@/lib/http/formFile";
 
-const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 const listeners = new Set<() => void>();
 let version = 0;
-
-export class AvatarValidationError extends Error {}
 
 function invalidate() {
   version++;
@@ -35,12 +34,26 @@ export const avatarService = {
       throw error;
     }
   },
-  async upload(file: PickedFile) {
-    if ((file.size ?? file.file?.size ?? 0) > MAX_AVATAR_BYTES) throw new AvatarValidationError("Escolha uma foto de até 2 MB.");
-    const mimeType = file.mimeType || (/\.png$/i.test(file.name) ? "image/png" : /\.jpe?g$/i.test(file.name) ? "image/jpeg" : "");
-    if (!["image/png", "image/jpeg"].includes(mimeType)) throw new AvatarValidationError("Escolha uma foto PNG ou JPEG.");
+  async upload(image: { uri: string; width: number; height: number }) {
+    const context = ImageManipulator.manipulate(image.uri);
+    let { width, height } = image;
+    if (width <= 0 || height <= 0) {
+      const original = await context.renderAsync();
+      width = original.width;
+      height = original.height;
+    }
+    const scale = Math.min(1, 512 / Math.max(width, height));
+    context.resize({ width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) });
+    const rendered = await context.renderAsync();
+    const result = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.8 });
+    const file: PickedFile = { uri: result.uri, name: "avatar.jpg", mimeType: "image/jpeg" };
+    if (Platform.OS === "web") {
+      const response = await fetch(result.uri);
+      if (!response.ok) throw new Error("Unable to read compressed profile photo");
+      file.file = await response.blob();
+    }
     const form = new FormData();
-    appendFile(form, "file", { ...file, mimeType });
+    appendFile(form, "file", file);
     await api.putForm<void>("/account/avatar", form);
     invalidate();
   },

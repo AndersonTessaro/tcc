@@ -1,24 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardScreen } from "@/ui/KeyboardScreen";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { LessonAttachment } from "@/features/student/studentService";
-import { teacherService, type AttendanceStatus, type TeacherLessonDetail } from "@/features/teacher/teacherService";
+import { teacherService, type TeacherLessonDetail } from "@/features/teacher/teacherService";
 import { EnrollmentPicker, type EnrollmentPickerHandle } from "@/features/teacher/EnrollmentPicker";
 import { LessonAttachmentList } from "@/features/teacher/LessonAttachmentList";
 import { SlotPlanner } from "@/features/teacher/SlotPlanner";
 import { TeacherStudentIdentity } from "@/features/teacher/TeacherStudentIdentity";
-import { ATTENDANCE_OPTIONS, hhmm, lessonStatusLabel, lessonStatusTone } from "@/features/teacher/agenda";
-import { validateDate, validateTimeRange } from "@/features/teacher/lessonForm";
+import { hhmm, lessonStatusLabel, lessonStatusTone, type LessonSection } from "@/features/teacher/agenda";
+import { addMonths, DEFAULT_REPEAT_MONTHS, RECURRENCE_OPTIONS, validateDate, validateRepeatUntil, validateTimeRange, type LessonRecurrence } from "@/features/teacher/lessonForm";
 import { addMinutes, DURATION_OPTIONS, durationBetween } from "@/features/teacher/scheduling";
 import { slotKey, useSlotAvailability } from "@/features/teacher/useSlotAvailability";
 import { useResource } from "@/hooks/use-resource";
 import { confirm } from "@/lib/confirm";
 import { formatFullDate, nowHhmm, relativeDayLabel, shortTime, todayIso } from "@/lib/format";
 import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
+import { ApiError } from "@/lib/http/apiError";
 import { apiErrorKey, apiErrorMessage } from "@/lib/http/errorMessage";
 import type { PickedFile } from "@/lib/http/formFile";
 import { Button } from "@/ui/Button";
-import { Card } from "@/ui/Card";
 import { ChipGroup } from "@/ui/Chip";
 import { DateTimeField, type DateTimeFieldHandle } from "@/ui/DateTimeField";
 import { TeacherStackHeader } from "@/features/teacher/TeacherStackHeader";
@@ -34,7 +35,11 @@ const DEFAULT_DURATION = "60";
 const CUSTOM = "custom";
 const TEXT_LIMIT = 1000;
 
-type FieldErrors = { enrollment?: string; date?: string; time?: string; form?: string };
+type FieldErrors = { enrollment?: string; date?: string; time?: string; repeatUntil?: string; form?: string };
+
+const SECTION_TITLE: Record<LessonSection, string> = { schedule: "Remarcar aula", content: "Conteúdo da aula", practice: "Prática do aluno" };
+
+const shortDate = (iso: string) => iso.split("-").reverse().join("/");
 
 const durationLabel = (minutes: number) => (minutes === 60 ? "1h" : minutes === 90 ? "1h30" : `${minutes} min`);
 const durationOptions = [
@@ -60,17 +65,17 @@ function initialSchedule(lesson?: TeacherLessonDetail["lesson"]) {
   return { start, duration: preset ? `${minutes}` : CUSTOM, customEnd: end };
 }
 
-export function LessonForm({ id }: { id?: string }) {
-  return id ? <LessonEditLoader id={id} /> : <LessonEditor />;
+export function LessonForm({ id, section }: { id?: string; section?: LessonSection }) {
+  return id ? <LessonEditLoader id={id} section={section} /> : <LessonEditor />;
 }
 
-function LessonEditLoader({ id }: { id: string }) {
+function LessonEditLoader({ id, section }: { id: string; section?: LessonSection }) {
   const fetchLesson = useCallback(() => teacherService.lesson(id), [id]);
   const detail = useResource(fetchLesson, id, { refetchOnFocus: false });
-  if (detail.data) return <LessonEditor existing={detail.data} reloadAttachments={detail.reload} />;
+  if (detail.data) return <LessonEditor existing={detail.data} section={section} reloadAttachments={detail.reload} />;
   return (
     <View style={styles.screen}>
-      <TeacherStackHeader title="Editar aula" />
+      <TeacherStackHeader title={section ? SECTION_TITLE[section] : "Editar aula"} />
       {detail.error ? (
         <ScreenState message={apiErrorMessage(detail.error, "Não foi possível carregar a aula.")} retry={() => void detail.reload()} />
       ) : (
@@ -80,9 +85,9 @@ function LessonEditLoader({ id }: { id: string }) {
   );
 }
 
-type EditorProps = { existing?: TeacherLessonDetail; reloadAttachments?: () => Promise<void> };
+type EditorProps = { existing?: TeacherLessonDetail; section?: LessonSection; reloadAttachments?: () => Promise<void> };
 
-function LessonEditor({ existing, reloadAttachments }: EditorProps) {
+function LessonEditor({ existing, section, reloadAttachments }: EditorProps) {
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   const enrollmentRef = useRef<EnrollmentPickerHandle>(null);
@@ -94,7 +99,10 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
   const lesson = existing?.lesson;
   const editing = !!lesson;
   const readOnly = lesson?.status === "CANCELED";
-  const canSchedule = !editing || lesson.status === "SCHEDULED";
+  const showSchedule = !section || section === "schedule";
+  const showContent = editing && (!section || section === "content");
+  const showPractice = editing && (!section || section === "practice");
+  const canSchedule = !editing || (showSchedule && lesson.status === "SCHEDULED");
   const initialDate = lesson?.date ?? (params.date && !validateDate(params.date) ? params.date : todayIso());
   const initial = initialSchedule(lesson);
   const enrollments = useResource(
@@ -110,8 +118,8 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
   const [content, setContent] = useState(lesson?.content ?? "");
   const [homework, setHomework] = useState(lesson?.homework ?? "");
   const [homeworkHeight, setHomeworkHeight] = useState(32);
-  const [attendance, setAttendance] = useState<AttendanceStatus | null>(null);
-  const [justification, setJustification] = useState("");
+  const [recurrence, setRecurrence] = useState<LessonRecurrence>("NONE");
+  const [repeatUntil, setRepeatUntil] = useState(addMonths(initialDate, DEFAULT_REPEAT_MONTHS));
   const [pending, setPending] = useState<PickedFile[]>([]);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -135,16 +143,18 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
     if (!editing && preselectedId) setEnrollmentId(preselectedId);
   }, [editing, preselectedId]);
 
-  useEffect(() => {
-    if (!completed) setAttendance(null);
-  }, [completed]);
-
   const formDirty = date !== baseline.date || startTime !== baseline.start || duration !== baseline.duration
     || customEnd !== baseline.customEnd || content.trim() !== baseline.content.trim() || homework.trim() !== baseline.homework.trim();
-  const dirty = formDirty || pending.length > 0 || enrollmentId !== preselectedId || attendance !== null || !!justification;
+  const dirty = formDirty || pending.length > 0 || enrollmentId !== preselectedId || recurrence !== "NONE";
   const markSaved = useUnsavedChangesGuard(dirty);
 
   const clearError = (field: keyof FieldErrors) => setErrors((current) => ({ ...current, [field]: undefined, form: undefined }));
+
+  const changeDate = (value: string) => {
+    setDate(value);
+    if (!validateDate(value)) setRepeatUntil(addMonths(value, DEFAULT_REPEAT_MONTHS));
+    clearError("date");
+  };
 
   const changeStart = (value: string) => {
     if (duration === CUSTOM) setCustomEnd(addMinutes(value, durationBetween(startTime, customEnd)));
@@ -174,6 +184,7 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
     enrollment: enrollmentId ? undefined : "Selecione o aluno",
     date: canSchedule ? validateDate(date) ?? undefined : undefined,
     time: canSchedule ? validateTimeRange(startTime, endTime) ?? undefined : undefined,
+    repeatUntil: !editing && recurrence !== "NONE" ? validateRepeatUntil(date, repeatUntil) ?? undefined : undefined,
   });
 
   const focusInvalid = (found: FieldErrors) => {
@@ -186,58 +197,48 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
   };
 
   const showSaveError = (error: unknown, fallback: string) => {
-    const found = { [apiErrorKey(error, ["enrollment", "date", "time"])]: apiErrorMessage(error, fallback) };
+    const conflictDates = error instanceof ApiError && error.code === "SCHEDULE_CONFLICT" ? error.fields : [];
+    const message = conflictDates.length
+      ? `Conflito de horário em ${conflictDates.map(shortDate).join(", ")}. Nenhuma aula foi criada.`
+      : apiErrorMessage(error, fallback);
+    const found = { [apiErrorKey(error, ["enrollment", "date", "time"])]: message };
     setErrors(found);
     focusInvalid(found);
   };
 
   const uploadPending = async (lessonId: string) => {
     const failed: PickedFile[] = [];
+    let reason = "";
     for (const file of pending) {
       try {
         await teacherService.uploadLessonAttachment(lessonId, file);
-      } catch {
+      } catch (error) {
         failed.push(file);
+        reason ||= apiErrorMessage(error, "falha no envio");
       }
     }
-    return failed;
+    return { failed, reason };
   };
 
   const createLesson = async () => {
-    let lessonId: string;
+    const repeats = recurrence !== "NONE";
     try {
       const created = await teacherService.newLesson({
         enrollmentId,
         date,
         startTime,
         endTime,
-        content: content.trim() || undefined,
-        homework: homework.trim() || undefined,
+        ...(repeats ? { recurrence, repeatUntil } : {}),
       });
-      lessonId = created.id;
       markSaved();
+      toast.show(
+        created.occurrences > 1 ? `${created.occurrences} aulas agendadas até ${shortDate(repeatUntil)}`
+          : completed ? "Aula registrada" : "Aula agendada",
+        "success",
+      );
     } catch (error) {
       showSaveError(error, "Erro ao registrar aula");
       return;
-    }
-    let attendanceError: string | null = null;
-    if (completed && attendance) {
-      try {
-        await teacherService.attendance(lessonId, attendance, attendance === "EXCUSED" ? justification.trim() || undefined : undefined);
-      } catch (error) {
-        attendanceError = apiErrorMessage(error, "marque pela agenda");
-      }
-    }
-    const failed = await uploadPending(lessonId);
-    if (failed.length) {
-      toast.show(`Aula salva, mas ${failed.length} anexo(s) não foram enviados. Tente de novo na aula.`, "error");
-      router.replace({ pathname: "/teacher/lesson/[id]", params: { id: lessonId } });
-      return;
-    }
-    if (attendanceError) {
-      toast.show(`Aula registrada, mas a frequência não foi salva: ${attendanceError}`, "error");
-    } else {
-      toast.show(completed ? "Aula registrada como concluída" : "Aula agendada", "success");
     }
     goBack(router);
   };
@@ -256,11 +257,11 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
       return;
     }
     setBaseline({ date, start: startTime, duration, customEnd, content, homework });
-    const failed = await uploadPending(lessonId);
+    const { failed, reason } = await uploadPending(lessonId);
     setPending(failed);
     if (pending.length) await reloadAttachments?.();
     if (failed.length) {
-      toast.show(`Aula salva, mas ${failed.length} anexo(s) não foram enviados. Tente novamente.`, "error");
+      toast.show(`Aula salva, mas ${failed.length} anexo(s) não foram enviados: ${reason}`, "error");
       return;
     }
     markSaved();
@@ -271,7 +272,7 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
   const save = async () => {
     if (saving || checking || hasConflict) return;
     const found = validate();
-    if (found.enrollment || found.date || found.time) {
+    if (found.enrollment || found.date || found.time || found.repeatUntil) {
       setErrors(found);
       focusInvalid(found);
       return;
@@ -298,11 +299,12 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
     }
   };
 
-  const saveLabel = editing || completed ? "Salvar aula" : "Agendar aula";
+  const saveLabel = recurrence !== "NONE" ? "Agendar aulas" : editing || completed ? "Salvar aula" : "Agendar aula";
+  const title = editing ? (section ? SECTION_TITLE[section] : "Editar aula") : "Nova aula";
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <TeacherStackHeader title={editing ? "Editar aula" : "Nova aula"} />
+    <KeyboardScreen style={styles.screen}>
+      <TeacherStackHeader title={title} />
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         <View onLayout={(event) => { fieldPositions.current.enrollment = event.nativeEvent.layout.y; }}>
           {lesson ? (
@@ -336,14 +338,14 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
           <View onLayout={(event) => { fieldPositions.current.date = event.nativeEvent.layout.y; }}>
             {canSchedule ? (
               <>
-                <DateTimeField ref={dateRef} mode="date" label="Data" value={date} onChange={(value) => { setDate(value); clearError("date"); }} error={errors.date} />
+                <DateTimeField ref={dateRef} mode="date" label="Data" value={date} onChange={changeDate} error={errors.date} />
                 {!validateDate(date) ? <Text style={styles.caption}>{relativeDayLabel(date)} · {formatFullDate(date)}</Text> : null}
               </>
             ) : lesson ? (
               <View style={styles.readOnlyField}>
                 <Text style={styles.label}>Data</Text>
                 <Text style={styles.statusText}>{formatFullDate(lesson.date)} · {hhmm(lesson.startTime)}–{hhmm(lesson.endTime)}</Text>
-                {readOnly ? null : <Text style={styles.caption}>Aula concluída: a data não muda. Conteúdo, tarefa e anexos podem ser editados.</Text>}
+                {readOnly || section ? null : <Text style={styles.caption}>Aula concluída: a data não muda. Conteúdo, prática e anexos podem ser editados.</Text>}
               </View>
             ) : null}
           </View>
@@ -382,48 +384,34 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
         </View>
         {editing ? null : (
           <>
-            <Text accessibilityRole="header" style={styles.section}>Situação da aula</Text>
-            <Card style={styles.statusCard}>
-              <View style={styles.statusRow}>
-                <StatusChip label={completed ? "Concluída" : "Agendada"} tone={completed ? "success" : "info"} />
-                <Text style={styles.statusText}>
-                  {completed
-                    ? "Data de hoje ou passada: a aula já nasce concluída."
-                    : "Data futura: a aula nasce agendada. Depois você conclui ou cancela pela agenda."}
-                </Text>
-              </View>
-              {completed ? (
-                <>
-                  <Text style={styles.label}>Frequência (opcional)</Text>
-                  <ChipGroup
-                    label="Frequência"
-                    options={ATTENDANCE_OPTIONS.map((option) => ({ value: option.status, label: option.label }))}
-                    value={attendance}
-                    onChange={(value) => setAttendance((current) => (current === value ? null : value))}
-                  />
-                  <Text style={styles.caption}>Presente soma XP ao aluno. Falta ou justificada não soma; trocar depois de "Presente" retira o XP.</Text>
-                  {attendance === "EXCUSED" ? (
-                    <TextField label="Justificativa" placeholder="Motivo da ausência" value={justification} onChangeText={setJustification} maxLength={500} />
-                  ) : null}
-                </>
-              ) : (
-                <Text style={styles.caption}>A frequência fica disponível a partir do dia da aula.</Text>
-              )}
-            </Card>
+            <Text accessibilityRole="header" style={styles.section}>Repetição</Text>
+            <ChipGroup label="Repetição" options={RECURRENCE_OPTIONS} value={recurrence} onChange={(value) => { setRecurrence(value as LessonRecurrence); clearError("repeatUntil"); }} />
+            {recurrence === "NONE" ? null : (
+              <>
+                <DateTimeField mode="date" label="Repetir até" value={repeatUntil} onChange={(value) => { setRepeatUntil(value); clearError("repeatUntil"); }} error={errors.repeatUntil} />
+                <Text style={styles.caption}>Cada aula é criada na agenda. Se alguma data tiver conflito, nenhuma é criada.</Text>
+              </>
+            )}
           </>
         )}
-        <TextField label="Conteúdo trabalhado" placeholder="Ex.: escalas maiores, música X" value={content} onChangeText={setContent} multiline maxLength={TEXT_LIMIT} editable={!readOnly} />
-        <TextField label="Tarefa para casa" placeholder="O que o aluno deve praticar" value={homework} onChangeText={setHomework} style={[styles.homeworkInput, { height: homeworkHeight }]} onContentSizeChange={(event) => setHomeworkHeight(Math.max(32, event.nativeEvent.contentSize.height))} multiline maxLength={TEXT_LIMIT} editable={!readOnly} />
-        <LessonAttachmentList
-          saved={existing?.attachments ?? []}
-          pending={pending}
-          onAdd={(file) => setPending((current) => [...current, file])}
-          onRemovePending={(index) => setPending((current) => current.filter((_, position) => position !== index))}
-          onRemoveSaved={(attachment) => void removeSaved(attachment)}
-          downloadSaved={(attachment) => teacherService.downloadLessonAttachment(lesson?.id ?? "", attachment.id)}
-          readOnly={readOnly}
-          disabled={saving}
-        />
+        {showContent ? (
+          <>
+            <TextField label="Conteúdo trabalhado" placeholder="Ex.: escalas maiores, música X" value={content} onChangeText={setContent} multiline maxLength={TEXT_LIMIT} editable={!readOnly} />
+            <LessonAttachmentList
+              saved={existing?.attachments ?? []}
+              pending={pending}
+              onAdd={(file) => setPending((current) => [...current, file])}
+              onRemovePending={(index) => setPending((current) => current.filter((_, position) => position !== index))}
+              onRemoveSaved={(attachment) => void removeSaved(attachment)}
+              downloadSaved={(attachment) => teacherService.downloadLessonAttachment(lesson?.id ?? "", attachment.id)}
+              readOnly={readOnly}
+              disabled={saving}
+            />
+          </>
+        ) : null}
+        {showPractice ? (
+          <TextField label="Prática para o aluno" placeholder="O que o aluno deve praticar até a próxima aula" value={homework} onChangeText={setHomework} style={[styles.homeworkInput, { height: homeworkHeight }]} onContentSizeChange={(event) => setHomeworkHeight(Math.max(32, event.nativeEvent.contentSize.height))} multiline maxLength={TEXT_LIMIT} editable={!readOnly} />
+        ) : null}
 
         {errors.form ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{errors.form}</Text> : null}
         {readOnly ? (
@@ -440,7 +428,7 @@ function LessonEditor({ existing, reloadAttachments }: EditorProps) {
         )}
         {hasConflict ? <Text style={styles.caption}>Escolha um horário livre para liberar o agendamento.</Text> : null}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
   );
 }
 
@@ -457,8 +445,6 @@ const styles = StyleSheet.create({
   caption: { ...type.caption },
   endPreview: { flex: 1, gap: 6 },
   endValue: { minHeight: 48, paddingTop: 12, fontSize: 16, color: colors.muted },
-  statusCard: { gap: space.md },
-  statusRow: { gap: space.sm },
   statusText: { ...type.body },
   error: { color: colors.danger, fontSize: 13 },
 });

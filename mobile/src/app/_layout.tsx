@@ -32,7 +32,7 @@ function Guard() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <Head><title>Harmonia</title></Head>
+      <Head><title>Sonetto</title></Head>
       <ToastProvider>
         <Guard />
       </ToastProvider>

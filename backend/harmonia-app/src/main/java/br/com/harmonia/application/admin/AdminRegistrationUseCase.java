@@ -1,8 +1,10 @@
 package br.com.harmonia.application.admin;
 
+import br.com.harmonia.application.gamification.port.PracticeRepository;
 import br.com.harmonia.application.profile.port.*;
 import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.domain.common.DuplicateResourceException;
+import br.com.harmonia.domain.common.ResourceInUseException;
 import br.com.harmonia.domain.common.ResourceNotFoundException;
 import br.com.harmonia.lessoncore.DomainValidationException;
 import br.com.harmonia.application.security.port.RoleRepository;
@@ -32,11 +34,14 @@ public class AdminRegistrationUseCase {
     private final PasswordEncoder encoder;
     private final CurrentUserService current;
     private final SchoolRepository schools;
+    private final ClassGroupRepository classGroups;
+    private final PracticeRepository practices;
 
     public AdminRegistrationUseCase(UserRepository users, RoleRepository roles, StudentRepository students,
                                     TeacherRepository teachers, InstrumentRepository instruments,
                                     EnrollmentRepository enrollments, PasswordEncoder encoder,
-                                    CurrentUserService current, SchoolRepository schools) {
+                                    CurrentUserService current, SchoolRepository schools,
+                                    ClassGroupRepository classGroups, PracticeRepository practices) {
         this.users = users;
         this.roles = roles;
         this.students = students;
@@ -46,6 +51,8 @@ public class AdminRegistrationUseCase {
         this.encoder = encoder;
         this.current = current;
         this.schools = schools;
+        this.classGroups = classGroups;
+        this.practices = practices;
     }
 
     private User newUser(String username, String email, String password, String name, String role, UUID schoolId) {
@@ -117,6 +124,19 @@ public class AdminRegistrationUseCase {
         Instrument i = new Instrument();
         i.setName(name);
         return instruments.save(i).getId();
+    }
+
+    @Transactional
+    public void deleteInstrument(UUID id) {
+        Instrument instrument = instruments.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Instrument"));
+        if (enrollments.existsByInstrumentId(id) || classGroups.existsByInstrumentId(id)
+                || practices.existsByInstrumentId(id)) {
+            throw new ResourceInUseException("Instrument is in use");
+        }
+        teachers.findByInstrumentsId(id).forEach(teacher ->
+            teacher.getInstruments().removeIf(linked -> linked.getId().equals(id)));
+        instruments.delete(instrument);
     }
 
     @Transactional

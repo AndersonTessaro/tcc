@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Button, Card, Input, PageHeader } from "@/components/ui";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { adminService } from "../adminService";
+import type { InstrumentOption } from "../adminService";
 import { ListState } from "../components/ListState";
 import { useAdminList } from "../hooks/useAdminList";
 import { useAdminAccess } from "../useAdminAccess";
@@ -18,6 +19,7 @@ export default function Instruments() {
     "Erro ao carregar instrumentos");
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const teachersOf = (instrumentId: string) =>
     data.teachers.filter((teacher) => teacher.instruments.some((instrument) => instrument.id === instrumentId)).length;
   const create = async (event: React.FormEvent) => {
@@ -33,6 +35,20 @@ export default function Instruments() {
       toast.error(apiErrorMessage(cause, "Erro ao criar instrumento"));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const deleteInstrument = async (instrument: InstrumentOption) => {
+    if (!window.confirm(`Excluir o instrumento ${instrument.name}?`)) return;
+    setDeleting(true);
+    try {
+      await adminService.deleteInstrument(instrument.id);
+      toast.success("Instrumento excluído.");
+      await reload();
+    } catch (cause) {
+      toast.error(apiErrorMessage(cause, "Erro ao excluir instrumento"));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -55,9 +71,18 @@ export default function Instruments() {
               return (
                 <li key={instrument.id} className="flex items-center justify-between bg-white px-4 py-3">
                   <span className="font-semibold text-ink">{instrument.name}</span>
-                  <span className={`text-xs font-medium ${count ? "text-ink-faint" : "text-warning"}`}>
-                    {count === 0 ? "Nenhum professor" : count === 1 ? "1 professor" : `${count} professores`}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-medium ${count ? "text-ink-faint" : "text-warning"}`}>
+                      {count === 0 ? "Nenhum professor" : count === 1 ? "1 professor" : `${count} professores`}
+                    </span>
+                    {isAdmin && <Button variant="danger" size="sm" disabled={deleting}
+                      aria-label={`Excluir instrumento ${instrument.name}`} onClick={() => void deleteInstrument(instrument)}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6" />
+                      </svg>
+                    </Button>}
+                  </div>
                 </li>
               );
             })}

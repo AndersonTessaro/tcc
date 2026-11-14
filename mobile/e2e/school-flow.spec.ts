@@ -69,10 +69,9 @@ test.describe.serial("Fluxo da escola: professor e aluno", () => {
     await page.getByRole("radio", { name: new RegExp(student.name) }).click();
     await page.getByRole("textbox", { name: "Data" }).fill(isoDate(1));
     await page.getByRole("textbox", { name: "Início" }).fill("15:00");
-    await page.getByRole("textbox", { name: "Conteúdo trabalhado" }).fill(lesson.content);
-    await page.getByRole("textbox", { name: "Tarefa para casa" }).fill(lesson.homework);
+    await expect(page.getByRole("textbox", { name: "Conteúdo trabalhado" })).toHaveCount(0);
+    await expect(page.getByText("Situação da aula")).toHaveCount(0);
     await expect(page.getByText("Horário livre")).toBeVisible();
-    await expect(page.getByText(/a aula nasce agendada/)).toBeVisible();
     await page.getByRole("button", { name: /Agendar aula/ }).click();
 
     await expect(page).toHaveURL(/teacher\/schedule/);
@@ -81,8 +80,18 @@ test.describe.serial("Fluxo da escola: professor e aluno", () => {
     const [y, m, d] = isoDate(1).split("-");
     if (d === "01") await page.getByRole("button", { name: "Próximo mês" }).click();
     await page.getByRole("button", { name: new RegExp(`^${d}/${m}/${y}`) }).click();
+
+    await page.getByRole("button", { name: "Conteúdo", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Conteúdo da aula" })).toBeVisible();
+    await page.getByRole("textbox", { name: "Conteúdo trabalhado" }).fill(lesson.content);
+    await page.getByRole("button", { name: "Salvar aula" }).click();
     await expect(page.getByText(`Conteúdo: ${lesson.content}`)).toBeVisible();
-    await expect(page.getByText(`Tarefa: ${lesson.homework}`)).toBeVisible();
+
+    await page.getByRole("button", { name: "Prática", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Prática do aluno" })).toBeVisible();
+    await page.getByRole("textbox", { name: "Prática para o aluno" }).fill(lesson.homework);
+    await page.getByRole("button", { name: "Salvar aula" }).click();
+    await expect(page.getByText(`Prática: ${lesson.homework}`)).toBeVisible();
   });
 
   test("aula repetida no mesmo horário é recusada", async ({ page }) => {

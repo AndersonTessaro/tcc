@@ -46,6 +46,7 @@ export const adminService = {
     api.put<RoleDto>(`/admin/security/roles/${roleId}/permissions`, { permissionIds }),
   // registrations (Plan 2)
   createInstrument: (name: string) => api.post<{ id: string }>("/admin/instruments", { name }),
+  deleteInstrument: (id: string) => api.delete<void>(`/admin/instruments/${id}`),
   createStudent: (b: NewUser) => api.post<{ id: string }>("/admin/students", b),
   createTeacher: (b: NewTeacher) => api.post<{ id: string }>("/admin/teachers", b),
   setTeacherInstruments: (teacherId: string, instrumentIds: string[]) =>

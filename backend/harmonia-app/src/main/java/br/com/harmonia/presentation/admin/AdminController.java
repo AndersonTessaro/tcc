@@ -123,6 +123,13 @@ public class AdminController {
         return Map.of("id", uc.createInstrument(r.name()));
     }
 
+    @DeleteMapping("/instruments/{id}")
+    @PreAuthorize("hasRole('ADMIN') and hasAuthority('instrument.manage')")
+    public ResponseEntity<Void> deleteInstrument(@PathVariable UUID id) {
+        uc.deleteInstrument(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/enrollments")
     @PreAuthorize("hasAuthority('enrollment.manage')")
     public Map<String, UUID> enrollment(@Valid @RequestBody NewEnrollment r) {

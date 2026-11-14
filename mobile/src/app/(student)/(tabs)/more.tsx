@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/features/auth/useAuth";
 import { accountService } from "@/features/account/accountService";
+import { ChatMenuItem } from "@/features/chat/ChatMenuItem";
 import { useResource } from "@/hooks/use-resource";
 import { useTabScrollToTop } from "@/hooks/use-tab-scroll-to-top";
 import { Avatar } from "@/ui/Avatar";
@@ -57,6 +58,7 @@ export default function More() {
         </Card>
 
         <View>
+          <ChatMenuItem role="student" />
           <ListRow variant="plain" title="Materiais" subtitle="Arquivos enviados pelo professor" leading={<Ionicons name="document-text-outline" size={26} color={colors.text} accessible={false} />} onPress={() => router.push("/(student)/materials")} />
           <ListRow variant="plain" title="Observações do professor" leading={<Ionicons name="chatbox-ellipses-outline" size={26} color={colors.text} accessible={false} />} onPress={() => router.push("/(student)/teacher-notes")} />
           <ListRow variant="plain" title="Minhas metas" subtitle="Acompanhe e crie metas" leading={<Ionicons name="flag-outline" size={26} color={colors.text} accessible={false} />} onPress={() => router.push("/(student)/goals?from=more")} />

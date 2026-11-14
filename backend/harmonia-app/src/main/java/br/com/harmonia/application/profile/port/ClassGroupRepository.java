@@ -6,4 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.UUID;
 
 public interface ClassGroupRepository extends JpaRepository<ClassGroup, UUID> {
+    boolean existsByInstrumentId(UUID instrumentId);
 }
