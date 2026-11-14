@@ -19,13 +19,16 @@ jobs:
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
+    # Manual runs redeploy everything: a push only sees its own diff, so a cancelled run leaves changes behind.
     outputs:
-      api: ${{ steps.filter.outputs.api }}
-      web: ${{ steps.filter.outputs.web }}
-      app: ${{ steps.filter.outputs.app }}
+      api: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.api }}
+      web: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.web }}
+      app: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.app }}
     steps:
       - uses: actions/checkout@v4
+        if: github.event_name != 'workflow_dispatch'
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        if: github.event_name != 'workflow_dispatch'
         id: filter
         with:
           filters: |
