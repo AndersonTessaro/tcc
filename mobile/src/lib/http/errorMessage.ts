@@ -2,7 +2,7 @@ import { ApiError } from "./apiError";
 import { RequestTimeoutError } from "./apiClient";
 
 const BY_CODE: Record<string, string> = {
-  FILE_TOO_LARGE: "Arquivo maior que 50 MB",
+  FILE_TOO_LARGE: "O arquivo passa do tamanho máximo permitido.",
   SCHEDULE_CONFLICT: "Conflito de horário com outra aula ou horário fixo",
   DUPLICATE_RESOURCE: "Já existe um cadastro com esses dados",
   VALIDATION: "Dados inválidos. Revise os campos.",
@@ -23,14 +23,12 @@ const BY_DETAIL: [RegExp, string][] = [
   [/Username already in use/i, "Este usuário já está em uso."],
   [/Recording must be an audio or video file/i, "Escolha um arquivo de áudio ou vídeo."],
   [/Recording is empty/i, "O arquivo está vazio."],
-  [/Recording exceeds 50 MB/i, "O arquivo passa de 50 MB. Grave um vídeo mais curto ou envie só o áudio."],
   [/Canceled lessons cannot be edited/i, "Aula cancelada não pode ser editada."],
   [/Only scheduled lessons can be rescheduled/i, "Só aulas agendadas podem mudar de data ou horário."],
   [/Lesson cannot be moved to a past date/i, "A aula não pode ir para uma data passada."],
   [/Lesson with recorded attendance cannot be rescheduled/i, "Aula com frequência registrada não pode mudar de data ou horário."],
   [/Attachment must be a PDF, image, audio or video file/i, "Escolha um PDF, imagem, áudio ou vídeo."],
   [/Attachment is empty/i, "O arquivo está vazio."],
-  [/Attachment exceeds 50 MB/i, "O arquivo passa de 50 MB."],
   [/Lesson already has 10 attachments/i, "A aula já tem 10 anexos."],
   [/Lesson already has a makeup linked/i, "Esta aula já tem uma reposição"],
   [/Only a completed or canceled lesson can receive a makeup/i, "Conclua ou cancele a aula antes de agendar reposição"],
@@ -39,7 +37,6 @@ const BY_DETAIL: [RegExp, string][] = [
   [/before the lesson starts/i, "A frequência só pode ser marcada depois que a aula começar"],
   [/Material must be a PDF, image, audio, video or score file/i, "Escolha um PDF, imagem, áudio, vídeo ou partitura (MusicXML ou MuseScore)."],
   [/Material is empty/i, "O arquivo está vazio."],
-  [/Material exceeds 50 MB/i, "O arquivo passa de 50 MB."],
   [/Practice date cannot be in the future/i, "Escolha uma data até hoje."],
   [/Practice date cannot be more than 30 days ago/i, "Só dá para registrar práticas dos últimos 30 dias."],
   [/Practice for a single day cannot exceed 24 hours/i, "As práticas de um dia não podem passar de 24 horas."],
@@ -53,6 +50,12 @@ const BY_DETAIL: [RegExp, string][] = [
 
 export function apiErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiError) {
+    const size = /^(Recording|Attachment|Material) exceeds (\d+) MB$/i.exec(error.detail ?? "");
+    if (size) {
+      const hint = size[1].toLowerCase() === "recording" && size[2] === "50"
+        ? " Grave um vídeo mais curto ou envie só o áudio." : "";
+      return `O arquivo passa de ${size[2]} MB.${hint}`;
+    }
     const translated = BY_DETAIL.find(([pattern]) => pattern.test(error.detail ?? ""));
     if (translated) return translated[1];
     if (error.code && BY_CODE[error.code]) return BY_CODE[error.code];

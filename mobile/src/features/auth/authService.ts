@@ -9,6 +9,9 @@ export type AuthResponse = {
   hasAvatar?: boolean;
 };
 
+// Signing out offline must not hold the user behind the default 20 s request timeout.
+const LOGOUT_TIMEOUT_MS = 5_000;
+
 export const authService = {
   async login(login: string, password: string) {
     const res = await api.post<AuthResponse>(
@@ -21,11 +24,10 @@ export const authService = {
   },
   me: () =>
     api.get<{ username: string; authorities: string[]; displayName: string; hasAvatar: boolean }>("/auth/me"),
-  forgot: (email: string) => api.post("/auth/forgot-password", { email }, { auth: false }),
   reset: (token: string, newPassword: string) => api.post("/auth/reset-password", { token, newPassword }, { auth: false }),
   async logout() {
     try {
-      await api.post("/auth/logout");
+      await api.post("/auth/logout", undefined, { timeoutMs: LOGOUT_TIMEOUT_MS });
     } finally {
       await tokenStorage.clear();
     }

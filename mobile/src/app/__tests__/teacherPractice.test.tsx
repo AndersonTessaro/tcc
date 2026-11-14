@@ -1,10 +1,13 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import TeacherPracticeDetail from "@/features/teacher/TeacherPracticeDetail";
 import TeacherStudents from "@/features/teacher/TeacherStudents";
 import TeacherStudentDetail from "@/features/teacher/TeacherStudentDetail";
 import { teacherService } from "@/features/teacher/teacherService";
 import { saveDownload } from "@/lib/files/saveDownload";
 import { ApiError } from "@/lib/http/apiError";
+import * as DocumentPicker from "expo-document-picker";
+
+jest.mock("expo-document-picker", () => ({ getDocumentAsync: jest.fn() }));
 
 const mockToast = jest.fn();
 const mockPush = jest.fn();
@@ -22,7 +25,7 @@ jest.mock("@/features/teacher/teacherService", () => ({
   teacherService: {
     student: jest.fn(), studentProfile: jest.fn(), updateStudentProfile: jest.fn(), students: jest.fn(), enrollments: jest.fn(),
     studentLessons: jest.fn(), studentMaterials: jest.fn(), studentGoals: jest.fn().mockResolvedValue([]), createGoal: jest.fn(), endGoal: jest.fn(), studentPractices: jest.fn(),
-    downloadPracticeRecording: jest.fn(), downloadMaterialItem: jest.fn(),
+    downloadPracticeRecording: jest.fn(), downloadMaterialItem: jest.fn(), uploadMaterial: jest.fn(),
   },
 }));
 const service = jest.mocked(teacherService);
@@ -122,12 +125,16 @@ it("shows an empty state for practices without falling back to the report", asyn
   expect(screen.queryByText("Legacy report note")).toBeNull();
 });
 
-it("retries a failed practice list request", async () => {
+it("keeps the student visible when practices fail and recovers on refresh", async () => {
   service.studentPractices.mockRejectedValueOnce(new Error("offline"));
   await render(<TeacherStudentDetail />);
-  expect(await screen.findByText("Não foi possível carregar o aluno.")).toBeVisible();
-  await fireEvent.press(screen.getByRole("button", { name: "Tentar novamente" }));
   expect(await screen.findByText("João")).toBeVisible();
+  await fireEvent.press(screen.getByRole("tab", { name: "Prática" }));
+  expect(screen.getByText("Não foi possível carregar as práticas.")).toBeVisible();
+  expect(screen.queryByText("Nenhuma prática registrada")).toBeNull();
+  await act(() => screen.getByLabelText("Detalhes do aluno").props.refreshControl.props.onRefresh());
+  expect(await screen.findByText("Estudo 0")).toBeVisible();
+  expect(screen.queryByText("Não foi possível carregar as práticas.")).toBeNull();
   expect(service.studentPractices).toHaveBeenCalledTimes(2);
 });
 
@@ -263,4 +270,57 @@ it.each([true, false])("shows the add action only with student.register: %s", as
     await fireEvent.press(screen.getByRole("button", { name: "Novo aluno" }));
     expect(mockPush).toHaveBeenCalledWith("/teacher/student-form");
   } else expect(screen.queryByRole("button", { name: "Novo aluno" })).toBeNull();
+});
+
+it("keeps profile and lessons usable when all optional lists fail", async () => {
+  const unavailable = new ApiError(503, "STORAGE_UNAVAILABLE");
+  service.enrollments.mockRejectedValueOnce(unavailable);
+  service.studentMaterials.mockRejectedValueOnce(unavailable);
+  service.studentPractices.mockRejectedValueOnce(unavailable);
+  service.studentLessons.mockResolvedValue([{
+    id: "lesson-1", enrollmentId: "enr-1", studentId: "student-1", studentName: "João",
+    teacherName: "Maria", instrument: "Piano", date: "2026-11-14", startTime: "09:00", endTime: "10:00",
+    status: "SCHEDULED", content: "Escalas maiores", homework: null, attendance: null,
+  }]);
+  await render(<TeacherStudentDetail />);
+  expect(await screen.findByText("João")).toBeVisible();
+  expect(screen.getByText("Pratique escalas")).toBeVisible();
+  expect(screen.getByText("Não foi possível carregar os instrumentos.")).toBeVisible();
+  await fireEvent.press(screen.getByRole("tab", { name: "Aulas" }));
+  await fireEvent.press(screen.getByText("Escalas maiores"));
+  expect(mockPush).toHaveBeenCalledWith({ pathname: "/teacher/lesson/[id]", params: { id: "lesson-1" } });
+  await fireEvent.press(screen.getByRole("tab", { name: "Materiais" }));
+  expect(screen.getByText("Não foi possível carregar os materiais.")).toBeVisible();
+  expect(screen.queryByText("Nenhum material enviado")).toBeNull();
+  await fireEvent.press(screen.getByRole("tab", { name: "Prática" }));
+  expect(screen.getByText("Não foi possível carregar as práticas.")).toBeVisible();
+});
+
+it("shows an uploaded material even when loading the existing list failed", async () => {
+  service.studentMaterials.mockRejectedValueOnce(new Error("offline"));
+  jest.mocked(DocumentPicker.getDocumentAsync).mockResolvedValueOnce({
+    canceled: false, assets: [{ uri: "file:///score.pdf", name: "score.pdf", mimeType: "application/pdf", size: 8 }],
+  });
+  service.uploadMaterial.mockResolvedValueOnce({
+    id: "new-material", title: "Partitura nova", description: null, fileName: "score.pdf",
+    contentType: "application/pdf", sizeBytes: 8, createdAt: "2026-11-14T10:00:00",
+    source: "MATERIAL", lessonId: null, lessonDate: null,
+  });
+  await render(<TeacherStudentDetail />);
+  await screen.findByText("João");
+  await fireEvent.press(screen.getByRole("tab", { name: "Materiais" }));
+  await fireEvent.changeText(screen.getByLabelText("Título do material"), "Partitura nova");
+  await fireEvent.press(screen.getByRole("button", { name: "Escolher arquivo" }));
+  await fireEvent.press(screen.getByRole("button", { name: "Enviar material" }));
+  expect(await screen.findByText("Partitura nova")).toBeVisible();
+  expect(screen.getByText("Não foi possível carregar os materiais.")).toBeVisible();
+});
+
+it.each(["student", "studentProfile", "studentLessons"] as const)("keeps %s required and allows retry", async (request) => {
+  service[request].mockRejectedValueOnce(new Error("offline"));
+  await render(<TeacherStudentDetail />);
+  expect(await screen.findByText("Não foi possível carregar o aluno.")).toBeVisible();
+  expect(screen.queryByText("João")).toBeNull();
+  await fireEvent.press(screen.getByRole("button", { name: "Tentar novamente" }));
+  expect(await screen.findByText("João")).toBeVisible();
 });

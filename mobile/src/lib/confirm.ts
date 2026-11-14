@@ -12,7 +12,7 @@ type ConfirmOptions = { title: string; message?: string; confirmLabel: string; d
 
 export function confirm({ title, message, confirmLabel, destructive }: ConfirmOptions): Promise<boolean> {
   if (Platform.OS === "web") {
-    return Promise.resolve(globalThis.confirm?.(message ? `${title}\n\n${message}` : title) ?? true);
+    return Promise.resolve(globalThis.confirm?.(message ? `${title}\n\n${message}` : title) ?? false);
   }
   return new Promise((resolve) => {
     Alert.alert(title, message, [

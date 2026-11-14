@@ -220,7 +220,7 @@ export const teacherService = {
   history: (start: string, end: string) =>
     api.get<TeacherLesson[]>(`/teacher/lessons?start=${start}&end=${end}`),
   attendance: (lessonId: string, status: AttendanceStatus, justification?: string) =>
-    api.post<any>(`/teacher/lessons/${lessonId}/attendance`, { status, justification }),
+    api.post<unknown>(`/teacher/lessons/${lessonId}/attendance`, { status, justification }),
   schedule: (date: string) => api.get<TeacherLesson[]>(`/teacher/schedule?date=${date}`),
   changeLessonStatus: (lessonId: string, status: LessonStatus) =>
     api.patch<TeacherLesson>(`/teacher/lessons/${lessonId}/status`, { status }),

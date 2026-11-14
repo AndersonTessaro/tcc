@@ -15,6 +15,7 @@ const activeTabs: Record<string, string> = {
   goals: "progress",
   materials: "more",
   profile: "more",
+  settings: "more",
   "teacher-notes": "more",
 };
 

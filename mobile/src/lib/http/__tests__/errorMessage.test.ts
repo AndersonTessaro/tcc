@@ -89,7 +89,7 @@ describe("apiErrorKey", () => {
 });
 
 it.each([
-  [413, "FILE_TOO_LARGE", undefined, "Arquivo maior que 50 MB"],
+  [413, "FILE_TOO_LARGE", undefined, "O arquivo passa do tamanho máximo permitido."],
   [422, "DOMAIN_VALIDATION", "Recording must be an audio or video file", "Escolha um arquivo de áudio ou vídeo."],
   [422, "DOMAIN_VALIDATION", "Recording is empty", "O arquivo está vazio."],
   [422, "DOMAIN_VALIDATION", "Recording exceeds 50 MB", "O arquivo passa de 50 MB. Grave um vídeo mais curto ou envie só o áudio."],
@@ -102,4 +102,12 @@ it.each([
   ["Username already in use", "Este usuário já está em uso."],
 ])("translates duplicate login details: %s", (detail, expected) => {
   expect(apiErrorMessage(new ApiError(409, "DUPLICATE_RESOURCE", detail), "Falha")).toBe(expected);
+});
+
+it.each([
+  ["Recording", 150], ["Attachment", 50], ["Attachment", 150],
+  ["Material", 50], ["Material", 150], ["Material", 75],
+])("translates the %s limit of %i MB without a recording hint", (kind, limit) => {
+  expect(apiErrorMessage(new ApiError(422, "DOMAIN_VALIDATION", `${kind} exceeds ${limit} MB`), "Falha"))
+    .toBe(`O arquivo passa de ${limit} MB.`);
 });

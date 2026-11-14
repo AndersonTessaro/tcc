@@ -36,14 +36,22 @@ const NOTES: Record<NoteKind, { title: string; hint: string }> = {
   privateNotes: { title: "Anotações do professor", hint: "Visível só para você." },
 };
 
+async function optionalList<T>(request: Promise<T[]>): Promise<{ data: T[]; failed: boolean }> {
+  try {
+    return { data: await request, failed: false };
+  } catch {
+    return { data: [], failed: true };
+  }
+}
+
 async function loadStudent(id: string) {
   const [detail, profile, enrollments, lessons, materials, practices] = await Promise.all([
     teacherService.student(id),
     teacherService.studentProfile(id),
-    teacherService.enrollments(),
+    optionalList(teacherService.enrollments()),
     teacherService.studentLessons(id),
-    teacherService.studentMaterials(id),
-    teacherService.studentPractices(id),
+    optionalList(teacherService.studentMaterials(id)),
+    optionalList(teacherService.studentPractices(id)),
   ]);
   return {
     detail,
@@ -51,10 +59,11 @@ async function loadStudent(id: string) {
     phone: profile.phone,
     sharedNotes: profile.sharedNotes,
     privateNotes: profile.privateNotes,
-    instruments: [...new Set(enrollments.filter((item) => item.studentId === id).map((item) => item.instrument))],
+    instruments: [...new Set(enrollments.data.filter((item) => item.studentId === id).map((item) => item.instrument))],
     lessons,
-    materials,
-    practices,
+    materials: materials.data,
+    practices: practices.data,
+    errors: { instruments: enrollments.failed, materials: materials.failed, practices: practices.failed },
   };
 }
 
@@ -174,7 +183,7 @@ export default function TeacherStudentDetail() {
               <Text style={styles.summaryValue}>{formatMinutes(detail.weeklyPracticeMin)}</Text>
             </Card>
             <Text accessibilityRole="header" style={styles.sectionTitle}>Registros recentes</Text>
-            {practices.length ? (
+            {data.errors.practices ? <Text accessibilityRole="alert" style={styles.error}>Não foi possível carregar as práticas.</Text> : practices.length ? (
               <Card style={styles.listCard}>
                 {practices.slice(0, 10).map((item) => (
                   <View key={item.id}>
@@ -191,6 +200,7 @@ export default function TeacherStudentDetail() {
       case "materials":
         return (
           <>
+            {data.errors.materials ? <Text accessibilityRole="alert" style={styles.error}>Não foi possível carregar os materiais.</Text> : null}
             {materials.length ? (
               <Card style={styles.listCard}>
                 {materials.map((item) => (
@@ -212,7 +222,7 @@ export default function TeacherStudentDetail() {
                   />
                 ))}
               </Card>
-            ) : (
+            ) : data.errors.materials ? null : (
               <ScreenState icon="folder-open-outline" title="Nenhum material enviado" />
             )}
             <MaterialUpload studentId={id} onUploaded={addMaterial} />
@@ -231,10 +241,12 @@ export default function TeacherStudentDetail() {
       ) : (
         <>
           <View style={styles.profile}>
-            <TeacherStudentIdentity name={data.name ?? "Aluno"} instrument={data.instruments.join(", ") || "Instrumento não informado"} userId={data.detail.userId} hasAvatar={data.detail.hasAvatar} bio={data.detail.bio} />
+            <TeacherStudentIdentity name={data.name ?? "Aluno"} instrument={data.instruments.join(", ") || (data.errors.instruments ? "" : "Instrumento não informado")} userId={data.detail.userId} hasAvatar={data.detail.hasAvatar} bio={data.detail.bio} />
+            {data.errors.instruments ? <Text accessibilityRole="alert" style={styles.error}>Não foi possível carregar os instrumentos.</Text> : null}
           </View>
           <TeacherStudentSections value={tab} onChange={setTab} />
           <ScrollView
+            accessibilityLabel="Detalhes do aluno"
             style={styles.scroll}
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled"
@@ -278,6 +290,7 @@ const styles = StyleSheet.create({
   lessonDateRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   lessonTitle: { ...type.body, fontWeight: "700" },
   caption: { ...type.caption },
+  error: { ...type.caption, color: colors.danger },
   info: { gap: space.xs, borderRadius: radius.sm, padding: 10, minHeight: 56 },
   noteAction: { alignSelf: "flex-start", paddingHorizontal: 0 },
   infoLabel: { ...type.label },

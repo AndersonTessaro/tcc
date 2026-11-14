@@ -199,7 +199,7 @@ it("continues without a recording after an upload failure", async () => {
   await render(<RegisterPractice />);
   await chooseRecording();
   await fireEvent.press(screen.getByRole("button", { name: "Salvar registro" }));
-  expect(await screen.findByText("Arquivo maior que 50 MB")).toBeVisible();
+  expect(await screen.findByText("O arquivo passa do tamanho máximo permitido.")).toBeVisible();
   await fireEvent.press(screen.getByRole("button", { name: "Continuar sem arquivo" }));
   expect(await screen.findByText("+30 XP")).toBeVisible();
   expect(service.registerPractice).toHaveBeenCalledTimes(1);

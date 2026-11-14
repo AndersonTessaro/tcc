@@ -9,7 +9,7 @@ import { LessonAttachmentList } from "@/features/teacher/LessonAttachmentList";
 import { SlotPlanner } from "@/features/teacher/SlotPlanner";
 import { TeacherStudentIdentity } from "@/features/teacher/TeacherStudentIdentity";
 import { hhmm, lessonStatusLabel, lessonStatusTone, type LessonSection } from "@/features/teacher/agenda";
-import { addMonths, DEFAULT_REPEAT_MONTHS, RECURRENCE_OPTIONS, validateDate, validateRepeatUntil, validateTimeRange, type LessonRecurrence } from "@/features/teacher/lessonForm";
+import { addMonths, initialLessonSlot, DEFAULT_REPEAT_MONTHS, RECURRENCE_OPTIONS, validateDate, validateRepeatUntil, validateTimeRange, type LessonRecurrence } from "@/features/teacher/lessonForm";
 import { addMinutes, DURATION_OPTIONS, durationBetween } from "@/features/teacher/scheduling";
 import { slotKey, useSlotAvailability } from "@/features/teacher/useSlotAvailability";
 import { useResource } from "@/hooks/use-resource";
@@ -27,10 +27,9 @@ import { ScreenState } from "@/ui/ScreenState";
 import { StatusChip } from "@/ui/StatusChip";
 import { TextField } from "@/ui/TextField";
 import { useToast } from "@/ui/Toast";
-import { colors, space, type } from "@/ui/theme";
+import { colors, MIN_TOUCH, space, type } from "@/ui/theme";
 import { goBack } from "@/lib/navigation";
 
-const DEFAULT_START = "10:00";
 const DEFAULT_DURATION = "60";
 const CUSTOM = "custom";
 const TEXT_LIMIT = 1000;
@@ -56,8 +55,8 @@ const localInitialStatus = (date: string, startTime: string) => {
   return date > today || (date === today && start > now) ? "SCHEDULED" : "DONE";
 };
 
-function initialSchedule(lesson?: TeacherLessonDetail["lesson"]) {
-  if (!lesson) return { start: DEFAULT_START, duration: DEFAULT_DURATION, customEnd: addMinutes(DEFAULT_START, 60) };
+function initialSchedule(startTime: string, lesson?: TeacherLessonDetail["lesson"]) {
+  if (!lesson) return { start: startTime, duration: DEFAULT_DURATION, customEnd: addMinutes(startTime, 60) };
   const start = hhmm(lesson.startTime);
   const end = hhmm(lesson.endTime);
   const minutes = durationBetween(start, end);
@@ -103,8 +102,9 @@ function LessonEditor({ existing, section, reloadAttachments }: EditorProps) {
   const showContent = editing && (!section || section === "content");
   const showPractice = editing && (!section || section === "practice");
   const canSchedule = !editing || (showSchedule && lesson.status === "SCHEDULED");
-  const initialDate = lesson?.date ?? (params.date && !validateDate(params.date) ? params.date : todayIso());
-  const initial = initialSchedule(lesson);
+  const [initialSlot] = useState(() => initialLessonSlot(new Date(), params.date && !validateDate(params.date) ? params.date : undefined));
+  const initialDate = lesson?.date ?? initialSlot.date;
+  const initial = initialSchedule(initialSlot.start, lesson);
   const enrollments = useResource(
     () => (editing ? Promise.resolve([]) : teacherService.enrollments()),
     editing ? "edit" : "",
@@ -117,7 +117,7 @@ function LessonEditor({ existing, section, reloadAttachments }: EditorProps) {
   const [customEnd, setCustomEnd] = useState(initial.customEnd);
   const [content, setContent] = useState(lesson?.content ?? "");
   const [homework, setHomework] = useState(lesson?.homework ?? "");
-  const [homeworkHeight, setHomeworkHeight] = useState(32);
+  const [homeworkHeight, setHomeworkHeight] = useState(MIN_TOUCH);
   const [recurrence, setRecurrence] = useState<LessonRecurrence>("NONE");
   const [repeatUntil, setRepeatUntil] = useState(addMonths(initialDate, DEFAULT_REPEAT_MONTHS));
   const [pending, setPending] = useState<PickedFile[]>([]);
@@ -410,7 +410,7 @@ function LessonEditor({ existing, section, reloadAttachments }: EditorProps) {
           </>
         ) : null}
         {showPractice ? (
-          <TextField label="Prática para o aluno" placeholder="O que o aluno deve praticar até a próxima aula" value={homework} onChangeText={setHomework} style={[styles.homeworkInput, { height: homeworkHeight }]} onContentSizeChange={(event) => setHomeworkHeight(Math.max(32, event.nativeEvent.contentSize.height))} multiline maxLength={TEXT_LIMIT} editable={!readOnly} />
+          <TextField label="Prática para o aluno" placeholder="O que o aluno deve praticar até a próxima aula" value={homework} onChangeText={setHomework} style={[styles.homeworkInput, { height: homeworkHeight }]} onContentSizeChange={(event) => setHomeworkHeight(Math.max(MIN_TOUCH, event.nativeEvent.contentSize.height))} multiline maxLength={TEXT_LIMIT} editable={!readOnly} />
         ) : null}
 
         {errors.form ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{errors.form}</Text> : null}
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
   scheduling: { gap: space.md },
   identity: { gap: space.sm },
   readOnlyField: { gap: 6 },
-  homeworkInput: { minHeight: 32 },
+  homeworkInput: { minHeight: MIN_TOUCH },
   row: { flexDirection: "row", gap: space.md },
   label: { ...type.label },
   caption: { ...type.caption },

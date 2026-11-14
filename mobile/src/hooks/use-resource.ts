@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusEffect } from "expo-router";
+import { apiErrorMessage } from "@/lib/http/errorMessage";
+import { useToast } from "@/ui/Toast";
 
 type Options = { refetchOnFocus?: boolean };
 
@@ -19,6 +21,9 @@ export function useResource<T>(fetcher: () => Promise<T>, key: string = "", { re
   const [error, setError] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const toast = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
   const fetcherRef = useRef(fetcher);
   const requestRef = useRef(0);
   const hasDataRef = useRef(false);
@@ -36,7 +41,9 @@ export function useResource<T>(fetcher: () => Promise<T>, key: string = "", { re
       setError(null);
     } catch (cause) {
       if (request !== requestRef.current) return;
-      if (mode !== "background" || !hasDataRef.current) setError(cause);
+      if (mode === "refresh" && hasDataRef.current) {
+        toastRef.current.show(apiErrorMessage(cause, "Não foi possível atualizar."), "error");
+      } else if (!hasDataRef.current) setError(cause);
     } finally {
       if (request === requestRef.current) {
         setLoading(false);

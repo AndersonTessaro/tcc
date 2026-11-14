@@ -1,3 +1,4 @@
+import { colors } from "@/ui/theme";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import More from "@/app/teacher/(tabs)/more";
 import Profile from "@/app/teacher/profile";
@@ -5,6 +6,7 @@ import Classes from "@/app/teacher/classes";
 import Makeups from "@/app/teacher/makeups";
 import Finance from "@/app/teacher/finance";
 import Settings from "@/app/teacher/settings";
+import StudentSettings from "@/app/(student)/settings";
 import Help from "@/app/teacher/help";
 import { accountService, type Account } from "@/features/account/accountService";
 import { teacherService, type TeacherMakeup } from "@/features/teacher/teacherService";
@@ -73,7 +75,8 @@ it("shows the Figma menu in order and navigates to every screen", async () => {
     expect(mockPush).toHaveBeenLastCalledWith(`/teacher/${route}`);
   }
   await fireEvent.press(screen.getByRole("button", { name: "Sair" }));
-  expect(authService.logout).toHaveBeenCalled();
+  expect(authService.logout).not.toHaveBeenCalled();
+  expect(screen.getByText("Sair")).toHaveStyle({ color: colors.danger });
   expect(mockLogout).toHaveBeenCalled();
 });
 
@@ -209,14 +212,22 @@ it("shows wrong current password 422 on its field and keeps the session", async 
   expect(tokenStorage.clear).not.toHaveBeenCalled();
 });
 
-it("changes the password, clears local tokens and logs out after success", async () => {
+it("changes the password and delegates sign-out to the provider after success", async () => {
   await render(<Settings />);
   await fillPasswords();
   await fireEvent.press(screen.getByRole("button", { name: "Trocar senha" }));
   await waitFor(() => expect(mockLogout).toHaveBeenCalledTimes(1));
   expect(account.changePassword).toHaveBeenCalledWith({ currentPassword: "Current@123", newPassword: "Changed@123" });
   expect(mockToast).toHaveBeenCalledWith("Senha alterada. Entre novamente.", "success");
-  expect(tokenStorage.clear).toHaveBeenCalledTimes(1);
+  expect(tokenStorage.clear).not.toHaveBeenCalled();
+});
+
+it("lets a student change the password from the student settings route", async () => {
+  await render(<StudentSettings />);
+  await fillPasswords();
+  await fireEvent.press(screen.getByRole("button", { name: "Trocar senha" }));
+  await waitFor(() => expect(mockLogout).toHaveBeenCalledTimes(1));
+  expect(account.changePassword).toHaveBeenCalledWith({ currentPassword: "Current@123", newPassword: "Changed@123" });
 });
 
 it.each([
@@ -250,13 +261,4 @@ it("updates pristine profile fields on refresh and preserves unsaved edits", asy
   account.get.mockResolvedValue({ ...updated, displayName: "Outro nome" });
   await act(() => screen.getByLabelText("Perfil").props.refreshControl.props.onRefresh());
   expect(screen.getByLabelText("Nome")).toHaveProp("value", "Rascunho local");
-});
-
-it("logs out even when clearing native token storage fails", async () => {
-  jest.mocked(tokenStorage.clear).mockRejectedValueOnce(new Error("Storage unavailable"));
-  await render(<Settings />);
-  await fillPasswords();
-  await fireEvent.press(screen.getByRole("button", { name: "Trocar senha" }));
-  expect(mockLogout).toHaveBeenCalledTimes(1);
-  expect(mockToast).toHaveBeenCalledWith("Não foi possível limpar a sessão salva. A senha já foi alterada.", "error");
 });

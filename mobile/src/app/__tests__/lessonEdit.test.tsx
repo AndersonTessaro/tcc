@@ -1,3 +1,4 @@
+import { MIN_TOUCH } from "@/ui/theme";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import EditLesson from "@/app/teacher/lesson/[id]";
 import { teacherService, type LessonAvailability, type TeacherLesson, type TeacherLessonDetail } from "@/features/teacher/teacherService";
@@ -229,4 +230,16 @@ describe("Edit lesson screen", () => {
     expect(message).toHaveProp("accessibilityRole", "alert");
     expect(mockBack).not.toHaveBeenCalled();
   });
+});
+
+it("keeps the practice field at the minimum touch height while allowing it to grow", async () => {
+  service.lesson.mockResolvedValue(detail());
+  mockParams = { id: "lesson-1", section: "practice" };
+  await render(<EditLesson />);
+  const input = await screen.findByLabelText("Prática para o aluno");
+  expect(input).toHaveStyle({ minHeight: MIN_TOUCH, height: MIN_TOUCH });
+  await fireEvent(input, "contentSizeChange", { nativeEvent: { contentSize: { height: 20 } } });
+  expect(input).toHaveStyle({ height: MIN_TOUCH });
+  await fireEvent(input, "contentSizeChange", { nativeEvent: { contentSize: { height: 100 } } });
+  expect(input).toHaveStyle({ height: 100 });
 });

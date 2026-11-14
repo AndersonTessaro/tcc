@@ -4,7 +4,6 @@ import Reports from "@/app/teacher/(tabs)/reports";
 import Forgot from "@/app/(auth)/forgot-password";
 import { studentService, type StudentMaterial } from "@/features/student/studentService";
 import { teacherService, type TeacherStudentDetailData } from "@/features/teacher/teacherService";
-import { authService } from "@/features/auth/authService";
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
@@ -15,11 +14,9 @@ jest.mock("expo-router", () => ({
 jest.mock("@/features/student/studentService", () => ({ studentService: { materials: jest.fn(), downloadMaterialItem: jest.fn() } }));
 jest.mock("@/lib/files/saveDownload", () => ({ saveDownload: jest.fn() }));
 jest.mock("@/features/teacher/teacherService", () => ({ teacherService: { students: jest.fn(), reports: jest.fn() } }));
-jest.mock("@/features/auth/authService", () => ({ authService: { forgot: jest.fn() } }));
 
 const student = studentService as jest.Mocked<typeof studentService>;
 const teacher = teacherService as jest.Mocked<typeof teacherService>;
-const auth = authService as jest.Mocked<typeof authService>;
 const material: StudentMaterial = { id: "material-1", studentId: "student-1", teacherName: "Maria Santos", title: "Escalas maiores", description: "Exercícios para a semana", fileName: "escalas.pdf", contentType: "application/pdf", sizeBytes: 2048, createdAt: "2026-10-03T10:00:00", source: "MATERIAL", lessonId: null, lessonDate: null };
 
 beforeEach(() => {
@@ -100,33 +97,14 @@ it("keeps the selected student when a report request fails and is retried", asyn
   expect(teacher.reports).toHaveBeenLastCalledWith("student-1");
 });
 
-it("validates recovery email and keeps failures separate from success", async () => {
-  auth.forgot.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce(undefined);
+it("explains recovery is unavailable, directs the user to the school office and returns to login", async () => {
   await render(<Forgot />);
-  await fireEvent.press(screen.getByRole("button", { name: "Enviar instruções" }));
-  expect(screen.getByText("Informe um e-mail válido.")).toBeVisible();
-  expect(auth.forgot).not.toHaveBeenCalled();
-  await fireEvent.changeText(screen.getByLabelText("E-mail"), " aluno@escola.com ");
-  await fireEvent.press(screen.getByRole("button", { name: "Enviar instruções" }));
-  expect(await screen.findByText("Sem conexão com o servidor")).toBeVisible();
-  expect(screen.queryByText("Confira sua caixa de entrada")).toBeNull();
-  await fireEvent.press(screen.getByRole("button", { name: "Enviar instruções" }));
-  expect(await screen.findByText("Confira sua caixa de entrada")).toBeVisible();
-  expect(auth.forgot).toHaveBeenLastCalledWith("aluno@escola.com");
+  expect(screen.getByText(/recuperação de senha por e-mail ainda não está disponível/)).toBeVisible();
+  expect(screen.getByText(/secretaria da escola/)).toBeVisible();
+  expect(screen.queryByLabelText("E-mail")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Enviar instruções" })).toBeNull();
   await fireEvent.press(screen.getByRole("button", { name: "Voltar ao login" }));
   expect(mockReplace).toHaveBeenCalledWith("/(auth)/login");
-});
-
-it("sends only one recovery request while submission is pending", async () => {
-  let finish: (value: unknown) => void = () => {};
-  auth.forgot.mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
-  await render(<Forgot />);
-  await fireEvent.changeText(screen.getByLabelText("E-mail"), "aluno@escola.com");
-  const submit = screen.getByLabelText("E-mail").props.onSubmitEditing;
-  await act(async () => { void submit(); void submit(); });
-  expect(auth.forgot).toHaveBeenCalledTimes(1);
-  await act(async () => finish(undefined));
-  expect(screen.getByText("Confira sua caixa de entrada")).toBeVisible();
 });
 
 it("enables the four report categories and opens the individual evolution", async () => {

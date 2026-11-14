@@ -53,7 +53,7 @@ describe("NewLesson screen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     confirmMock.mockResolvedValue(true);
-    mockParams = {};
+    mockParams = { date: FUTURE_DATE };
     service.enrollments.mockResolvedValue([
       { id: "enr-1", studentId: "st-1", studentName: "Ana Souza", instrument: "Piano" },
       { id: "enr-2", studentId: "st-2", studentName: "João Íris", instrument: "Violão" },
@@ -209,6 +209,7 @@ describe("NewLesson screen", () => {
       doNotFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "setImmediate", "clearImmediate", "nextTick", "queueMicrotask", "performance"],
     });
     try {
+      mockParams = {};
       service.availability.mockImplementation(() => new Promise(() => {}));
       await render(<NewLesson />);
       await pickAna();
@@ -271,6 +272,22 @@ describe("NewLesson screen", () => {
     const message = await screen.findByText("Conflito de horário com outra aula ou horário fixo");
     expect(message).toHaveProp("accessibilityRole", "alert");
     expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [undefined, 15, 20, "2026-11-14", "16:00"],
+    ["2026-11-14", 22, 0, "2026-11-15", "10:00"],
+  ])("uses the current time for a new lesson with date %s", async (date, hour, minute, expectedDate, start) => {
+    jest.useFakeTimers({ doNotFake: ["setImmediate"] });
+    jest.setSystemTime(new Date(2026, 10, 14, hour, minute));
+    try {
+      mockParams = date ? { date } : {};
+      await render(<NewLesson />);
+      expect(screen.getByLabelText("Data")).toHaveProp("value", expectedDate);
+      expect(screen.getByLabelText("Início")).toHaveProp("value", start);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it("asks before discarding a filled form", async () => {

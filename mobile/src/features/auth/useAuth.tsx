@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { authService, AuthResponse, isStudent, isTeacher } from "./authService";
 import { authEvents } from "../../lib/http/authEvents";
 import { tokenStorage } from "../../lib/http/tokenStorage";
@@ -8,7 +8,9 @@ type AuthState = {
   loading: boolean;
   restoring: boolean;
   login: (l: string, s: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  restoreError: unknown;
+  retryRestore: () => Promise<void>;
   updateProfile: (profile: Pick<AuthResponse, "displayName" | "hasAvatar">) => void;
 };
 
@@ -19,29 +21,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [restoring, setRestoring] = useState(true);
 
-  useEffect(() => {
-    let active = true;
-    const unsubscribe = authEvents.onLogout(() => setUser(null));
-    const restore = async () => {
-      try {
-        const accessToken = await tokenStorage.get();
-        if (accessToken) {
-          const profile = await authService.me();
-          const restored = { ...profile, accessToken };
-          if (active && (isStudent(restored) || isTeacher(restored))) setUser(restored);
-        }
-      } catch {
-        // Keep the saved session on network failure so a later login can retry.
-      } finally {
-        if (active) setRestoring(false);
+  const [restoreError, setRestoreError] = useState<unknown>(null);
+  const restoreRequest = useRef(0);
+
+  const retryRestore = useCallback(async () => {
+    const request = ++restoreRequest.current;
+    setRestoring(true);
+    setRestoreError(null);
+    try {
+      const accessToken = await tokenStorage.get();
+      if (accessToken) {
+        const profile = await authService.me();
+        const restored = { ...profile, accessToken };
+        if (request === restoreRequest.current && (isStudent(restored) || isTeacher(restored))) setUser(restored);
       }
-    };
-    void restore();
+    } catch (error) {
+      if (request === restoreRequest.current) {
+        if (error instanceof Error && error.message === "UNAUTHENTICATED") setUser(null);
+        else setRestoreError(error);
+      }
+    } finally {
+      if (request === restoreRequest.current) setRestoring(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = authEvents.onLogout(() => setUser(null));
+    void retryRestore();
     return () => {
-      active = false;
+      restoreRequest.current++;
       unsubscribe();
     };
-  }, []);
+  }, [retryRestore]);
 
   const login = async (l: string, s: string) => {
     setLoading(true);
@@ -61,11 +72,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => setUser(null);
+  const logout = async () => {
+    restoreRequest.current++;
+    await authService.logout().catch(() => undefined);
+    setUser(null);
+    setRestoreError(null);
+    setRestoring(false);
+  };
   const updateProfile = (profile: Pick<AuthResponse, "displayName" | "hasAvatar">) =>
     setUser((current) => current && { ...current, ...profile });
 
-  return <Ctx.Provider value={{ user, loading, restoring, login, logout, updateProfile }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, loading, restoring, restoreError, retryRestore, login, logout, updateProfile }}>{children}</Ctx.Provider>;
 }
 
 export const useAuth = () => useContext(Ctx);

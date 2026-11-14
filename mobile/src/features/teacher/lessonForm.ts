@@ -1,4 +1,17 @@
-import { isValidIsoDate } from "@/lib/format";
+import { addDays, isValidIsoDate, todayIso } from "@/lib/format";
+import { DAY_END, fromMinutes, toMinutes } from "./scheduling";
+
+const DEFAULT_LESSON_MIN = 60;
+
+export function initialLessonSlot(now: Date, date = todayIso(now)) {
+  const defaultStart = "10:00";
+  const tenToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10);
+  if (date !== todayIso(now) || now <= tenToday) return { date, start: defaultStart };
+  const start = (now.getHours() + 1) * 60;
+  return start + DEFAULT_LESSON_MIN > toMinutes(DAY_END)
+    ? { date: addDays(date, 1), start: defaultStart }
+    : { date, start: fromMinutes(start) };
+}
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
