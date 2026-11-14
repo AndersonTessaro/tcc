@@ -53,6 +53,9 @@ beforeEach(() => {
   }
 });
 
+// React's act caches the first `timers.setImmediate` it sees; a faked one hangs every later act (Node 22 / CI).
+const useFakeTimers = () => jest.useFakeTimers({ doNotFake: ["setImmediate"] });
+
 afterEach(() => jest.useRealTimers());
 
 it.each([
@@ -177,7 +180,7 @@ it("shows a translated conversation error and does not send without enrollment",
 });
 
 it("polls every five seconds without overlapping reads and stops on blur and unmount", async () => {
-  jest.useFakeTimers();
+  useFakeTimers();
   const intervals = jest.spyOn(global, "setInterval");
   const clear = jest.spyOn(global, "clearInterval");
   const view = await render(<TeacherConversation />);
@@ -211,7 +214,7 @@ it("polls every five seconds without overlapping reads and stops on blur and unm
 });
 
 it("does not replace an optimistic message with a pending read and skips polling while sending", async () => {
-  jest.useFakeTimers();
+  useFakeTimers();
   await render(<TeacherConversation />);
   await act(async () => {});
   let resolveRead!: (messages: ChatMessage[]) => void;
@@ -242,7 +245,7 @@ it.each([[TeacherMore, teacher, "/teacher/chats"], [StudentMore, student, "/(stu
 });
 
 it("does not let a stale read overwrite a send after focus returns", async () => {
-  jest.useFakeTimers();
+  useFakeTimers();
   const view = await render(<TeacherConversation />);
   await act(async () => {});
   let resolveRead!: (messages: ChatMessage[]) => void;
