@@ -83,4 +83,4 @@ jobs:
 
       - name: Roll out new revision
         if: needs.changes.outputs[matrix.app] == 'true'
-        run: az containerapp update -g "$RESOURCE_GROUP" -n "harmonia-${{ matrix.app }}" --image "$IMAGE" --query properties.latestRevisionName -o tsv
+        run: az containerapp update -g "$RESOURCE_GROUP" -n "sonetto-${{ matrix.app }}" --image "$IMAGE" --query properties.latestRevisionName -o tsv

@@ -22,7 +22,7 @@ app inteira de pé) só roda quando o barato já passou.
 | `.github/workflows/tests-integration.yml` | 3 — integração | `mvnw verify`; `npm run test:integration` (mobile, web) |
 | `.github/workflows/tests-system.yml` | 4 — sistema | `mvnw -pl harmonia-app -am -Psystem-tests verify` |
 
-| `.github/workflows/deploy.yml` | 5 — deploy (CD) | por app alterado (`backend/**` → `harmonia-api`, `web/**` → `harmonia-web`): `docker build` no runner, push no ACR com tag = SHA, `az containerapp update --image` |
+| `.github/workflows/deploy.yml` | 5 — deploy (CD) | por app alterado (`backend/**` → `sonetto-api`, `web/**` → `sonetto-web`, `mobile/**` → `sonetto-app`): `docker build` no runner, push no ACR com tag = SHA, `az containerapp update --image` |
 
 `ci-passed` agrega tudo — é o único status a exigir na branch protection de `main`.
 

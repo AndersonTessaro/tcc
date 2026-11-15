@@ -34,7 +34,7 @@ var registries = [
 
 // ponytail: minReplicas 0 keeps it inside the free grant; first request after idle waits for JVM + Flyway, and the daily notification cron only fires while a replica is up.
 resource api 'Microsoft.App/containerApps@2024-03-01' = {
-  name: 'harmonia-api'
+  name: 'sonetto-api'
   location: location
   properties: {
     managedEnvironmentId: env.id
@@ -78,7 +78,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
 }
 
 resource web 'Microsoft.App/containerApps@2024-03-01' = {
-  name: 'harmonia-web'
+  name: 'sonetto-web'
   location: location
   properties: {
     managedEnvironmentId: env.id
@@ -110,7 +110,7 @@ resource web 'Microsoft.App/containerApps@2024-03-01' = {
 }
 
 resource app 'Microsoft.App/containerApps@2024-03-01' = {
-  name: 'harmonia-app'
+  name: 'sonetto-app'
   location: location
   properties: {
     managedEnvironmentId: env.id
