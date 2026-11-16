@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { answerConfirm } from "@/test/dialog";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import Users from "./Users";
 import Roles from "./Roles";
@@ -50,19 +51,20 @@ describe("Admin management improvements", () => {
   });
 
   it("deletes a user only after confirming the cascade warning", async () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
     render(<Users />);
     await screen.findByText("Ana Souza");
     fireEvent.click(screen.getByRole("button", { name: "Gerenciar ana" }));
     const deleteAna = () => fireEvent.click(screen.getByRole("button", { name: "Excluir ana" }));
     deleteAna();
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("Matrículas, aulas"));
+    expect(await screen.findByRole("alertdialog", { name: "Excluir usuário?" }))
+      .toHaveAccessibleDescription(expect.stringContaining("Matrículas, aulas"));
+    await answerConfirm("Voltar");
     expect(service.deleteUser).not.toHaveBeenCalled();
     deleteAna();
+    await answerConfirm("Excluir usuário");
     await waitFor(() => expect(service.deleteUser).toHaveBeenCalledWith("2"));
     await waitFor(() => expect(service.users).toHaveBeenCalledTimes(2));
     expect(screen.queryByRole("dialog")).toBeNull();
-    confirm.mockRestore();
   });
 
   it("resets a password through a form instead of a prompt", async () => {

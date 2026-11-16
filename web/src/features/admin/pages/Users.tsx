@@ -10,6 +10,7 @@ import { ListState } from "../components/ListState";
 import { OptionSelect } from "../components/OptionSelect";
 import { useAdminList } from "../hooks/useAdminList";
 import { matches } from "../format";
+import { confirmDialog } from "@/components/confirm";
 
 const COLUMNS = [
   { label: "Nome" }, { label: "Usuário" }, { label: "Perfis" }, { label: "Situação" }, { label: "Ações", align: "right" as const },
@@ -119,9 +120,13 @@ function UserManager({ user, roles, onChanged, onDeleted }: {
     if (saved) setNewPassword("");
   };
 
-  const deleteUser = () => {
-    const confirmed = window.confirm(`Excluir ${user.username} definitivamente? Matrículas, aulas, práticas, metas e `
-      + "materiais ligados a este usuário também serão apagados. Esta ação não pode ser desfeita.");
+  const deleteUser = async () => {
+    const confirmed = await confirmDialog({
+      title: "Excluir usuário?",
+      message: `${user.username} será excluído definitivamente. Matrículas, aulas, práticas, metas e materiais ligados `
+        + "a este usuário também serão apagados. Esta ação não pode ser desfeita.",
+      confirmLabel: "Excluir usuário",
+    });
     if (confirmed) void run(() => adminService.deleteUser(user.id), `${user.username} excluído`, "Erro ao excluir usuário", onDeleted);
   };
 

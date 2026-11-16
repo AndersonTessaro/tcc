@@ -8,6 +8,7 @@ import { ListState } from "../components/ListState";
 import { UserForm } from "../components/UserForm";
 import { useAdminList } from "../hooks/useAdminList";
 import { useCreateDrawer } from "../hooks/useCreateDrawer";
+import { confirmDialog } from "@/components/confirm";
 
 const COLUMNS = [{ label: "Nome" }, { label: "Gestores" }, { label: "Situação" }, { label: "Ações", align: "right" as const }];
 
@@ -76,7 +77,11 @@ function SchoolForm({ school, onSaved }: { school: SchoolDto | null; onSaved: ()
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!name.trim()) { toast.error("Informe o nome da escola"); return; }
-    if (school?.active && !active && !window.confirm(`Desativar ${school.name}? Gestores, professores e alunos desta escola não conseguirão mais entrar, e novos cadastros não poderão ser vinculados a ela.`)) return;
+    if (school?.active && !active && !(await confirmDialog({
+      title: "Desativar escola?",
+      message: `Gestores, professores e alunos de ${school.name} não conseguirão mais entrar, e novos cadastros não poderão ser vinculados a ela.`,
+      confirmLabel: "Desativar escola",
+    }))) return;
     setSaving(true);
     try {
       if (school) await adminService.updateSchool(school.id, { name: name.trim(), active });

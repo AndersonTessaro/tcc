@@ -7,6 +7,7 @@ import type { InstrumentOption } from "../adminService";
 import { ListState } from "../components/ListState";
 import { useAdminList } from "../hooks/useAdminList";
 import { useAdminAccess } from "../useAdminAccess";
+import { confirmDialog } from "@/components/confirm";
 
 const loadInstruments = async () => {
   const [instruments, teachers] = await Promise.all([adminService.instruments(), adminService.teachers()]);
@@ -39,7 +40,11 @@ export default function Instruments() {
   };
 
   const deleteInstrument = async (instrument: InstrumentOption) => {
-    if (!window.confirm(`Excluir o instrumento ${instrument.name}?`)) return;
+    if (!(await confirmDialog({
+      title: "Excluir instrumento?",
+      message: `${instrument.name} sai da lista e dos professores que o ensinam. Matrículas encerradas e práticas antigas continuam no histórico.`,
+      confirmLabel: "Excluir instrumento",
+    }))) return;
     setDeleting(true);
     try {
       await adminService.deleteInstrument(instrument.id);

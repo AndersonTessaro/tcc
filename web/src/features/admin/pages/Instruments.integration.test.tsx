@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { answerConfirm } from "@/test/dialog";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/http/apiError";
@@ -37,13 +38,14 @@ describe("Instrument deletion", () => {
   });
 
   it("confirms deletion and reloads instruments and teachers after success", async () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     service.instruments.mockResolvedValueOnce([piano]).mockResolvedValueOnce([]);
     render(<Instruments />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Excluir instrumento Piano" }));
 
-    expect(confirm).toHaveBeenCalledWith("Excluir o instrumento Piano?");
+    expect(await screen.findByRole("alertdialog", { name: "Excluir instrumento?" }))
+      .toHaveAccessibleDescription(expect.stringContaining("Piano"));
+    await answerConfirm("Excluir instrumento");
     await waitFor(() => expect(service.deleteInstrument).toHaveBeenCalledExactlyOnceWith(piano.id));
     await screen.findByText("Nenhum instrumento encontrado");
     expect(toast.success).toHaveBeenCalledWith("Instrumento excluído.");
@@ -53,10 +55,10 @@ describe("Instrument deletion", () => {
   });
 
   it("keeps the instrument when confirmation is canceled", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
     render(<Instruments />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Excluir instrumento Piano" }));
+    await answerConfirm("Voltar");
 
     expect(service.deleteInstrument).not.toHaveBeenCalled();
     expect(toast.success).not.toHaveBeenCalled();
@@ -65,11 +67,11 @@ describe("Instrument deletion", () => {
   });
 
   it("translates RESOURCE_IN_USE and keeps the instrument after a conflict", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     service.deleteInstrument.mockRejectedValueOnce(new ApiError(409, "RESOURCE_IN_USE", "Instrument has open enrollments"));
     render(<Instruments />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Excluir instrumento Piano" }));
+    await answerConfirm("Excluir instrumento");
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(
       "Este instrumento tem matrícula ativa ou suspensa. Encerre a matrícula antes de excluir.",

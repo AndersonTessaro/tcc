@@ -4,6 +4,7 @@ import { Button, Field, Input, Select } from "@/components/ui";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { agendaService } from "../agendaService";
 import type { AttendanceStatus, LessonDto } from "../agendaService";
+import { confirmDialog } from "@/components/confirm";
 
 export function AttendanceForm({ lesson, onSaved }: { lesson: LessonDto; onSaved: () => Promise<void> }) {
   const [status, setStatus] = useState<AttendanceStatus>(lesson.attendance ?? "PRESENT");
@@ -11,7 +12,12 @@ export function AttendanceForm({ lesson, onSaved }: { lesson: LessonDto; onSaved
   const [saving, setSaving] = useState(false);
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (lesson.attendance && !window.confirm(`Atualizar a frequência de ${lesson.studentName}?`)) return;
+    if (lesson.attendance && !(await confirmDialog({
+      title: "Atualizar frequência?",
+      message: `A frequência de ${lesson.studentName} nesta aula já foi registrada. A nova situação substitui a anterior.`,
+      confirmLabel: "Atualizar frequência",
+      tone: "primary",
+    }))) return;
     setSaving(true);
     try {
       await agendaService.attendance(lesson.id, status, status === "EXCUSED" ? justification.trim() || undefined : undefined);
