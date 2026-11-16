@@ -121,22 +121,31 @@ public class AdminRegistrationUseCase {
 
     @Transactional
     public UUID createInstrument(String name) {
-        Instrument i = new Instrument();
-        i.setName(name);
-        return instruments.save(i).getId();
+        Instrument instrument = instruments.findByName(name).orElseGet(Instrument::new);
+        if (instrument.getId() != null && instrument.getActive()) {
+            throw new DuplicateResourceException("Instrument already exists");
+        }
+        instrument.setName(name);
+        instrument.setActive(true);
+        return instruments.save(instrument).getId();
     }
 
     @Transactional
     public void deleteInstrument(UUID id) {
         Instrument instrument = instruments.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Instrument"));
-        if (enrollments.existsByInstrumentId(id) || classGroups.existsByInstrumentId(id)
-                || practices.existsByInstrumentId(id)) {
-            throw new ResourceInUseException("Instrument is in use");
+        if (enrollments.existsByInstrumentIdAndStatusNot(id, EnrollmentStatus.CLOSED)) {
+            throw new ResourceInUseException("Instrument has open enrollments");
         }
         teachers.findByInstrumentsId(id).forEach(teacher ->
             teacher.getInstruments().removeIf(linked -> linked.getId().equals(id)));
-        instruments.delete(instrument);
+        // Closed enrollments, practices and class groups keep their history, so a referenced instrument is only hidden.
+        if (enrollments.existsByInstrumentId(id) || classGroups.existsByInstrumentId(id)
+                || practices.existsByInstrumentId(id)) {
+            instrument.setActive(false);
+        } else {
+            instruments.delete(instrument);
+        }
     }
 
     @Transactional

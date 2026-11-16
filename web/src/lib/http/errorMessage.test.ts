@@ -7,9 +7,19 @@ const response = (status: number, body: unknown) =>
 
 describe("apiErrorMessage", () => {
   it("translates instruments that are still in use", () => {
-    expect(apiErrorMessage(new ApiError(409, "RESOURCE_IN_USE", "Instrument is in use"), "fallback")).toBe(
-      "Este instrumento está em uso (matrícula, turma ou prática) e não pode ser excluído.",
+    expect(apiErrorMessage(new ApiError(409, "RESOURCE_IN_USE", "Instrument has open enrollments"), "fallback")).toBe(
+      "Este instrumento tem matrícula ativa ou suspensa. Encerre a matrícula antes de excluir.",
     );
+  });
+
+  it.each([502, 503, 504])("explains a gateway %i without a backend code as a server still starting", (status) => {
+    expect(apiErrorMessage(new ApiError(status), "Erro ao carregar escolas")).toBe(
+      "O servidor não respondeu a tempo. Tente novamente em alguns segundos.",
+    );
+  });
+
+  it("keeps the backend meaning of a 503 that carries a code", () => {
+    expect(apiErrorMessage(new ApiError(503, "STORAGE_UNAVAILABLE"), "fallback")).toBe("fallback");
   });
 
   it("reads the backend error code from the response body", async () => {

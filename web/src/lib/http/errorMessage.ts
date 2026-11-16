@@ -4,7 +4,7 @@ const BY_CODE: Record<string, string> = {
   SCHEDULE_CONFLICT: "Conflito de horário com outra aula ou horário fixo",
   DOMAIN_VALIDATION: "Operação não permitida",
   DUPLICATE_RESOURCE: "Já existe um cadastro com esses dados",
-  RESOURCE_IN_USE: "Este instrumento está em uso (matrícula, turma ou prática) e não pode ser excluído.",
+  RESOURCE_IN_USE: "Este instrumento tem matrícula ativa ou suspensa. Encerre a matrícula antes de excluir.",
   VALIDATION: "Dados inválidos. Revise os campos.",
   NOT_FOUND: "Registro não encontrado",
   OWNERSHIP_DENIED: "Sem permissão para acessar este registro",
@@ -38,6 +38,10 @@ export function apiErrorMessage(error: unknown, fallback: string): string {
     if (translated) return translated[1];
     if (error.code && BY_CODE[error.code]) return BY_CODE[error.code];
     if (error.status === 422) return "Operação não permitida";
+    // Gateway errors without a backend code come from nginx/Azure while the API scales up from zero.
+    if (!error.code && error.status >= 502 && error.status <= 504) {
+      return "O servidor não respondeu a tempo. Tente novamente em alguns segundos.";
+    }
     return fallback;
   }
   if (error instanceof Error && error.message === "UNAUTHENTICATED") return "Sessão expirada. Entre novamente.";

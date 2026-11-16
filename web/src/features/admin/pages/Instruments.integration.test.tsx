@@ -66,13 +66,13 @@ describe("Instrument deletion", () => {
 
   it("translates RESOURCE_IN_USE and keeps the instrument after a conflict", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    service.deleteInstrument.mockRejectedValueOnce(new ApiError(409, "RESOURCE_IN_USE", "Instrument is in use"));
+    service.deleteInstrument.mockRejectedValueOnce(new ApiError(409, "RESOURCE_IN_USE", "Instrument has open enrollments"));
     render(<Instruments />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Excluir instrumento Piano" }));
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(
-      "Este instrumento está em uso (matrícula, turma ou prática) e não pode ser excluído.",
+      "Este instrumento tem matrícula ativa ou suspensa. Encerre a matrícula antes de excluir.",
     ));
     expect(toast.success).not.toHaveBeenCalled();
     expect(screen.getByText("Piano")).toBeInTheDocument();

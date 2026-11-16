@@ -5,6 +5,12 @@ const response = (status: number, body: unknown) =>
   ({ status, json: () => Promise.resolve(body) }) as Response;
 
 describe("apiErrorMessage", () => {
+  it.each([502, 503, 504])("explains a gateway %i without a backend code as a server still starting", (status) => {
+    expect(apiErrorMessage(new ApiError(status), "fb")).toBe(
+      "O servidor não respondeu a tempo. Tente novamente em alguns segundos.",
+    );
+  });
+
   it("translates lesson edit and attachment errors before the attendance ones", () => {
     const message = (detail: string) => apiErrorMessage(new ApiError(422, "DOMAIN_VALIDATION", detail), "fb");
     expect(message("Canceled lessons cannot be edited")).toBe("Aula cancelada não pode ser editada.");

@@ -70,16 +70,10 @@ class AdminInstrumentDeleteIT {
     }
 
     @ParameterizedTest
-    @EnumSource(EnrollmentStatus.class)
-    void rejectsEnrollmentsInEveryStatusAndPreservesTheInstrument(EnrollmentStatus enrollmentStatus) throws Exception {
+    @EnumSource(value = EnrollmentStatus.class, names = {"ACTIVE", "SUSPENDED"})
+    void rejectsOpenEnrollmentsAndPreservesTheInstrument(EnrollmentStatus enrollmentStatus) throws Exception {
         String teacher = createTeacher("teacher");
-        String student = postId("/admin/students", person("student"));
-        String enrollment = postId("/admin/enrollments",
-            "{\"studentId\":\"%s\",\"teacherId\":\"%s\",\"instrumentId\":\"%s\"}"
-                .formatted(student, teacher, instrument));
-        mvc.perform(put("/admin/enrollments/{id}/status", enrollment).header("Authorization", "Bearer " + token)
-                .contentType("application/json").content("{\"status\":\"" + enrollmentStatus + "\"}"))
-            .andExpect(status().isNoContent());
+        String enrollment = enrollmentWithStatus(teacher, enrollmentStatus);
 
         assertInUse();
 
@@ -121,7 +115,22 @@ class AdminInstrumentDeleteIT {
     }
 
     @Test
-    void rejectsAPracticeReferenceWithoutAnEnrollment() throws Exception {
+    void hidesAnInstrumentWithOnlyClosedEnrollmentsAndKeepsTheirHistory() throws Exception {
+        String teacher = createTeacher("teacher");
+        String enrollment = enrollmentWithStatus(teacher, EnrollmentStatus.CLOSED);
+
+        assertHidden();
+
+        mvc.perform(get("/admin/enrollments").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[?(@.id == '" + enrollment + "')].instrument.id", hasItem(instrument)));
+        mvc.perform(get("/admin/teachers").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[?(@.id == '" + teacher + "')].instruments[*].id", not(hasItem(instrument))));
+    }
+
+    @Test
+    void hidesAnInstrumentReferencedByAPracticeAndKeepsThePractice() throws Exception {
         String student = postId("/admin/students", person("student"));
         Practice practice = new Practice();
         practice.setStudent(students.findById(UUID.fromString(student)).orElseThrow());
@@ -130,29 +139,54 @@ class AdminInstrumentDeleteIT {
         practice.setDurationMin(10);
         UUID practiceId = practices.saveAndFlush(practice).getId();
 
-        assertInUse();
+        assertHidden();
 
-        entityManager.clear();
         assertThat(practices.findById(practiceId).orElseThrow().getInstrument().getId())
             .isEqualTo(UUID.fromString(instrument));
     }
 
     @Test
-    void rejectsAnInactiveClassGroupReferenceWithoutAnEnrollment() throws Exception {
+    void hidesAnInstrumentReferencedByAClassGroupAndKeepsTheGroup() throws Exception {
         String teacher = createTeacher("teacher");
         ClassGroup group = new ClassGroup();
         group.setName("Group " + suffix);
         group.setTeacher(teachers.findById(UUID.fromString(teacher)).orElseThrow());
         group.setInstrument(instruments.findById(UUID.fromString(instrument)).orElseThrow());
-        group.setActive(false);
         UUID groupId = classGroups.saveAndFlush(group).getId();
 
-        assertInUse();
+        assertHidden();
 
-        entityManager.clear();
         assertThat(classGroups.findById(groupId).orElseThrow().getInstrument().getId())
             .isEqualTo(UUID.fromString(instrument));
-        assertTeacherHasInstrument(teacher);
+    }
+
+    @Test
+    void hiddenInstrumentCannotBeTaughtOrEnrolled() throws Exception {
+        String teacher = createTeacher("teacher");
+        enrollmentWithStatus(teacher, EnrollmentStatus.CLOSED);
+        assertHidden();
+
+        mvc.perform(put("/admin/teachers/{id}/instruments", teacher).header("Authorization", "Bearer " + token)
+                .contentType("application/json").content("{\"instrumentIds\":[\"" + instrument + "\"]}"))
+            .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    void creatingTheSameNameAgainReactivatesTheHiddenInstrument() throws Exception {
+        enrollmentWithStatus(createTeacher("teacher"), EnrollmentStatus.CLOSED);
+        assertHidden();
+
+        String recreated = postId("/admin/instruments", "{\"name\":\"Piano " + suffix + "\"}");
+
+        assertThat(recreated).isEqualTo(instrument);
+        assertInstrumentExists();
+    }
+
+    @Test
+    void rejectsADuplicateActiveName() throws Exception {
+        mvc.perform(post("/admin/instruments").header("Authorization", "Bearer " + token)
+                .contentType("application/json").content("{\"name\":\"Piano " + suffix + "\"}"))
+            .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("DUPLICATE_RESOURCE"));
     }
 
     @Test
@@ -195,6 +229,29 @@ class AdminInstrumentDeleteIT {
         mvc.perform(delete("/admin/instruments/{id}", instrument).header("Authorization", "Bearer " + token))
             .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("RESOURCE_IN_USE"));
         assertInstrumentExists();
+    }
+
+    private void assertHidden() throws Exception {
+        mvc.perform(delete("/admin/instruments/{id}", instrument).header("Authorization", "Bearer " + token))
+            .andExpect(status().isNoContent());
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(instruments.findById(UUID.fromString(instrument)).orElseThrow().getActive()).isFalse();
+        assertThat(jdbc.queryForObject("select count(*) from teacher_instrument where instrument_id = ?",
+            Long.class, UUID.fromString(instrument))).isZero();
+        mvc.perform(get("/admin/instruments").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$[*].id", not(hasItem(instrument))));
+    }
+
+    private String enrollmentWithStatus(String teacher, EnrollmentStatus enrollmentStatus) throws Exception {
+        String student = postId("/admin/students", person("student"));
+        String enrollment = postId("/admin/enrollments",
+            "{\"studentId\":\"%s\",\"teacherId\":\"%s\",\"instrumentId\":\"%s\"}"
+                .formatted(student, teacher, instrument));
+        mvc.perform(put("/admin/enrollments/{id}/status", enrollment).header("Authorization", "Bearer " + token)
+                .contentType("application/json").content("{\"status\":\"" + enrollmentStatus + "\"}"))
+            .andExpect(status().isNoContent());
+        return enrollment;
     }
 
     private void assertInstrumentExists() throws Exception {

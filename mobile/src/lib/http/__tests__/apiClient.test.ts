@@ -27,6 +27,34 @@ describe("apiClient", () => {
     deps.onAuthFailure.mockClear();
   });
 
+  it("retries a GET that hits a gateway error while the API wakes up", async () => {
+    const fetchMock = jest
+      .fn()
+      .mockReturnValueOnce(jsonResponse(503, {}))
+      .mockReturnValueOnce(jsonResponse(502, {}))
+      .mockReturnValueOnce(jsonResponse(200, { ok: true }));
+    const api = createApiClient({ ...deps, fetchFn: fetchMock as any, gatewayRetryDelaysMs: [0, 0, 0] });
+
+    expect(await api.get("/me/dashboard")).toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("reports the gateway error once the retries run out", async () => {
+    const fetchMock = jest.fn(() => jsonResponse(504, {}));
+    const api = createApiClient({ ...deps, fetchFn: fetchMock as any, gatewayRetryDelaysMs: [0, 0] });
+
+    await expect(api.get("/me/dashboard")).rejects.toMatchObject({ status: 504 });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not repeat a write after a gateway error", async () => {
+    const fetchMock = jest.fn(() => jsonResponse(502, {}));
+    const api = createApiClient({ ...deps, fetchFn: fetchMock as any, gatewayRetryDelaysMs: [0, 0] });
+
+    await expect(api.post("/me/practices", { minutes: 10 })).rejects.toMatchObject({ status: 502 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("retries with refreshed token after 401", async () => {
     const fetchMock = jest
       .fn()

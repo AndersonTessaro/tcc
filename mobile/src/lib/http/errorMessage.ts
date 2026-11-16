@@ -60,6 +60,10 @@ export function apiErrorMessage(error: unknown, fallback: string): string {
     if (translated) return translated[1];
     if (error.code && BY_CODE[error.code]) return BY_CODE[error.code];
     if (error.status === 422) return "Operação não permitida";
+    // Gateway errors without a backend code come from nginx/Azure while the API scales up from zero.
+    if (!error.code && error.status >= 502 && error.status <= 504) {
+      return "O servidor não respondeu a tempo. Tente novamente em alguns segundos.";
+    }
     return fallback;
   }
   if (error instanceof Error && error.message === "UNAUTHENTICATED") return "Sessão expirada. Entre novamente.";

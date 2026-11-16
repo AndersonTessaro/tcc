@@ -7,6 +7,7 @@ import br.com.harmonia.application.profile.port.InstrumentRepository;
 import br.com.harmonia.application.profile.port.TeacherRepository;
 import br.com.harmonia.domain.common.ResourceInUseException;
 import br.com.harmonia.domain.common.ResourceNotFoundException;
+import br.com.harmonia.infrastructure.persistence.profile.EnrollmentStatus;
 import br.com.harmonia.infrastructure.persistence.profile.Instrument;
 import br.com.harmonia.infrastructure.persistence.profile.Teacher;
 import org.junit.jupiter.api.Test;
@@ -68,23 +69,41 @@ class AdminInstrumentDeleteUseCaseTest {
         verify(instruments).delete(instrument);
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"enrollment", "classGroup", "practice"})
-    void rejectsAnyBusinessReferenceWithoutChangingTeacherLinks(String reference) {
+    @Test
+    void rejectsAnOpenEnrollmentWithoutChangingTeacherLinks() {
         Instrument instrument = instrument();
         UUID id = instrument.getId();
         when(instruments.findById(id)).thenReturn(Optional.of(instrument));
+        when(enrollments.existsByInstrumentIdAndStatusNot(id, EnrollmentStatus.CLOSED)).thenReturn(true);
+
+        assertThatThrownBy(() -> uc.deleteInstrument(id)).isInstanceOf(ResourceInUseException.class);
+
+        assertThat(instrument.getActive()).isTrue();
+        verify(instruments, never()).delete(any());
+        verifyNoInteractions(teachers);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"closedEnrollment", "classGroup", "practice"})
+    void hidesAnInstrumentThatOnlyHasHistory(String reference) {
+        Instrument instrument = instrument();
+        UUID id = instrument.getId();
+        Teacher teacher = new Teacher();
+        teacher.getInstruments().add(instrument);
+        when(instruments.findById(id)).thenReturn(Optional.of(instrument));
+        when(teachers.findByInstrumentsId(id)).thenReturn(List.of(teacher));
         switch (reference) {
-            case "enrollment" -> when(enrollments.existsByInstrumentId(id)).thenReturn(true);
+            case "closedEnrollment" -> when(enrollments.existsByInstrumentId(id)).thenReturn(true);
             case "classGroup" -> when(classGroups.existsByInstrumentId(id)).thenReturn(true);
             case "practice" -> when(practices.existsByInstrumentId(id)).thenReturn(true);
             default -> throw new IllegalArgumentException(reference);
         }
 
-        assertThatThrownBy(() -> uc.deleteInstrument(id)).isInstanceOf(ResourceInUseException.class);
+        uc.deleteInstrument(id);
 
+        assertThat(instrument.getActive()).isFalse();
+        assertThat(teacher.getInstruments()).isEmpty();
         verify(instruments, never()).delete(any());
-        verifyNoInteractions(teachers);
     }
 
     @Test
