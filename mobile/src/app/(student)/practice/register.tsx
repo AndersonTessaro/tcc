@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { PracticeRecordingPicker } from "@/features/student/PracticeRecordingPicker";
 import type { PickedFile } from "@/lib/http/formFile";
 import { PracticeRewardView } from "@/features/student/PracticeReward";
 import { practiceMoods } from "@/features/student/practiceMood";
 import { practiceReward, type PracticeReward } from "@/features/student/reward";
-import { studentService, type StudentProgress, type PracticeRegistration } from "@/features/student/studentService";
+import { studentService, type StudentLesson, type StudentProgress, type PracticeRegistration } from "@/features/student/studentService";
 import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
-import { addDays, isValidIsoDate, parseIsoDate, todayIso } from "@/lib/format";
+import { addDays, formatFullDate, isValidIsoDate, parseIsoDate, todayIso } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
+import { Card } from "@/ui/Card";
 import { ChipGroup, type ChipOption } from "@/ui/Chip";
 import { DateTimeField, type DateTimeFieldHandle } from "@/ui/DateTimeField";
 import { ScreenHeader } from "@/ui/ScreenHeader";
@@ -52,6 +53,8 @@ function practiceMinutes(value: string): number {
 
 export default function RegisterPractice() {
   const router = useRouter();
+  const { lessonId } = useLocalSearchParams<{ lessonId?: string }>();
+  const [lesson, setLesson] = useState<StudentLesson | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const dateRef = useRef<DateTimeFieldHandle>(null);
   const minutesRef = useRef<TextInput>(null);
@@ -78,6 +81,15 @@ export default function RegisterPractice() {
   const fieldsDisabled = saving || !!savedRegistration;
   const markSaved = useUnsavedChangesGuard(dateChoice !== "today" || durationChoice !== "30" || customMinutes !== "30" || !!what || !!difficulty || mood !== null || !!file);
   const progressBefore = useRef<StudentProgress | null>(null);
+
+  useEffect(() => {
+    if (!lessonId) return;
+    let active = true;
+    studentService.lesson(lessonId)
+      .then((detail) => { if (active) setLesson(detail.lesson); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [lessonId]);
 
   useEffect(() => {
     let active = true;
@@ -122,6 +134,7 @@ export default function RegisterPractice() {
           notes: notes || undefined,
           difficulty: difficulty.trim() || undefined,
           rating: mood === null ? undefined : mood + 1,
+          ...(lessonId ? { lessonId } : {}),
         });
         savedRef.current = progress;
         setSavedRegistration(progress);
@@ -155,7 +168,7 @@ export default function RegisterPractice() {
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
-      <ScreenHeader title="Registrar prática" back />
+      <ScreenHeader title={lessonId ? "Responder prática" : "Registrar prática"} back />
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={styles.form}
@@ -164,6 +177,13 @@ export default function RegisterPractice() {
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets
       >
+        {lesson && (
+          <Card variant="outlined" style={styles.lessonCard}>
+            <Text accessibilityRole="header" style={styles.label}>Tarefa da aula</Text>
+            <Text style={styles.lessonMeta}>{lesson.instrument} · {formatFullDate(lesson.date)}</Text>
+            <Text style={styles.lessonHomework}>{lesson.homework?.trim() || "Nenhuma tarefa informada."}</Text>
+          </Card>
+        )}
         <View style={styles.block} onLayout={(event) => { fieldPositions.current.date = event.nativeEvent.layout.y; }}>
           <DateTimeField
             ref={dateRef}
@@ -267,4 +287,7 @@ const styles = StyleSheet.create({
   hint: { ...type.caption },
   error: { color: colors.danger, fontSize: 13 },
   save: { marginTop: -space.sm, borderRadius: radius.lg },
+  lessonCard: { gap: space.xs },
+  lessonMeta: { ...type.caption },
+  lessonHomework: { ...type.body },
 });

@@ -7,6 +7,7 @@ import { ApiError } from "@/lib/http/apiError";
 import * as ImagePicker from "expo-image-picker";
 
 const mockBack = jest.fn();
+const mockPush = jest.fn();
 const mockShow = jest.fn();
 let mockParams: Record<string, string> = { id: "lesson-1" };
 jest.mock("expo-image-picker", () => ({
@@ -15,7 +16,7 @@ jest.mock("expo-image-picker", () => ({
 }));
 jest.mock("expo-router", () => ({
   useNavigation: () => ({ addListener: jest.fn(() => () => undefined), setOptions: jest.fn(), dispatch: jest.fn() }),
-  useRouter: () => ({ canGoBack: () => true, back: mockBack, replace: jest.fn() }),
+  useRouter: () => ({ canGoBack: () => true, back: mockBack, replace: jest.fn(), push: mockPush }),
   useLocalSearchParams: () => mockParams,
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
@@ -28,6 +29,7 @@ jest.mock("@/features/teacher/teacherService", () => ({
     uploadLessonAttachment: jest.fn(),
     deleteLessonAttachment: jest.fn(),
     downloadLessonAttachment: jest.fn(),
+    studentPractices: jest.fn(),
   },
 }));
 jest.mock("@/ui/DateTimeField", () => require("@/features/teacher/__tests__/dateTimeFieldStub"));
@@ -70,6 +72,24 @@ describe("Edit lesson screen", () => {
     confirmMock.mockResolvedValue(true);
     service.availability.mockResolvedValue(free);
     service.updateLesson.mockResolvedValue(lesson());
+    service.studentPractices.mockResolvedValue([]);
+  });
+
+  it("lists the student's answers to this lesson in the practice section", async () => {
+    mockParams = { id: "lesson-1", section: "practice" };
+    service.lesson.mockResolvedValue(detail());
+    service.studentPractices.mockResolvedValue([
+      { id: "p-1", date: "2099-01-06", durationMin: 25, notes: "Escala de dó", difficulty: null, rating: 4, recording: null, lessonId: "lesson-1" },
+      { id: "p-2", date: "2099-01-04", durationMin: 15, notes: "Outra aula", difficulty: null, rating: null, recording: null, lessonId: "lesson-0" },
+    ]);
+    await render(<EditLesson />);
+
+    expect(await screen.findByRole("header", { name: "Respostas do aluno" })).toBeVisible();
+    expect(screen.getByText("Escala de dó")).toBeVisible();
+    expect(screen.queryByText("Outra aula")).toBeNull();
+    expect(service.studentPractices).toHaveBeenCalledWith("st-1");
+    await fireEvent.press(screen.getByText("Escala de dó"));
+    expect(mockPush).toHaveBeenCalledWith({ pathname: "/teacher/practice/[id]", params: { id: "p-1", practiceId: "p-1", studentId: "st-1" } });
   });
 
   it("fills the form from the lesson and saves the edit, excluding itself from availability", async () => {

@@ -32,7 +32,21 @@ async function post(request: APIRequestContext, path: string, bearer: string, da
   return res.json();
 }
 
+async function acceptTerms(page: Page, user: string, password: string) {
+  const res = await page.request.post(`${API}/auth/login`, { data: { login: user, password } });
+  if (!res.ok()) return;
+  const bearer = (await res.json()).accessToken;
+  const { version } = await (await page.request.get(`${API}/terms`)).json();
+  await page.request.post(`${API}/account/terms`, { data: { version }, headers: { Authorization: `Bearer ${bearer}` } });
+}
+
+async function answerNextLesson(page: Page) {
+  await page.getByRole("button", { name: /Próxima aula/ }).click();
+  await page.getByRole("button", { name: "Responder prática" }).click();
+}
+
 async function login(page: Page, user: string) {
+  await acceptTerms(page, user, PASSWORD);
   await page.goto("/login");
   await page.getByRole("textbox", { name: "E-mail ou usuário" }).fill(user);
   await page.getByRole("textbox", { name: "Senha" }).fill(PASSWORD);
@@ -148,7 +162,7 @@ test.describe.serial("Escola do gestor: professor cadastra aluno, agenda aula e 
 
   test("aluno registra prática com vídeo escolhido da galeria", async ({ page }) => {
     await login(page, student.username);
-    await page.getByRole("button", { name: "Registrar prática" }).first().click();
+    await answerNextLesson(page);
     await expect(page.getByText("Vídeo até 150 MB · áudio até 50 MB.")).toBeVisible();
 
     const chooser = page.waitForEvent("filechooser");

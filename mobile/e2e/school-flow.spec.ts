@@ -23,7 +23,21 @@ async function post(request: APIRequestContext, path: string, token: string, dat
   return res.json();
 }
 
+async function acceptTerms(page: Page, user: string, password: string) {
+  const res = await page.request.post(`${API}/auth/login`, { data: { login: user, password } });
+  if (!res.ok()) return;
+  const bearer = (await res.json()).accessToken;
+  const { version } = await (await page.request.get(`${API}/terms`)).json();
+  await page.request.post(`${API}/account/terms`, { data: { version }, headers: { Authorization: `Bearer ${bearer}` } });
+}
+
+async function answerNextLesson(page: Page) {
+  await page.getByRole("button", { name: /Próxima aula/ }).click();
+  await page.getByRole("button", { name: "Responder prática" }).click();
+}
+
 async function login(page: Page, user: string, password = PASSWORD) {
+  await acceptTerms(page, user, password);
   await page.goto("/login");
   await page.getByRole("textbox", { name: "E-mail ou usuário" }).fill(user);
   await page.getByRole("textbox", { name: "Senha" }).fill(password);
@@ -118,7 +132,7 @@ test.describe.serial("Fluxo da escola: professor e aluno", () => {
 
   test("aluno não registra prática fora dos limites", async ({ page }) => {
     await login(page, student.username);
-    await page.getByRole("button", { name: "Registrar prática" }).first().click();
+    await answerNextLesson(page);
     const minutes = page.getByRole("textbox", { name: "Tempo de prática em minutos" });
     for (const invalid of ["0", "2000", "abc"]) {
       await minutes.fill(invalid);
@@ -138,7 +152,7 @@ test.describe.serial("Fluxo da escola: professor e aluno", () => {
     await expect(page.getByText("1 h de prática por semana")).toBeVisible();
 
     await page.getByRole("tab", { name: "Início" }).click();
-    await page.getByRole("button", { name: "Registrar prática" }).first().click();
+    await answerNextLesson(page);
     await page.getByRole("radio", { name: "30 min" }).click();
     await page.getByRole("textbox", { name: "O que praticou? (opcional)" }).fill(lesson.content);
     await page.getByRole("radio", { name: "Avaliação 4 de 5" }).click();

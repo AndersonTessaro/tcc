@@ -86,7 +86,7 @@ class PracticeFeedbackIT {
                 .andExpect(jsonPath("$[0].difficulty").value(difficulty))
                 .andExpect(jsonPath("$[0].rating").value(rating))
                 .andExpect(jsonPath("$[0].recording").value((Object) null))
-                .andExpect(jsonPath("$[0].length()").value(7))
+                .andExpect(jsonPath("$[0].length()").value(8))
                 .andExpect(jsonPath("$[0].student").doesNotHaveJsonPath());
         }
     }

@@ -53,7 +53,7 @@ export default function Dashboard() {
   );
 }
 
-type Href = "/(student)/practice/register" | `/(student)/lesson/${string}`;
+type Href = `/(student)/lesson/${string}`;
 
 function DashboardCards({ data, onNavigate }: { data: StudentDashboard; onNavigate: (href: Href) => void }) {
   const progress = levelProgress(data.xp, data.level, data);
@@ -115,7 +115,6 @@ function DashboardCards({ data, onNavigate }: { data: StudentDashboard; onNaviga
         </Card>
       )}
 
-      <Button label="Registrar prática" icon="add-circle-outline" onPress={() => onNavigate("/(student)/practice/register")} />
     </>
   );
 }

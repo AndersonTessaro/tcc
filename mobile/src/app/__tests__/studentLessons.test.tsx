@@ -106,3 +106,20 @@ it("downloads a lesson attachment through the student endpoint", async () => {
   await waitFor(() => expect(saveDownload).toHaveBeenCalledWith(bytes, "Exercícios.pdf", "application/pdf"));
   expect(service.downloadLessonAttachment).toHaveBeenCalledWith("lesson-1", "attachment-1");
 });
+
+it("answers the lesson homework with a practice", async () => {
+  service.lesson.mockResolvedValue({ lesson, attachments: [] });
+  await render(<LessonDetail />);
+
+  await fireEvent.press(await screen.findByRole("button", { name: "Responder prática" }));
+
+  expect(mockPush).toHaveBeenCalledWith({ pathname: "/(student)/practice/register", params: { lessonId: "lesson-1" } });
+});
+
+it("does not offer a practice answer for a canceled lesson", async () => {
+  service.lesson.mockResolvedValue({ lesson: { ...lesson, status: "CANCELED" }, attachments: [] });
+  await render(<LessonDetail />);
+
+  expect(await screen.findByText("Professor: Maria Santos")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Responder prática" })).toBeNull();
+});

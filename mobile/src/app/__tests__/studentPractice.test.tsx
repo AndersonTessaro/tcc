@@ -40,11 +40,11 @@ it("selects the latest practice by date and preserves the weekly total, recent n
   expect(screen.getByText("Acordes de hoje")).toBeVisible();
   expect(practices.map((practice) => practice.id)).toEqual(["old", "latest", "same-day"]);
 
-  await fireEvent.press(screen.getByRole("button", { name: "Registrar prática" }));
-  expect(mockPush).toHaveBeenCalledWith("/(student)/practice/register");
+  expect(screen.queryByRole("button", { name: "Registrar prática" })).toBeNull();
+  expect(screen.getByText("Para registrar uma prática, abra a aula em Aulas e toque em Responder prática.")).toBeVisible();
 });
 
-it("hides the last-practice summary when empty while keeping registration available", async () => {
+it("hides the last-practice summary when empty and points to the lessons", async () => {
   service.practices.mockResolvedValue([]);
 
   await render(<PracticeOverview />);
@@ -52,8 +52,8 @@ it("hides the last-practice summary when empty while keeping registration availa
   expect(await screen.findByText("Nenhuma prática registrada")).toBeVisible();
   expect(screen.queryByText("Minha última prática")).toBeNull();
   expect(screen.getByText("0 dias")).toBeVisible();
-  await fireEvent.press(screen.getByRole("button", { name: "Registrar prática" }));
-  expect(mockPush).toHaveBeenCalledWith("/(student)/practice/register");
+  await fireEvent.press(screen.getByRole("button", { name: "Ver aulas" }));
+  expect(mockPush).toHaveBeenCalledWith("/(student)/(tabs)/lessons");
 });
 
 const recording = { fileName: "Prática.mp4", contentType: "video/mp4", sizeBytes: 50 * 1024 * 1024, uploadedAt: "2026-10-12T10:00:00" };

@@ -1,5 +1,6 @@
 package br.com.harmonia.infrastructure.persistence.gamification;
 
+import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
 import br.com.harmonia.infrastructure.persistence.profile.Instrument;
 import br.com.harmonia.infrastructure.persistence.profile.Student;
 import jakarta.persistence.*;
@@ -24,6 +25,10 @@ public class Practice {
     @ManyToOne
     @JoinColumn(name = "instrument_id")
     private Instrument instrument;
+
+    @ManyToOne
+    @JoinColumn(name = "lesson_id")
+    private Lesson lesson;
 
     @Column(nullable = false)
     private LocalDate date;

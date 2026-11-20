@@ -1,6 +1,6 @@
 import { useCallback, type ReactNode } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { DownloadButton } from "@/features/files/DownloadButton";
 import { formatTimeRange, lessonBadge } from "@/features/student/lessonStatus";
@@ -8,6 +8,7 @@ import { studentService, type LessonAttachment } from "@/features/student/studen
 import { useResource } from "@/hooks/use-resource";
 import { formatFileSize, formatFullDate } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
+import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { ScreenHeader } from "@/ui/ScreenHeader";
 import { ScreenState } from "@/ui/ScreenState";
@@ -16,6 +17,7 @@ import { colors, radius, space, type } from "@/ui/theme";
 
 export default function LessonDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const fetchLesson = useCallback(() => studentService.lesson(id), [id]);
   const detail = useResource(fetchLesson, id);
   const lesson = detail.data?.lesson;
@@ -43,6 +45,10 @@ export default function LessonDetail() {
 
           <Section title="Tarefa para casa">
             <Text style={styles.body}>{lesson.homework?.trim() || "Nenhuma tarefa informada."}</Text>
+            {lesson.status !== "CANCELED" && (
+              <Button label="Responder prática" icon="musical-notes-outline"
+                onPress={() => router.push({ pathname: "/(student)/practice/register", params: { lessonId: lesson.id } })} />
+            )}
           </Section>
 
           <Section title="Anexos">

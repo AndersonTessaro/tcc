@@ -56,6 +56,7 @@ export type StudentPractice = {
   difficulty: string | null;
   rating: number | null;
   recording: { fileName: string; contentType: string; sizeBytes: number; uploadedAt: string } | null;
+  lessonId?: string | null;
 };
 
 export type TeacherNote = { teacherName: string; notes: string; updatedAt: string };
@@ -101,7 +102,7 @@ export const studentService = {
   progress: () => api.get<StudentProgress>("/me/progress"),
   practices: () => api.get<StudentPractice[]>("/me/practices"),
   attendance: () => api.get<StudentAttendance[]>("/me/attendance"),
-  registerPractice: (body: { durationMin: number; date: string; notes?: string; difficulty?: string; rating?: number }) =>
+  registerPractice: (body: { durationMin: number; date: string; notes?: string; difficulty?: string; rating?: number; lessonId?: string }) =>
     api.post<PracticeRegistration>("/me/practices", body),
   uploadPracticeRecording: (practiceId: string, file: PickedFile) => {
     const form = new FormData();

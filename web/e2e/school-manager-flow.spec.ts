@@ -36,7 +36,16 @@ async function post(request: APIRequestContext, path: string, token: string, dat
   return res.json();
 }
 
+async function acceptTerms(page: Page, user: string, password: string) {
+  const res = await page.request.post(`${API}/auth/login`, { data: { login: user, password } });
+  if (!res.ok()) return;
+  const bearer = (await res.json()).accessToken;
+  const { version } = await (await page.request.get(`${API}/terms`)).json();
+  await page.request.post(`${API}/account/terms`, { data: { version }, headers: { Authorization: `Bearer ${bearer}` } });
+}
+
 async function login(page: Page, user: string, password = PASSWORD) {
+  await acceptTerms(page, user, password);
   await page.goto("/login");
   await page.getByRole("textbox", { name: "Usuário ou e-mail" }).fill(user);
   await page.getByRole("textbox", { name: "Senha" }).fill(password);

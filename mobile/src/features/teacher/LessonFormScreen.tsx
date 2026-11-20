@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { KeyboardScreen } from "@/ui/KeyboardScreen";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { LessonAttachment } from "@/features/student/studentService";
+import { LessonPracticeAnswers } from "./LessonPracticeAnswers";
 import { teacherService, type TeacherLessonDetail } from "@/features/teacher/teacherService";
 import { EnrollmentPicker, type EnrollmentPickerHandle } from "@/features/teacher/EnrollmentPicker";
 import { LessonAttachmentList } from "@/features/teacher/LessonAttachmentList";
@@ -410,7 +411,10 @@ function LessonEditor({ existing, section, reloadAttachments }: EditorProps) {
           </>
         ) : null}
         {showPractice ? (
+          <>
           <TextField label="Prática para o aluno" placeholder="O que o aluno deve praticar até a próxima aula" value={homework} onChangeText={setHomework} style={[styles.homeworkInput, { height: homeworkHeight }]} onContentSizeChange={(event) => setHomeworkHeight(Math.max(MIN_TOUCH, event.nativeEvent.contentSize.height))} multiline maxLength={TEXT_LIMIT} editable={!readOnly} />
+          {lesson ? <LessonPracticeAnswers lesson={lesson} /> : null}
+          </>
         ) : null}
 
         {errors.form ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{errors.form}</Text> : null}

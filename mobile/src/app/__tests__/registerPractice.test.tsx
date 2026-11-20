@@ -9,13 +9,15 @@ import * as ImagePicker from "expo-image-picker";
 import { AUDIO_RECORDING_MAX_BYTES, VIDEO_RECORDING_MAX_BYTES } from "@/features/student/recording";
 
 const mockBack = jest.fn();
+let mockParams: { lessonId?: string } = {};
 const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
 jest.mock("expo-router", () => ({
   useNavigation: () => ({ addListener: jest.fn(() => jest.fn()), setOptions: jest.fn(), dispatch: jest.fn() }),
   useRouter: () => ({ canGoBack: () => true, push: jest.fn(), back: mockBack }),
+  useLocalSearchParams: () => mockParams,
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
-jest.mock("@/features/student/studentService", () => ({ studentService: { progress: jest.fn(), registerPractice: jest.fn(), uploadPracticeRecording: jest.fn() } }));
+jest.mock("@/features/student/studentService", () => ({ studentService: { progress: jest.fn(), registerPractice: jest.fn(), uploadPracticeRecording: jest.fn(), lesson: jest.fn() } }));
 
 const mockToast = jest.fn();
 jest.mock("@/ui/Toast", () => ({ useToast: () => ({ show: mockToast }) }));
@@ -30,6 +32,7 @@ const service = studentService as jest.Mocked<typeof studentService>;
 beforeEach(() => {
   Object.defineProperty(globalThis, "window", { configurable: true, value: { addEventListener: jest.fn(), removeEventListener: jest.fn() } });
   jest.clearAllMocks();
+  mockParams = {};
   picker.mockReset();
   gallery.mockReset();
   permission.mockReset();
@@ -337,4 +340,18 @@ it("prevents duplicate registration during an in-flight save", async () => {
   expect(service.registerPractice).toHaveBeenCalledTimes(1);
   await act(() => finishRegistration(registered));
   expect(await screen.findByText("+30 XP")).toBeVisible();
+});
+
+it("answers a lesson: shows its homework and links the practice to it", async () => {
+  mockParams = { lessonId: "lesson-9" };
+  service.lesson.mockResolvedValue({ lesson: { id: "lesson-9", date: "2026-11-26", startTime: "09:30:00", endTime: "10:30:00",
+    instrument: "Violão", teacherName: "Lucca", status: "SCHEDULED", content: null, homework: "Praticar a cifra X" }, attachments: [] });
+  service.registerPractice.mockResolvedValue({ xpTotal: 120, level: 1, streakDays: 3, totalPracticeMin: 120 });
+  await render(<RegisterPractice />);
+
+  expect(await screen.findByText("Praticar a cifra X")).toBeVisible();
+  expect(screen.getByText("Violão · 26/11/2026")).toBeVisible();
+  await fireEvent.press(screen.getByRole("button", { name: "Salvar registro" }));
+
+  expect(service.registerPractice).toHaveBeenCalledWith({ durationMin: 30, date: todayIso(), lessonId: "lesson-9" });
 });
