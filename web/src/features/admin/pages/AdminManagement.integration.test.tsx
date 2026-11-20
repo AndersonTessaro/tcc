@@ -12,7 +12,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/features/auth/useAuth", () => ({ useAuth: () => ({ user: { authorities: ["ROLE_MANAGER"] } }) }));
 vi.mock("../adminService", () => ({ adminService: {
   users: vi.fn(), roles: vi.fn(), deleteUser: vi.fn(), resetPassword: vi.fn(), permissions: vi.fn(), createRole: vi.fn(),
-  transactions: vi.fn(), balance: vi.fn(), createTransaction: vi.fn(),
+  transactions: vi.fn(), balance: vi.fn(), createTransaction: vi.fn(), students: vi.fn(),
   settings: vi.fn(), upsertSetting: vi.fn(),
 } }));
 const service = vi.mocked(adminService);
@@ -30,7 +30,11 @@ describe("Admin management improvements", () => {
     service.permissions.mockResolvedValue([]);
     service.createRole.mockResolvedValue({ id: 3, name: "MONITOR", description: "Apoio pedagógico", permissions: [] });
     service.transactions.mockResolvedValue([{ id: "1", schoolId: "school-1", type: "INCOME", amount: 150.5, description: "Mensalidade",
-      category: "Aulas", date: "2026-10-16" }]);
+      category: "Aulas", date: "2026-10-16", student: null },
+      { id: "2", schoolId: "school-1", type: "INCOME", amount: 200, description: "Mensalidade de novembro",
+        category: null, date: "2026-11-05", student: { id: "s1", name: "Ana Souza", username: "ana" } }]);
+    service.students.mockResolvedValue([{ id: "s1", name: "Ana Souza", username: "ana" },
+      { id: "s2", name: "Bruno Lima", username: "bruno" }]);
     service.balance.mockResolvedValue({ balance: 150.5 });
     service.settings.mockResolvedValue([{ id: "1", key: "school.name", value: "Harmonia", description: "Escola" }]);
   });
@@ -107,6 +111,31 @@ describe("Admin management improvements", () => {
     await waitFor(() => expect(service.createTransaction).toHaveBeenCalledWith({
       type: "EXPENSE", amount: 99.5, description: "Compra", category: "Materiais", date: "2026-10-15",
     }));
+  });
+
+  it("shows the student of each transaction and searches by student or description", async () => {
+    render(<Finance />);
+    expect(await screen.findByText("Ana Souza")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar lançamentos" }), { target: { value: "ana" } });
+    expect(screen.queryByText("16/10/2026")).toBeNull();
+    expect(screen.getByText("05/11/2026")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar lançamentos" }), { target: { value: "xyz" } });
+    expect(screen.getByText("Nenhum lançamento encontrado")).toBeInTheDocument();
+  });
+
+  it("searches and links a student to a new transaction", async () => {
+    render(<Finance />);
+    await screen.findByText("16/10/2026");
+    fireEvent.click(screen.getAllByRole("button", { name: "Novo lançamento" })[0]);
+    fireEvent.change(await screen.findByRole("searchbox", { name: "Buscar aluno" }), { target: { value: "bru" } });
+    const studentSelect = screen.getByRole("combobox", { name: "Aluno" });
+    expect(screen.queryByRole("option", { name: "Ana Souza" })).toBeNull();
+    fireEvent.change(studentSelect, { target: { value: "s2" } });
+    fireEvent.change(screen.getByLabelText("Valor"), { target: { value: "180" } });
+    fireEvent.click(screen.getByRole("button", { name: "Lançar" }));
+    await waitFor(() => expect(service.createTransaction).toHaveBeenCalledWith(expect.objectContaining({
+      amount: 180, studentId: "s2",
+    })));
   });
 
   it("shows grouped permissions", async () => {

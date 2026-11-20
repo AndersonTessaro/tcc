@@ -143,12 +143,12 @@ describe("schools, school access and agenda through HTTP", () => {
     expect(screen.queryByRole("navigation")).toBeNull();
   });
 
-  it("keeps instruments read-only for MANAGER", async () => {
+  it("lets MANAGER create instruments but not delete them", async () => {
     role = "MANAGER";
     await renderApp("/admin/instruments");
     expect(await screen.findByText("Piano")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Criar instrumento" })).toBeNull();
-    expect(screen.queryByLabelText("Nome do instrumento")).toBeNull();
+    expect(screen.getByRole("button", { name: "Criar instrumento" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Excluir instrumento Piano" })).toBeNull();
   });
 
   it("creates a school and a manager with the exact bodies", async () => {

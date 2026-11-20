@@ -37,6 +37,27 @@ describe("Instrument deletion", () => {
     expect(screen.queryByRole("button", { name: "Excluir instrumento Piano" })).toBeNull();
   });
 
+  it("lets a manager create an instrument", async () => {
+    auth.authorities = ["ROLE_MANAGER"];
+    service.createInstrument.mockResolvedValue({ id: "instrument-2" });
+    render(<Instruments />);
+
+    fireEvent.change(await screen.findByRole("textbox", { name: "Nome do instrumento" }), { target: { value: "Flauta" } });
+    fireEvent.click(screen.getByRole("button", { name: "Criar instrumento" }));
+
+    await waitFor(() => expect(service.createInstrument).toHaveBeenCalledExactlyOnceWith("Flauta"));
+    expect(toast.success).toHaveBeenCalledWith("Flauta adicionado");
+  });
+
+  it("hides creation for teachers", async () => {
+    auth.authorities = ["ROLE_TEACHER"];
+    render(<Instruments />);
+
+    await screen.findByText("Piano");
+
+    expect(screen.queryByRole("button", { name: "Criar instrumento" })).toBeNull();
+  });
+
   it("confirms deletion and reloads instruments and teachers after success", async () => {
     service.instruments.mockResolvedValueOnce([piano]).mockResolvedValueOnce([]);
     render(<Instruments />);

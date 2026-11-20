@@ -87,9 +87,11 @@ export type TransactionDto = {
   description: string | null;
   category: string | null;
   date: string;
+  student: PersonOption | null;
 };
 export type NewTransaction = {
   schoolId?: string;
+  studentId?: string;
   type: TransactionType;
   amount: number;
   description?: string;

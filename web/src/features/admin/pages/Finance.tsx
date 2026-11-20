@@ -7,7 +7,7 @@ import { Badge, Button, Card, Drawer, Field, Input, PageHeader, Segmented, Selec
 import { ListState } from "../components/ListState";
 import { useAdminList } from "../hooks/useAdminList";
 import { useCreateDrawer } from "../hooks/useCreateDrawer";
-import { brl, formatDate } from "../format";
+import { brl, formatDate, matches } from "../format";
 import { SchoolSelect } from "../components/SchoolSelect";
 import { OptionSelect } from "../components/OptionSelect";
 import { useSchoolOptions } from "../useSchoolOptions";
@@ -29,11 +29,13 @@ export default function Finance() {
     { items: [], balance: 0 }, "Erro ao carregar financeiro");
   const [filter, setFilter] = useState<TypeFilter>("");
   const [schoolId, setSchoolId] = useState("");
+  const [search, setSearch] = useState("");
   const schools = useSchoolOptions();
   const creating = useCreateDrawer();
   const scoped = items.filter((t) => !schools.required || !schoolId || t.schoolId === schoolId);
   const total = (type: TransactionType) => scoped.filter((t) => t.type === type).reduce((sum, t) => sum + Number(t.amount), 0);
-  const visible = scoped.filter((t) => !filter || t.type === filter);
+  const visible = scoped.filter((t) => (!filter || t.type === filter)
+    && matches(`${t.student?.name ?? ""} ${t.description ?? ""} ${t.category ?? ""}`, search));
   const shownBalance = schools.required && schoolId ? total("INCOME") - total("EXPENSE") : balance;
   const newButton = <Button onClick={creating.show}>Novo lançamento</Button>;
 
@@ -50,12 +52,15 @@ export default function Finance() {
       <Card>
         <Toolbar>
           <Segmented label="Filtrar por tipo" value={filter} options={FILTERS} onChange={setFilter} />
+          <Input type="search" aria-label="Buscar lançamentos" placeholder="Buscar por aluno ou descrição" autoComplete="off"
+            spellCheck={false} className="max-w-xs" value={search} onChange={(event) => setSearch(event.target.value)} />
           {schools.required && <OptionSelect label="Filtrar por escola" value={schoolId} onChange={setSchoolId} placeholder="Todas"
+            searchLabel="Buscar escola"
             disabled={schools.loading || !!schools.error} options={schools.data.map((school) => ({ id: school.id, label: school.name }))} />}
         </Toolbar>
         {schools.required && schools.error && <p role="alert" className="p-4 text-sm text-danger">{schools.error}</p>}
         <ListState loading={loading} error={error} empty={!visible.length} emptyMessage="Nenhum lançamento encontrado"
-          emptyAction={!filter ? newButton : undefined} />
+          emptyAction={!filter && !search ? newButton : undefined} />
         {!loading && !error && visible.length > 0 && (
           <Table columns={schools.required ? [...COLUMNS, { label: "Escola" }] : COLUMNS}>
             {visible.map((t) => (
@@ -63,6 +68,7 @@ export default function Finance() {
                 <td className={`${cell} tabular whitespace-nowrap text-ink-muted`}>{formatDate(t.date)}</td>
                 <td className={cell}>
                   <p className="text-ink">{t.description ?? "Sem descrição"}</p>
+                  {t.student && <p className="text-sm text-ink-muted">{t.student.name}</p>}
                   {t.category && <p className="text-xs text-ink-faint">{t.category}</p>}
                 </td>
                 <td className={cell}>
@@ -101,11 +107,13 @@ function TransactionForm({ onSaved, schools }: { onSaved: () => Promise<void>; s
   const [category, setCategory] = useState("");
   const [date, setDate] = useState(() => localDate());
   const [schoolId, setSchoolId] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [saving, setSaving] = useState(false);
+  const students = useAdminList(adminService.students, [], "Erro ao carregar alunos");
 
   const create = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (schools.required && !schools.data.some((school) => school.active && school.id === schoolId)) {
+    if (schools.required && !studentId && !schools.data.some((school) => school.active && school.id === schoolId)) {
       toast.error("Selecione uma escola");
       return;
     }
@@ -117,7 +125,8 @@ function TransactionForm({ onSaved, schools }: { onSaved: () => Promise<void>; s
     setSaving(true);
     try {
       await adminService.createTransaction({ type, amount: value, description: description || undefined,
-        category: category || undefined, date, ...(schools.required ? { schoolId } : {}) });
+        category: category || undefined, date, ...(schools.required && schoolId ? { schoolId } : {}),
+        ...(studentId ? { studentId } : {}) });
       toast.success("Lançamento registrado");
       await onSaved();
     } catch (cause) {
@@ -130,7 +139,11 @@ function TransactionForm({ onSaved, schools }: { onSaved: () => Promise<void>; s
   return (
     <form onSubmit={create}>
       <fieldset disabled={saving} className="space-y-4">
-        {schools.required && <SchoolSelect schools={schools.data} loading={schools.loading} error={schools.error}
+        <OptionSelect label="Aluno" value={studentId} onChange={setStudentId} placeholder="Nenhum aluno"
+          searchLabel="Buscar aluno" disabled={students.loading || !!students.error}
+          options={students.data.map((student) => ({ id: student.id, label: student.name }))} />
+        {students.error && <p role="alert" className="text-sm text-danger">{students.error}</p>}
+        {schools.required && !studentId && <SchoolSelect schools={schools.data} loading={schools.loading} error={schools.error}
           value={schoolId} onChange={setSchoolId} />}
         <Field label="Tipo">
           <Select value={type} onChange={(event) => setType(event.target.value as TransactionType)}>

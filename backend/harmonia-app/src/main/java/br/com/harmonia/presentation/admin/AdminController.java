@@ -118,7 +118,7 @@ public class AdminController {
     }
 
     @PostMapping("/instruments")
-    @PreAuthorize("hasRole('ADMIN') and hasAuthority('instrument.manage')")
+    @PreAuthorize("hasAuthority('instrument.manage')")
     public Map<String, UUID> instrument(@Valid @RequestBody NewInstrument r) {
         return Map.of("id", uc.createInstrument(r.name()));
     }

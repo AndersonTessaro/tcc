@@ -227,6 +227,15 @@ class SchoolManagementIT {
             .andExpect(jsonPath("$[?(@.id == '" + other + "')]").isNotEmpty());
     }
 
+    @Test
+    void transactionsNameTheirStudent() throws Exception {
+        String linked = create(manager, "/admin/finance/transactions",
+            "{\"type\":\"INCOME\",\"amount\":150,\"studentId\":\"" + studentA + "\"}");
+        call("GET", "/admin/finance/transactions", manager, null).andExpect(status().isOk())
+            .andExpect(jsonPath("$[?(@.id == '" + linked + "')].student.id").value(studentA))
+            .andExpect(jsonPath("$[?(@.id == '" + linked + "')].student.name").value("studentA"));
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"ADMIN", "MANAGER"})
     void managerCannotAssignPrivilegedRoles(String name) throws Exception {
@@ -238,10 +247,18 @@ class SchoolManagementIT {
     @ParameterizedTest
     @CsvSource(delimiter = '|', value = {"POST|/admin/security/roles|{\"name\":\"CUSTOM\",\"description\":\"Custom\"}",
         "GET|/admin/settings|{}", "PUT|/admin/settings/test|{\"value\":\"1\"}",
-        "POST|/admin/instruments|{\"name\":\"Global\"}", "GET|/admin/schools|{}",
+        "GET|/admin/schools|{}",
         "POST|/admin/schools|{\"name\":\"Forbidden\"}"})
     void managerCannotChangeGlobalResources(String method, String path, String body) throws Exception {
         call(method, path, manager, body).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void managerCreatesInstrumentsButCannotDeleteThem() throws Exception {
+        String created = create(manager, "/admin/instruments", "{\"name\":\"Flauta " + suffix + "\"}");
+        call("GET", "/admin/instruments", manager, null).andExpect(status().isOk())
+            .andExpect(jsonPath("$[?(@.id == '" + created + "')]").isNotEmpty());
+        call("DELETE", "/admin/instruments/" + created, manager, null).andExpect(status().isForbidden());
     }
 
     @Test
