@@ -60,7 +60,7 @@ class ChatControllerTest {
     @ValueSource(strings = {"/teacher/chats", "/me/chats"})
     void trimsBeforeValidatingTheMaximumLength(String path) throws Exception {
         String body = "a".repeat(2000);
-        var message = new Message(messageId, body, sentAt, true);
+        var message = new Message(messageId, body, sentAt, true, null);
         if (path.startsWith("/teacher")) when(chat.sendAsTeacher(profileId, body)).thenReturn(message);
         else when(chat.sendAsStudent(profileId, body)).thenReturn(message);
         String payload = JsonPath.parse("{}").put("$", "body", " \t" + body + " \n").jsonString();
@@ -75,7 +75,7 @@ class ChatControllerTest {
     @ValueSource(strings = {"/teacher/chats", "/me/chats"})
     void serializesTheExactListMessageAndUnreadContracts(String path) throws Exception {
         var conversation = new Conversation(profileId, "Alex", "Hello", sentAt, 1);
-        var message = new Message(messageId, "Hello", sentAt, false);
+        var message = new Message(messageId, "Hello", sentAt, false, null);
         boolean teacher = path.startsWith("/teacher");
         if (teacher) {
             when(chat.teacherChats()).thenReturn(List.of(conversation));

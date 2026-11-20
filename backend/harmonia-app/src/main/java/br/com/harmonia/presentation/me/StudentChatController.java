@@ -6,7 +6,10 @@ import br.com.harmonia.presentation.response.ChatMessageResponse;
 import br.com.harmonia.presentation.response.ChatUnreadCountResponse;
 import br.com.harmonia.presentation.response.StudentChatResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -43,5 +46,18 @@ public class StudentChatController {
     @PreAuthorize("hasAuthority('chat.write')")
     public ChatMessageResponse send(@PathVariable UUID teacherId, @Valid @RequestBody SendChatMessageRequest request) {
         return ChatMessageResponse.from(chat.sendAsStudent(teacherId, request.body()));
+    }
+
+    @PostMapping(value = "/{teacherId}/messages/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('chat.write')")
+    public ChatMessageResponse sendAudio(@PathVariable UUID teacherId, @RequestParam MultipartFile file) {
+        return ChatMessageResponse.from(chat.sendAudioAsStudent(teacherId, file));
+    }
+
+    @GetMapping("/{teacherId}/messages/{messageId}/audio")
+    @PreAuthorize("hasAuthority('chat.read')")
+    public ResponseEntity<byte[]> audio(@PathVariable UUID teacherId, @PathVariable UUID messageId) {
+        var audio = chat.studentAudio(teacherId, messageId);
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType(audio.contentType())).body(audio.bytes());
     }
 }

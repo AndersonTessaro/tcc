@@ -355,3 +355,17 @@ it("answers a lesson: shows its homework and links the practice to it", async ()
 
   expect(service.registerPractice).toHaveBeenCalledWith({ durationMin: 30, date: todayIso(), lessonId: "lesson-9" });
 });
+
+it("records audio in the app and uploads it with the practice", async () => {
+  service.registerPractice.mockResolvedValue({ practiceId: "p-rec", xpTotal: 120, level: 1, streakDays: 3, totalPracticeMin: 120 });
+  service.uploadPracticeRecording.mockResolvedValue({ id: "p-rec", date: todayIso(), durationMin: 30, notes: null, difficulty: null, rating: null, recording: null });
+  await render(<RegisterPractice />);
+
+  await fireEvent.press(screen.getByRole("button", { name: "Gravar áudio" }));
+  await fireEvent.press(await screen.findByRole("button", { name: /Parar gravação/ }));
+  expect(await screen.findByText(/^audio-.*\.m4a$/)).toBeVisible();
+  await fireEvent.press(screen.getByRole("button", { name: "Salvar registro" }));
+
+  await screen.findByText("Concluir");
+  expect(service.uploadPracticeRecording).toHaveBeenCalledWith("p-rec", expect.objectContaining({ mimeType: "audio/mp4" }));
+});

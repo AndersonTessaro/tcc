@@ -43,9 +43,13 @@
         "expo-image-picker",
         {
           "photosPermission": "Permita acesso à galeria para enviar vídeos da sua prática.",
-          "cameraPermission": false,
-          "microphonePermission": false
+          "cameraPermission": "Permita acesso à câmera para gravar vídeos da aula e da prática.",
+          "microphonePermission": "Permita acesso ao microfone para gravar o som dos vídeos."
         }
+      ],
+      [
+        "expo-audio",
+        { "microphonePermission": "O Sonetto usa o microfone para gravar áudios da aula, da prática e do chat." }
       ]
     ],
     "experiments": {

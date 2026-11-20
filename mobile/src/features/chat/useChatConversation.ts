@@ -3,6 +3,7 @@ import { useFocusEffect } from "expo-router";
 import { useResource } from "@/hooks/use-resource";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { useToast } from "@/ui/Toast";
+import type { PickedFile } from "@/lib/http/formFile";
 import { teacherChatService, studentChatService, type ChatMessage, type ChatRole } from "./chatService";
 
 export type ConversationMessage = ChatMessage & { pending?: boolean };
@@ -67,5 +68,27 @@ export function useChatConversation(role: ChatRole, peerId: string) {
     }
   };
 
-  return { messages, body, setBody, sending, send, ready };
+  const sendAudio = async (file: PickedFile) => {
+    if (!ready || sendingRef.current) return;
+    sendingRef.current = true;
+    setSending(true);
+    const optimistic: ConversationMessage = {
+      id: `pending-${++sequence.current}`, body: "Mensagem de voz", sentAt: new Date().toISOString(), mine: true, pending: true,
+    };
+    setData((current) => [...(current ?? []), optimistic]);
+    try {
+      const created = await service.sendAudio(peerId, file);
+      if (mounted.current) setData((current) => current?.map((item) => item.id === optimistic.id ? created : item));
+    } catch (error) {
+      if (mounted.current) {
+        setData((current) => current?.filter((item) => item.id !== optimistic.id));
+        toast.show(apiErrorMessage(error, "Não foi possível enviar o áudio."), "error");
+      }
+    } finally {
+      sendingRef.current = false;
+      if (mounted.current) setSending(false);
+    }
+  };
+
+  return { messages, body, setBody, sending, send, sendAudio, ready };
 }

@@ -1,6 +1,7 @@
 import { useMemo, useRef } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { AudioRecorderButton } from "@/features/files/AudioRecorderButton";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { IconButton } from "@/ui/IconButton";
 import { KeyboardScreen } from "@/ui/KeyboardScreen";
@@ -8,7 +9,8 @@ import { ScreenHeader } from "@/ui/ScreenHeader";
 import { ScreenState } from "@/ui/ScreenState";
 import { TextField } from "@/ui/TextField";
 import { colors, radius, space, type } from "@/ui/theme";
-import type { ChatRole } from "./chatService";
+import { studentChatService, teacherChatService, type ChatRole } from "./chatService";
+import { VoiceMessage } from "./VoiceMessage";
 import { useChatConversation, type ConversationMessage } from "./useChatConversation";
 
 type Props = { role: ChatRole; peerId: string; peerName?: string };
@@ -26,7 +28,8 @@ export function ChatConversationScreen(props: Props) {
 
 function Conversation({ role, peerId, peerName }: Props) {
   const name = peerName?.trim() || "Conversa";
-  const { messages, body, setBody, sending, send, ready } = useChatConversation(role, peerId);
+  const { messages, body, setBody, sending, send, sendAudio, ready } = useChatConversation(role, peerId);
+  const service = role === "teacher" ? teacherChatService : studentChatService;
   const list = useRef<FlatList<Row>>(null);
   const rows = useMemo(() => {
     const result: Row[] = [];
@@ -59,12 +62,19 @@ function Conversation({ role, peerId, peerName }: Props) {
               <View accessible accessibilityRole="text"
                 accessibilityLabel={`${message.mine ? "Você" : name}. ${message.body}. ${new Date(message.sentAt).toLocaleDateString("pt-BR")}, ${time}${message.pending ? ". Enviando" : ""}`}
                 style={[styles.bubble, message.mine ? styles.mine : styles.theirs]}>
-                <Text style={[styles.body, message.mine && styles.mineText]}>{message.body}</Text>
+                {message.audio ? (
+                  <VoiceMessage audio={message.audio} mine={message.mine} download={() => service.audio(peerId, message.id)} />
+                ) : (
+                  <Text style={[styles.body, message.mine && styles.mineText]}>{message.body}</Text>
+                )}
                 <Text style={[styles.time, message.mine && styles.mineText]}>{message.pending ? "Enviando…" : time}</Text>
               </View>
             );
           }} />
       )}
+      <View style={styles.recorder}>
+        <AudioRecorderButton compact disabled={!ready || sending} onRecorded={(file) => void sendAudio(file)} />
+      </View>
       <View style={styles.composer}>
         <View style={styles.input}>
           <TextField accessibilityLabel="Mensagem" placeholder="Digite uma mensagem" multiline maxLength={2000}
@@ -89,6 +99,7 @@ const styles = StyleSheet.create({
   body: { ...type.body },
   time: { ...type.caption, alignSelf: "flex-end" },
   mineText: { color: colors.onBrand },
+  recorder: { paddingHorizontal: space.md, paddingTop: space.sm, backgroundColor: colors.surface, alignItems: "flex-start" },
   composer: { flexDirection: "row", alignItems: "flex-end", gap: space.sm, padding: space.md, backgroundColor: colors.surface },
   input: { flex: 1 },
   textInput: { minHeight: 44, maxHeight: 128 },

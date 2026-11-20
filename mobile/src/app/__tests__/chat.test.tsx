@@ -8,6 +8,7 @@ import StudentMore from "@/app/(student)/(tabs)/more";
 import { teacherChatService, studentChatService, type ChatMessage } from "@/features/chat/chatService";
 import { ApiError } from "@/lib/http/apiError";
 import { chatTime } from "@/features/chat/chatTime";
+import { player } from "@/test/expoAudioMock";
 
 const mockPush = jest.fn();
 const mockToast = jest.fn();
@@ -25,10 +26,11 @@ jest.mock("expo-router", () => ({
   }, [callback, mockFocused]),
 }));
 jest.mock("@/features/chat/chatService", () => ({
-  teacherChatService: { list: jest.fn(), messages: jest.fn(), send: jest.fn(), unreadCount: jest.fn() },
-  studentChatService: { list: jest.fn(), messages: jest.fn(), send: jest.fn(), unreadCount: jest.fn() },
+  teacherChatService: { list: jest.fn(), messages: jest.fn(), send: jest.fn(), unreadCount: jest.fn(), sendAudio: jest.fn(), audio: jest.fn() },
+  studentChatService: { list: jest.fn(), messages: jest.fn(), send: jest.fn(), unreadCount: jest.fn(), sendAudio: jest.fn(), audio: jest.fn() },
 }));
 jest.mock("@/ui/Toast", () => ({ useToast: () => ({ show: mockToast }) }));
+jest.mock("@/lib/files/playableUri", () => ({ playableUri: jest.fn(async () => "file:///cache/voice.ogg") }));
 jest.mock("@/hooks/use-tab-scroll-to-top", () => ({ useTabScrollToTop: jest.fn() }));
 jest.mock("@/features/auth/useAuth", () => ({ useAuth: () => ({ user: { displayName: "Ana" }, logout: jest.fn() }) }));
 jest.mock("@/features/account/accountService", () => ({ accountService: { get: jest.fn(async () => ({ displayName: "Ana" })) } }));
@@ -267,4 +269,31 @@ it("formats relative times using the timestamp offset", () => {
   const now = new Date("2026-11-14T15:00:00Z");
   expect(chatTime("2026-11-14T11:00:00-03:00", now)).toBe("há 1 h");
   expect(chatTime(null, now)).toBe("");
+});
+
+it("records and sends a voice message", async () => {
+  teacher.messages.mockResolvedValue([]);
+  teacher.sendAudio.mockResolvedValue({ id: "v1", body: "Mensagem de voz", sentAt: "2026-11-14T10:00:00Z", mine: true,
+    audio: { contentType: "audio/mp4", sizeBytes: 1200 } });
+  await render(<TeacherConversation />);
+
+  await fireEvent.press(await screen.findByRole("button", { name: "Gravar áudio" }));
+  await fireEvent.press(await screen.findByRole("button", { name: /Parar gravação/ }));
+
+  expect(teacher.sendAudio).toHaveBeenCalledWith("peer-1", expect.objectContaining({ mimeType: "audio/mp4" }));
+  expect(await screen.findByRole("button", { name: "Ouvir mensagem de voz" })).toBeVisible();
+});
+
+it("downloads and plays a received voice message", async () => {
+  student.messages.mockResolvedValue([{ id: "v2", body: "Mensagem de voz", sentAt: "2026-11-14T10:00:00Z", mine: false,
+    audio: { contentType: "audio/ogg", sizeBytes: 900 } }]);
+  student.audio.mockResolvedValue(new ArrayBuffer(8));
+  await render(<StudentConversation />);
+
+  await fireEvent.press(await screen.findByRole("button", { name: "Ouvir mensagem de voz" }));
+
+  expect(student.audio).toHaveBeenCalledWith("peer-1", "v2");
+  await act(async () => undefined);
+  expect(player.replace).toHaveBeenCalled();
+  expect(player.play).toHaveBeenCalled();
 });

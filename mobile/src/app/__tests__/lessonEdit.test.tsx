@@ -75,6 +75,17 @@ describe("Edit lesson screen", () => {
     service.studentPractices.mockResolvedValue([]);
   });
 
+  it("records an audio straight into the lesson attachments", async () => {
+    mockParams = { id: "lesson-1", section: "content" };
+    service.lesson.mockResolvedValue(detail());
+    await render(<EditLesson />);
+
+    await fireEvent.press(await screen.findByRole("button", { name: "Gravar áudio" }));
+    await fireEvent.press(await screen.findByRole("button", { name: /Parar gravação/ }));
+
+    expect(await screen.findByText(/^audio-.*\.m4a$/)).toBeVisible();
+  });
+
   it("lists the student's answers to this lesson in the practice section", async () => {
     mockParams = { id: "lesson-1", section: "practice" };
     service.lesson.mockResolvedValue(detail());

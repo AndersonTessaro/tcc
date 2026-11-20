@@ -1,4 +1,5 @@
-import { api } from "@/lib/http";
+import { api, MEDIA_TIMEOUT_MS } from "@/lib/http";
+import { appendFile, type PickedFile } from "@/lib/http/formFile";
 import { ApiError } from "@/lib/http/apiError";
 
 export type ChatRole = "teacher" | "student";
@@ -9,7 +10,8 @@ export type ChatSummary = {
   lastMessageAt: string | null;
   unread: number;
 };
-export type ChatMessage = { id: string; body: string; sentAt: string; mine: boolean };
+export type ChatAudio = { contentType: string; sizeBytes: number };
+export type ChatMessage = { id: string; body: string; sentAt: string; mine: boolean; audio?: ChatAudio | null };
 type ChatRow = Omit<ChatSummary, "peerId" | "peerName"> & (
   { studentId: string; studentName: string } | { teacherId: string; teacherName: string }
 );
@@ -32,6 +34,13 @@ export function createChatService(role: ChatRole) {
       if (!trimmed || trimmed.length > 2000) throw new ApiError(422, "VALIDATION");
       return api.post<ChatMessage>(messagesPath(peerId), { body: trimmed });
     },
+    sendAudio(peerId: string, file: PickedFile) {
+      const form = new FormData();
+      appendFile(form, "file", file);
+      return api.postForm<ChatMessage>(`${messagesPath(peerId)}/audio`, form, { timeoutMs: MEDIA_TIMEOUT_MS });
+    },
+    audio: (peerId: string, messageId: string) =>
+      api.getBytes(`${messagesPath(peerId)}/${encodeURIComponent(messageId)}/audio`, { timeoutMs: MEDIA_TIMEOUT_MS }),
     unreadCount: () => api.get<{ count: number }>(base + "/unread-count"),
   };
 }

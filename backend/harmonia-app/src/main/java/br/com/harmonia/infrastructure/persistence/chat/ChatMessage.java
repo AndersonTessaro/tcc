@@ -33,4 +33,13 @@ public class ChatMessage {
 
     @Column(name = "read_at")
     private LocalDateTime readAt;
+
+    @Column(name = "audio_path")
+    private String audioPath;
+
+    @Column(name = "audio_content_type")
+    private String audioContentType;
+
+    @Column(name = "audio_size_bytes")
+    private Long audioSizeBytes;
 }
