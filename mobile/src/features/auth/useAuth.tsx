@@ -11,7 +11,7 @@ type AuthState = {
   logout: () => Promise<void>;
   restoreError: unknown;
   retryRestore: () => Promise<void>;
-  updateProfile: (profile: Pick<AuthResponse, "displayName" | "hasAvatar">) => void;
+  updateProfile: (profile: Partial<Pick<AuthResponse, "displayName" | "hasAvatar" | "termsAccepted">>) => void;
 };
 
 const Ctx = createContext<AuthState>(null as unknown as AuthState);
@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setRestoreError(null);
     setRestoring(false);
   };
-  const updateProfile = (profile: Pick<AuthResponse, "displayName" | "hasAvatar">) =>
+  const updateProfile = (profile: Partial<Pick<AuthResponse, "displayName" | "hasAvatar" | "termsAccepted">>) =>
     setUser((current) => current && { ...current, ...profile });
 
   return <Ctx.Provider value={{ user, loading, restoring, restoreError, retryRestore, login, logout, updateProfile }}>{children}</Ctx.Provider>;

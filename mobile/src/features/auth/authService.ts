@@ -7,7 +7,10 @@ export type AuthResponse = {
   authorities: string[];
   displayName?: string;
   hasAvatar?: boolean;
+  termsAccepted?: boolean;
 };
+
+export type Terms = { version: string; text: string };
 
 // Signing out offline must not hold the user behind the default 20 s request timeout.
 const LOGOUT_TIMEOUT_MS = 5_000;
@@ -23,7 +26,9 @@ export const authService = {
     return res;
   },
   me: () =>
-    api.get<{ username: string; authorities: string[]; displayName: string; hasAvatar: boolean }>("/auth/me"),
+    api.get<{ username: string; authorities: string[]; displayName: string; hasAvatar: boolean; termsAccepted: boolean }>("/auth/me"),
+  terms: () => api.get<Terms>("/terms"),
+  acceptTerms: (version: string) => api.post<void>("/account/terms", { version }),
   reset: (token: string, newPassword: string) => api.post("/auth/reset-password", { token, newPassword }, { auth: false }),
   async logout() {
     try {

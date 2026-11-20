@@ -40,6 +40,12 @@ public class User implements UserDetails {
     @Column(name = "avatar_path")
     private String avatarPath;
 
+    @Column(name = "terms_version")
+    private String termsVersion;
+
+    @Column(name = "terms_accepted_at")
+    private LocalDateTime termsAcceptedAt;
+
     public boolean hasAvatar() {
         return avatarPath != null;
     }

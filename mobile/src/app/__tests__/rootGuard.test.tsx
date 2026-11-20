@@ -172,3 +172,37 @@ it("handles expiration without invoking server sign-out again", async () => {
   await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/(auth)/login"));
   expect(signOut).not.toHaveBeenCalled();
 });
+
+describe("terms of use", () => {
+  const terms = { version: "2026-11-20", text: "## 1. Sobre o Sonetto\nTexto dos termos." };
+
+  it("blocks the app until the user accepts the current terms", async () => {
+    const updateProfile = jest.fn();
+    auth.mockReturnValue({ user: { ...student, termsAccepted: false }, restoring: false, updateProfile });
+    mockSegments = ["(student)", "(tabs)", "dashboard"];
+    jest.spyOn(authService, "terms").mockResolvedValue(terms);
+    const accept = jest.spyOn(authService, "acceptTerms").mockResolvedValue(undefined);
+
+    await render(<RootLayout />);
+
+    expect(await screen.findByRole("header", { name: "Termos de uso" })).toBeVisible();
+    expect(screen.getByText("1. Sobre o Sonetto")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeDisabled();
+    await fireEvent.press(screen.getByRole("checkbox", { name: "Li e aceito os termos de uso e a política de privacidade" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Continuar" }));
+
+    await waitFor(() => expect(accept).toHaveBeenCalledWith("2026-11-20"));
+    expect(updateProfile).toHaveBeenCalledWith({ termsAccepted: true });
+  });
+
+  it("does not ask again once the terms are accepted", async () => {
+    auth.mockReturnValue({ user: { ...student, termsAccepted: true }, restoring: false });
+    mockSegments = ["(student)", "(tabs)", "dashboard"];
+    const load = jest.spyOn(authService, "terms");
+
+    await render(<RootLayout />);
+
+    expect(screen.queryByRole("header", { name: "Termos de uso" })).toBeNull();
+    expect(load).not.toHaveBeenCalled();
+  });
+});

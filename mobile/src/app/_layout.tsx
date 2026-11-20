@@ -9,6 +9,7 @@ import { colors, space } from "@/ui/theme";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
 import { ScreenState } from "@/ui/ScreenState";
+import { TermsGate } from "@/features/auth/TermsGate";
 
 function Guard() {
   const { user, restoring, restoreError, retryRestore, logout } = useAuth();
@@ -40,6 +41,7 @@ function Guard() {
       }} />
     </View>
   );
+  if (user?.termsAccepted === false) return <TermsGate />;
   return <Slot />;
 }
 
