@@ -57,7 +57,7 @@ public class StudentChatController {
     @GetMapping("/{teacherId}/messages/{messageId}/audio")
     @PreAuthorize("hasAuthority('chat.read')")
     public ResponseEntity<byte[]> audio(@PathVariable UUID teacherId, @PathVariable UUID messageId) {
-        var audio = chat.studentAudio(teacherId, messageId);
-        return ResponseEntity.ok().contentType(MediaType.parseMediaType(audio.contentType())).body(audio.bytes());
+        // Client-declared types are never echoed back: the app reads the type from the message JSON.
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM).body(chat.studentAudio(teacherId, messageId));
     }
 }

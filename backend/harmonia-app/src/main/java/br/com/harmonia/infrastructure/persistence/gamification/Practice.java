@@ -26,7 +26,7 @@ public class Practice {
     @JoinColumn(name = "instrument_id")
     private Instrument instrument;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lesson_id")
     private Lesson lesson;
 

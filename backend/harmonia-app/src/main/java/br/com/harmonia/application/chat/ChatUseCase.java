@@ -33,7 +33,6 @@ public class ChatUseCase {
                                LocalDateTime lastMessageAt, long unread) {}
     public record Audio(String contentType, long sizeBytes) {}
     public record Message(UUID id, String body, LocalDateTime sentAt, boolean mine, Audio audio) {}
-    public record AudioContent(String contentType, byte[] bytes) {}
 
     public ChatUseCase(ChatMessageRepository messages, CurrentUserService current, Clock clock, FileStoragePort storage) {
         this.messages = messages;
@@ -88,11 +87,11 @@ public class ChatUseCase {
         return sendAudio(teacherId, current.currentStudent().getId(), file);
     }
 
-    public AudioContent teacherAudio(UUID studentId, UUID messageId) {
+    public byte[] teacherAudio(UUID studentId, UUID messageId) {
         return audio(current.currentTeacher().getId(), studentId, messageId);
     }
 
-    public AudioContent studentAudio(UUID teacherId, UUID messageId) {
+    public byte[] studentAudio(UUID teacherId, UUID messageId) {
         return audio(teacherId, current.currentStudent().getId(), messageId);
     }
 
@@ -118,13 +117,13 @@ public class ChatUseCase {
         }
     }
 
-    private AudioContent audio(UUID teacherId, UUID studentId, UUID messageId) {
+    private byte[] audio(UUID teacherId, UUID studentId, UUID messageId) {
         assertActivePair(teacherId, studentId);
         var message = messages.findById(messageId)
             .filter(found -> found.getTeacherId().equals(teacherId) && found.getStudentId().equals(studentId))
             .filter(found -> found.getAudioPath() != null)
             .orElseThrow(() -> new ResourceNotFoundException("Audio"));
-        return new AudioContent(message.getAudioContentType(), storage.read(message.getAudioPath()));
+        return storage.read(message.getAudioPath());
     }
 
     private List<Message> read(UUID teacherId, UUID studentId) {
