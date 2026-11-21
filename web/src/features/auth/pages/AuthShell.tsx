@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 
-export function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
+export function AuthShell({ title, subtitle, children, wide = false }: {
+  title: string; subtitle: string; children: ReactNode; wide?: boolean;
+}) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-10">
-      <div className="w-full max-w-sm">
+      <div className={`w-full ${wide ? "max-w-2xl" : "max-w-sm"}`}>
         <div className="relative mb-8 flex items-center gap-3 py-3">
           <img src="/logo.svg" alt="" className="h-10 w-10 shrink-0" />
           <p className="relative text-4xl font-extrabold tracking-tight text-ink">Sonetto</p>
