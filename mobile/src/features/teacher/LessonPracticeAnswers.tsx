@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useResource } from "@/hooks/use-resource";
 import { formatFullDate, formatMinutes } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
+import { Card } from "@/ui/Card";
 import { ListRow } from "@/ui/ListRow";
 import { space, type } from "@/ui/theme";
 import { teacherService, type TeacherLesson } from "./teacherService";
@@ -22,12 +23,14 @@ export function LessonPracticeAnswers({ lesson }: { lesson: TeacherLesson }) {
       ) : practices.loading ? (
         <Text style={styles.caption}>Carregando…</Text>
       ) : answers.length ? (
-        answers.map((practice) => (
+        <Card style={styles.list}>
+        {answers.map((practice) => (
           <ListRow key={practice.id} title={practice.notes || "Sem observações"}
             subtitle={`${formatFullDate(practice.date)} · ${formatMinutes(practice.durationMin)}${practice.recording ? " · com gravação" : ""}`}
             onPress={() => router.push({ pathname: "/teacher/practice/[id]",
               params: { id: practice.id, practiceId: practice.id, studentId: lesson.studentId } })} />
-        ))
+        ))}
+        </Card>
       ) : (
         <Text style={styles.caption}>O aluno ainda não respondeu a prática desta aula.</Text>
       )}
@@ -39,4 +42,5 @@ const styles = StyleSheet.create({
   block: { gap: space.sm },
   title: { ...type.heading, marginTop: space.md },
   caption: { ...type.caption },
+  list: { padding: 0, overflow: "hidden" },
 });

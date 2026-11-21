@@ -83,7 +83,7 @@ describe("Edit lesson screen", () => {
     await fireEvent.press(await screen.findByRole("button", { name: "Gravar áudio" }));
     await fireEvent.press(await screen.findByRole("button", { name: /Parar gravação/ }));
 
-    expect(await screen.findByText(/^audio-.*\.m4a$/)).toBeVisible();
+    expect(await screen.findByText(/^gravacao-.*\.m4a$/)).toBeVisible();
   });
 
   it("lists the student's answers to this lesson in the practice section", async () => {

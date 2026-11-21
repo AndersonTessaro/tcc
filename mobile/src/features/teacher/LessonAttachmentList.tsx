@@ -114,15 +114,6 @@ export function LessonAttachmentList({ saved, pending, onAdd, onRemovePending, o
       {readOnly ? null : (
         <>
           <View style={styles.actions}>
-            <Button
-              label="Foto ou vídeo"
-              icon="images-outline"
-              variant="secondary"
-              onPress={() => void pick("gallery")}
-              loading={picking}
-              disabled={disabled || full}
-              style={styles.action}
-            />
             <AudioRecorderButton onRecorded={add} disabled={disabled || full || picking} style={styles.action} />
             <Button
               label="Gravar vídeo"
@@ -130,6 +121,15 @@ export function LessonAttachmentList({ saved, pending, onAdd, onRemovePending, o
               variant="secondary"
               onPress={() => void pick("camera")}
               disabled={disabled || full || picking}
+              style={styles.action}
+            />
+            <Button
+              label="Foto ou vídeo"
+              icon="images-outline"
+              variant="secondary"
+              onPress={() => void pick("gallery")}
+              loading={picking}
+              disabled={disabled || full}
               style={styles.action}
             />
             <Button

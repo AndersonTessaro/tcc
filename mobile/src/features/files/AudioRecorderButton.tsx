@@ -19,12 +19,18 @@ const elapsed = (millis: number) => {
 
 // Browsers record webm (Chrome/Firefox) or mp4 (Safari); native presets record AAC in an m4a container.
 async function recordedFile(uri: string): Promise<PickedFile> {
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  if (Platform.OS !== "web") return { uri, name: `audio-${stamp}.m4a`, mimeType: "audio/mp4" };
+  const stamp = recordingStamp(new Date());
+  if (Platform.OS !== "web") return { uri, name: `gravacao-${stamp}.m4a`, mimeType: "audio/mp4" };
   const blob = await (await fetch(uri)).blob();
   const mimeType = blob.type.split(";")[0] || "audio/webm";
   const extension = mimeType.includes("mp4") ? "m4a" : mimeType.includes("ogg") ? "ogg" : "webm";
-  return { uri, name: `audio-${stamp}.${extension}`, mimeType, size: blob.size, file: blob };
+  return { uri, name: `gravacao-${stamp}.${extension}`, mimeType, size: blob.size, file: blob };
+}
+
+// ASCII only: OkHttp on Android rejects non-ASCII file names in multipart headers.
+function recordingStamp(date: Date) {
+  const two = (value: number) => String(value).padStart(2, "0");
+  return `${two(date.getDate())}-${two(date.getMonth() + 1)}-${date.getFullYear()}-${two(date.getHours())}h${two(date.getMinutes())}m${two(date.getSeconds())}`;
 }
 
 export function AudioRecorderButton({ onRecorded, disabled, compact, style }: Props) {
@@ -63,8 +69,8 @@ export function AudioRecorderButton({ onRecorded, disabled, compact, style }: Pr
   };
 
   return recording ? (
-    <Button label={`Parar gravação · ${elapsed(durationMillis)}`} icon="stop-circle-outline" variant="danger" compact={compact}
-      style={style} onPress={stop} />
+    <Button label={`Parar · ${elapsed(durationMillis)}`} accessibilityLabel={`Parar gravação, ${elapsed(durationMillis)}`}
+      icon="stop-circle-outline" variant="danger" compact={compact} style={style} onPress={stop} />
   ) : (
     <Button label="Gravar áudio" icon="mic-outline" variant="secondary" compact={compact} style={style}
       disabled={disabled} onPress={start} />

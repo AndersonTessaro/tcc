@@ -19,7 +19,7 @@ it("records, stops and hands back an m4a file", async () => {
   await fireEvent.press(await screen.findByRole("button", { name: /Parar gravação/ }));
 
   await waitFor(() => expect(onRecorded).toHaveBeenCalledWith(expect.objectContaining({
-    uri: "file:///cache/recording.m4a", mimeType: "audio/mp4", name: expect.stringMatching(/^audio-.*\.m4a$/),
+    uri: "file:///cache/recording.m4a", mimeType: "audio/mp4", name: expect.stringMatching(/^gravacao-.*\.m4a$/),
   })));
   expect(screen.getByRole("button", { name: "Gravar áudio" })).toBeVisible();
 });

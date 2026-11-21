@@ -51,9 +51,11 @@ export default function TeacherPracticeDetail() {
           {answered.data ? (
             <View style={styles.field}>
               <Text style={styles.label}>Responde à aula</Text>
-              <ListRow title={`Aula de ${formatFullDate(answered.data.date)} · ${answered.data.instrument}`}
-                subtitle={answered.data.homework ? `Tarefa: ${answered.data.homework}` : undefined}
-                onPress={() => router.push({ pathname: "/teacher/lesson/[id]", params: { id: answered.data!.id, section: "practice" } })} />
+              <Card style={styles.rowCard}>
+                <ListRow title={`Aula de ${formatFullDate(answered.data.date)} · ${answered.data.instrument}`}
+                  subtitle={answered.data.homework ? `Tarefa: ${answered.data.homework}` : undefined}
+                  onPress={() => router.push({ pathname: "/teacher/lesson/[id]", params: { id: answered.data!.id, section: "practice" } })} />
+              </Card>
             </View>
           ) : null}
           <ReadOnlyField label="Data" value={formatFullDate(practice.date)} />
@@ -106,4 +108,5 @@ const styles = StyleSheet.create({
   mood: { width: MIN_TOUCH, height: MIN_TOUCH, borderRadius: radius.pill, alignItems: "center", justifyContent: "center" },
   selectedMood: { backgroundColor: colors.primarySoft, borderWidth: 2, borderColor: colors.primary },
   moodIcon: { width: 28, height: 28 },
+  rowCard: { padding: 0, overflow: "hidden" },
 });

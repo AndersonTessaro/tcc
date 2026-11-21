@@ -83,12 +83,12 @@ export function PracticeRecordingPicker({ file, onChange, error, onError, disabl
           </View>
         </>
       ) : (
-        <>
-          <AudioRecorderButton onRecorded={accept} disabled={disabled || picking} />
-          <Button label="Gravar vídeo" variant="secondary" icon="camera-outline" onPress={() => pick("camera")} disabled={disabled || picking} />
-          <Button label="Vídeo da galeria" variant="secondary" icon="videocam-outline" onPress={() => pick("video")} disabled={disabled || picking} />
-          <Button label="Arquivo de áudio" variant="secondary" icon="musical-note-outline" onPress={() => pick("audio")} disabled={disabled || picking} />
-        </>
+        <View style={styles.actions}>
+          <AudioRecorderButton onRecorded={accept} disabled={disabled || picking} style={styles.choice} />
+          <Button label="Gravar vídeo" variant="secondary" icon="camera-outline" onPress={() => pick("camera")} disabled={disabled || picking} style={styles.choice} />
+          <Button label="Vídeo da galeria" variant="secondary" icon="videocam-outline" onPress={() => pick("video")} disabled={disabled || picking} style={styles.choice} />
+          <Button label="Arquivo de áudio" variant="secondary" icon="musical-note-outline" onPress={() => pick("audio")} disabled={disabled || picking} style={styles.choice} />
+        </View>
       )}
       <Text style={styles.hint}>Vídeo até 150 MB · áudio até 50 MB.</Text>
       {error ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
@@ -103,6 +103,7 @@ const styles = StyleSheet.create({
   fileName: { ...type.body, color: colors.muted, flex: 1 },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   action: { flexGrow: 1 },
+  choice: { flexGrow: 1, flexBasis: "45%" },
   hint: { ...type.caption },
   error: { ...type.caption, color: colors.danger },
 });

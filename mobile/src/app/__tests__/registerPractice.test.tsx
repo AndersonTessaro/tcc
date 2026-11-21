@@ -363,7 +363,7 @@ it("records audio in the app and uploads it with the practice", async () => {
 
   await fireEvent.press(screen.getByRole("button", { name: "Gravar áudio" }));
   await fireEvent.press(await screen.findByRole("button", { name: /Parar gravação/ }));
-  expect(await screen.findByText(/^audio-.*\.m4a$/)).toBeVisible();
+  expect(await screen.findByText(/^gravacao-.*\.m4a$/)).toBeVisible();
   await fireEvent.press(screen.getByRole("button", { name: "Salvar registro" }));
 
   await screen.findByText("Concluir");
