@@ -10,6 +10,7 @@ import { practiceReward, type PracticeReward } from "@/features/student/reward";
 import { studentService, type StudentLesson, type StudentProgress, type PracticeRegistration } from "@/features/student/studentService";
 import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { addDays, formatFullDate, isValidIsoDate, parseIsoDate, todayIso } from "@/lib/format";
+import { ApiError } from "@/lib/http/apiError";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
@@ -146,6 +147,10 @@ export default function RegisterPractice() {
       }
       showReward();
     } catch (cause) {
+      if (!savedRef.current && cause instanceof ApiError && cause.code === "DUPLICATE_RESOURCE") {
+        setRequestError("Você já respondeu a prática desta aula.");
+        return;
+      }
       setRequestError(apiErrorMessage(cause, savedRef.current
         ? "A prática foi salva, mas o arquivo não foi enviado."
         : "Não foi possível salvar a prática. Tente novamente."));

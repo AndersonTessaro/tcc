@@ -369,3 +369,15 @@ it("records audio in the app and uploads it with the practice", async () => {
   await screen.findByText("Concluir");
   expect(service.uploadPracticeRecording).toHaveBeenCalledWith("p-rec", expect.objectContaining({ mimeType: "audio/mp4" }));
 });
+
+it("explains when the lesson already has an answer", async () => {
+  mockParams = { lessonId: "lesson-9" };
+  service.lesson.mockResolvedValue({ lesson: { id: "lesson-9", date: "2026-11-26", startTime: "09:30:00", endTime: "10:30:00",
+    instrument: "Violão", teacherName: "Lucca", status: "SCHEDULED", content: null, homework: "Praticar" }, attachments: [] });
+  service.registerPractice.mockRejectedValue(new ApiError(409, "DUPLICATE_RESOURCE"));
+  await render(<RegisterPractice />);
+
+  await fireEvent.press(screen.getByRole("button", { name: "Salvar registro" }));
+
+  expect(await screen.findByText("Você já respondeu a prática desta aula.")).toBeVisible();
+});

@@ -4,6 +4,7 @@ import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.application.gamification.port.PracticeRepository;
 import br.com.harmonia.application.gamification.port.ProgressRepository;
 import br.com.harmonia.application.lesson.port.LessonRepository;
+import br.com.harmonia.domain.common.DuplicateResourceException;
 import br.com.harmonia.domain.common.ResourceNotFoundException;
 import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
 import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
@@ -98,6 +99,9 @@ public class PracticeUseCase {
             .orElseThrow(() -> new ResourceNotFoundException("Lesson"));
         if (lesson.getStatus() == LessonStatus.CANCELED)
             throw new DomainValidationException("A canceled lesson cannot receive practice");
+        // ponytail: check-then-insert; two simultaneous answers could both pass. Add a partial unique index if that matters.
+        if (practices.existsByLessonId(lessonId))
+            throw new DuplicateResourceException("This lesson already has a practice answer");
         return lesson;
     }
 

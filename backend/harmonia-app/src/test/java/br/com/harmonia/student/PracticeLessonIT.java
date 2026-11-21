@@ -59,4 +59,14 @@ class PracticeLessonIT extends MoreMenuITSupport {
         register(lessonId).andExpect(status().isUnprocessableEntity())
             .andExpect(jsonPath("$.code").value("DOMAIN_VALIDATION"));
     }
+
+    @Test
+    void aLessonAcceptsOnlyOneAnswer() throws Exception {
+        register(lessonId).andExpect(status().isOk());
+
+        register(lessonId).andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("DUPLICATE_RESOURCE"));
+        mvc.perform(get("/me/practices").header("Authorization", "Bearer " + studentToken))
+            .andExpect(jsonPath("$.length()").value(1));
+    }
 }

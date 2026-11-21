@@ -4,9 +4,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { DownloadButton } from "@/features/files/DownloadButton";
 import { formatTimeRange, lessonBadge } from "@/features/student/lessonStatus";
+import { PracticeRecordingDownload } from "@/features/student/PracticeRecordingDownload";
 import { studentService, type LessonAttachment } from "@/features/student/studentService";
 import { useResource } from "@/hooks/use-resource";
-import { formatFileSize, formatFullDate } from "@/lib/format";
+import { formatFileSize, formatFullDate, formatMinutes } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
@@ -21,6 +22,9 @@ export default function LessonDetail() {
   const fetchLesson = useCallback(() => studentService.lesson(id), [id]);
   const detail = useResource(fetchLesson, id);
   const lesson = detail.data?.lesson;
+  const practices = useResource(studentService.practices, "practices");
+  const answer = practices.data?.find((practice) => practice.lessonId === id);
+  const canAnswer = !answer && (practices.data !== undefined || !!practices.error) && lesson?.status !== "CANCELED";
 
   return (
     <View style={styles.screen}>
@@ -45,11 +49,19 @@ export default function LessonDetail() {
 
           <Section title="Tarefa para casa">
             <Text style={styles.body}>{lesson.homework?.trim() || "Nenhuma tarefa informada."}</Text>
-            {lesson.status !== "CANCELED" && (
+            {canAnswer && (
               <Button label="Responder prática" icon="musical-notes-outline"
                 onPress={() => router.push({ pathname: "/(student)/practice/register", params: { lessonId: lesson.id } })} />
             )}
           </Section>
+
+          {answer ? (
+            <Section title="Sua prática">
+              <Text style={styles.body}>{formatFullDate(answer.date)} · {formatMinutes(answer.durationMin)}</Text>
+              {answer.notes ? <Text style={styles.body}>{answer.notes}</Text> : null}
+              <PracticeRecordingDownload practice={answer} download={studentService.downloadPracticeRecording} />
+            </Section>
+          ) : null}
 
           <Section title="Anexos">
             {detail.data.attachments.length ? (
