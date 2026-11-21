@@ -1,11 +1,12 @@
 import { Image, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { PracticeRecordingDownload } from "@/features/student/PracticeRecordingDownload";
 import { practiceMoods } from "@/features/student/practiceMood";
 import { useResource } from "@/hooks/use-resource";
 import { formatFullDate, formatMinutes } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
 import { Card } from "@/ui/Card";
+import { ListRow } from "@/ui/ListRow";
 import { ScreenState } from "@/ui/ScreenState";
 import { colors, MIN_TOUCH, radius, space, type } from "@/ui/theme";
 import { teacherService } from "./teacherService";
@@ -28,6 +29,9 @@ export default function TeacherPracticeDetail() {
     };
   }, studentId ?? "");
   const practice = practices.data?.find((item) => item.id === (practiceId || id));
+  const router = useRouter();
+  const lessonId = practice?.lessonId ?? null;
+  const answered = useResource(async () => lessonId ? (await teacherService.lesson(lessonId)).lesson : null, lessonId ?? "");
 
   return (
     <View style={styles.screen}>
@@ -44,6 +48,14 @@ export default function TeacherPracticeDetail() {
               <ScreenState message={apiErrorMessage(identity.error, "Não foi possível carregar os dados do aluno.")} retry={identity.reload} />
             ) : identity.data ? <TeacherStudentIdentity name={identity.data.name} instrument={identity.data.instrument} /> : null}
           </View>
+          {answered.data ? (
+            <View style={styles.field}>
+              <Text style={styles.label}>Responde à aula</Text>
+              <ListRow title={`Aula de ${formatFullDate(answered.data.date)} · ${answered.data.instrument}`}
+                subtitle={answered.data.homework ? `Tarefa: ${answered.data.homework}` : undefined}
+                onPress={() => router.push({ pathname: "/teacher/lesson/[id]", params: { id: answered.data!.id, section: "practice" } })} />
+            </View>
+          ) : null}
           <ReadOnlyField label="Data" value={formatFullDate(practice.date)} />
           <ReadOnlyField label="Tempo de prática" value={formatMinutes(practice.durationMin)} />
           <ReadOnlyField label="O que praticou" value={practice.notes || "Não informado"} />

@@ -25,7 +25,7 @@ jest.mock("@/features/teacher/teacherService", () => ({
   teacherService: {
     student: jest.fn(), studentProfile: jest.fn(), updateStudentProfile: jest.fn(), students: jest.fn(), enrollments: jest.fn(),
     studentLessons: jest.fn(), studentMaterials: jest.fn(), studentGoals: jest.fn().mockResolvedValue([]), createGoal: jest.fn(), endGoal: jest.fn(), studentPractices: jest.fn(),
-    downloadPracticeRecording: jest.fn(), downloadMaterialItem: jest.fn(), uploadMaterial: jest.fn(),
+    downloadPracticeRecording: jest.fn(), downloadMaterialItem: jest.fn(), uploadMaterial: jest.fn(), lesson: jest.fn(),
   },
 }));
 const service = jest.mocked(teacherService);
@@ -323,4 +323,21 @@ it.each(["student", "studentProfile", "studentLessons"] as const)("keeps %s requ
   expect(screen.queryByText("João")).toBeNull();
   await fireEvent.press(screen.getByRole("button", { name: "Tentar novamente" }));
   expect(await screen.findByText("João")).toBeVisible();
+});
+
+it("shows which lesson the practice answers and opens it", async () => {
+  mockParams = { id: "p-9", practiceId: "p-9", studentId: "student-1" };
+  service.studentPractices.mockResolvedValue([{ id: "p-9", date: "2026-11-20", durationMin: 30, notes: "Vocalize",
+    difficulty: null, rating: 5, recording: null, lessonId: "lesson-9" }]);
+  service.students.mockResolvedValue([]);
+  service.enrollments.mockResolvedValue([]);
+  service.lesson.mockResolvedValue({ lesson: { id: "lesson-9", enrollmentId: "e", studentId: "student-1", studentName: "Ana",
+    teacherName: "Prof", instrument: "Canto", date: "2026-11-21", startTime: "10:00:00", endTime: "11:00:00", status: "SCHEDULED",
+    content: null, homework: "Vocalize 10 min", attendance: null }, attachments: [] });
+  await render(<TeacherPracticeDetail />);
+
+  const row = await screen.findByText("Aula de 21/11/2026 · Canto");
+  expect(screen.getByText("Tarefa: Vocalize 10 min")).toBeVisible();
+  await fireEvent.press(row);
+  expect(mockPush).toHaveBeenCalledWith({ pathname: "/teacher/lesson/[id]", params: { id: "lesson-9", section: "practice" } });
 });
