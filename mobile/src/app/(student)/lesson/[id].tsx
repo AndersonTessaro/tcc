@@ -23,8 +23,9 @@ export default function LessonDetail() {
   const detail = useResource(fetchLesson, id);
   const lesson = detail.data?.lesson;
   const practices = useResource(studentService.practices, "practices");
-  const answer = practices.data?.find((practice) => practice.lessonId === id);
-  const canAnswer = !answer && (practices.data !== undefined || !!practices.error) && lesson?.status !== "CANCELED";
+  // Lessons answered before the one-answer rule may hold several practices; show them all.
+  const answers = practices.data?.filter((practice) => practice.lessonId === id) ?? [];
+  const canAnswer = !answers.length && (practices.data !== undefined || !!practices.error) && lesson?.status !== "CANCELED";
 
   return (
     <View style={styles.screen}>
@@ -55,11 +56,15 @@ export default function LessonDetail() {
             )}
           </Section>
 
-          {answer ? (
-            <Section title="Sua prática">
-              <Text style={styles.body}>{formatFullDate(answer.date)} · {formatMinutes(answer.durationMin)}</Text>
-              {answer.notes ? <Text style={styles.body}>{answer.notes}</Text> : null}
-              <PracticeRecordingDownload practice={answer} download={studentService.downloadPracticeRecording} />
+          {answers.length ? (
+            <Section title={answers.length > 1 ? "Suas práticas" : "Sua prática"}>
+              {answers.map((answer) => (
+                <View key={answer.id} style={styles.answer}>
+                  <Text style={styles.body}>{formatFullDate(answer.date)} · {formatMinutes(answer.durationMin)}</Text>
+                  {answer.notes ? <Text style={styles.body}>{answer.notes}</Text> : null}
+                  <PracticeRecordingDownload practice={answer} download={studentService.downloadPracticeRecording} />
+                </View>
+              ))}
             </Section>
           ) : null}
 
@@ -126,4 +131,5 @@ const styles = StyleSheet.create({
   caption: { ...type.caption },
   attachment: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.field },
   download: { flex: 1 },
+  answer: { gap: space.xs },
 });
