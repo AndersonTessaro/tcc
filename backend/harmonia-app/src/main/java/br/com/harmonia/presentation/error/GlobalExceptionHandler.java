@@ -1,9 +1,11 @@
 package br.com.harmonia.presentation.error;
 
+import br.com.harmonia.application.lesson.LessonSeriesConflictException;
 import br.com.harmonia.application.security.PasswordResetUseCase.InvalidResetTokenException;
 import br.com.harmonia.domain.common.DuplicateResourceException;
 import br.com.harmonia.domain.common.OwnershipException;
 import br.com.harmonia.domain.common.ProfileRequiredException;
+import br.com.harmonia.domain.common.ResourceInUseException;
 import br.com.harmonia.domain.common.ResourceNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import br.com.harmonia.infrastructure.security.TokenService.BadRefreshTokenException;
@@ -38,6 +40,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ApiError> duplicateResource(DuplicateResourceException e) {
         return build(HttpStatus.CONFLICT, "DUPLICATE_RESOURCE", e.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(ResourceInUseException.class)
+    public ResponseEntity<ApiError> resourceInUse(ResourceInUseException e) {
+        return build(HttpStatus.CONFLICT, "RESOURCE_IN_USE", e.getMessage(), List.of());
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
@@ -88,6 +95,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ScheduleConflictException.class)
     public ResponseEntity<ApiError> scheduleConflict(ScheduleConflictException e) {
         return build(HttpStatus.CONFLICT, "SCHEDULE_CONFLICT", e.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(LessonSeriesConflictException.class)
+    public ResponseEntity<ApiError> lessonSeriesConflict(LessonSeriesConflictException e) {
+        return build(HttpStatus.CONFLICT, "SCHEDULE_CONFLICT", e.getMessage(),
+            e.dates().stream().map(java.time.LocalDate::toString).toList());
     }
 
     @ExceptionHandler(DomainValidationException.class)

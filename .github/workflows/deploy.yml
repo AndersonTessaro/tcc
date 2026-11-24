@@ -19,12 +19,16 @@ jobs:
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
+    # Manual runs redeploy everything: a push only sees its own diff, so a cancelled run leaves changes behind.
     outputs:
-      api: ${{ steps.filter.outputs.api }}
-      web: ${{ steps.filter.outputs.web }}
+      api: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.api }}
+      web: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.web }}
+      app: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.app }}
     steps:
       - uses: actions/checkout@v4
+        if: github.event_name != 'workflow_dispatch'
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        if: github.event_name != 'workflow_dispatch'
         id: filter
         with:
           filters: |
@@ -32,6 +36,8 @@ jobs:
               - 'backend/**'
             web:
               - 'web/**'
+            app:
+              - 'mobile/**'
 
   deploy:
     name: Deploy ${{ matrix.app }}
@@ -48,6 +54,8 @@ jobs:
             context: backend
           - app: web
             context: web
+          - app: app
+            context: mobile
     steps:
       - name: Skip unchanged
         if: needs.changes.outputs[matrix.app] != 'true'
@@ -75,4 +83,4 @@ jobs:
 
       - name: Roll out new revision
         if: needs.changes.outputs[matrix.app] == 'true'
-        run: az containerapp update -g "$RESOURCE_GROUP" -n "harmonia-${{ matrix.app }}" --image "$IMAGE" --query properties.latestRevisionName -o tsv
+        run: az containerapp update -g "$RESOURCE_GROUP" -n "sonetto-${{ matrix.app }}" --image "$IMAGE" --query properties.latestRevisionName -o tsv

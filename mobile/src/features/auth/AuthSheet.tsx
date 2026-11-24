@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardScreen } from "@/ui/KeyboardScreen";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,7 +16,7 @@ export function AuthSheet({ title, subtitle, children }: AuthSheetProps) {
     <LinearGradient colors={brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.screen}>
       <StatusBar style="light" />
       <SafeAreaView style={styles.screen} edges={["top"]}>
-        <KeyboardAvoidingView style={styles.screen} behavior={Platform.select({ ios: "padding", default: undefined })}>
+        <KeyboardScreen style={styles.screen}>
           <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
             <View style={[styles.brand, { height: Math.max(280, 328 - insets.top) }]}>
               <Image source={logoImage} style={styles.logo} accessible={false} />
@@ -27,7 +28,7 @@ export function AuthSheet({ title, subtitle, children }: AuthSheetProps) {
               {children}
             </View>
           </ScrollView>
-        </KeyboardAvoidingView>
+        </KeyboardScreen>
       </SafeAreaView>
     </LinearGradient>
   );

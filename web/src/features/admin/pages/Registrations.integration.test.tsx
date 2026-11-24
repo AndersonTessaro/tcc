@@ -18,6 +18,7 @@ vi.mock("../adminService", () => ({
     createStudent: vi.fn(),
     createTeacher: vi.fn(),
     createInstrument: vi.fn(),
+    deleteInstrument: vi.fn(),
     createEnrollment: vi.fn(),
     setTeacherInstruments: vi.fn(),
   },

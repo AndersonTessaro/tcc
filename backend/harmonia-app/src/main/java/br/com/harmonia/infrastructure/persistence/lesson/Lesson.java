@@ -17,6 +17,9 @@ public class Lesson {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "series_id")
+    private UUID seriesId;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "enrollment_id")
     private Enrollment enrollment;

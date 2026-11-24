@@ -40,7 +40,7 @@ export default function PracticeOverview() {
   const items = practices.data ?? [];
   const latestPractice = items.reduce<StudentPractice | undefined>((latest, practice) =>
     !latest || practice.date > latest.date ? practice : latest, undefined);
-  const openRegister = () => router.push("/(student)/practice/register");
+  const openLessons = () => router.push("/(student)/(tabs)/lessons");
 
   return (
     <View style={styles.screen}>
@@ -84,7 +84,8 @@ export default function PracticeOverview() {
         )}
       </View>
       <View style={styles.footer}>
-        <Button label="Registrar prática" icon="add-circle-outline" onPress={openRegister} />
+        <Text style={styles.hint}>Para registrar uma prática, abra a aula em Aulas e toque em Responder prática.</Text>
+        <Button label="Ver aulas" icon="calendar-outline" variant="secondary" onPress={openLessons} />
       </View>
     </View>
   );
@@ -131,7 +132,8 @@ const styles = StyleSheet.create({
   body: { flex: 1, overflow: "hidden" },
   list: { flex: 1 },
   content: { flexGrow: 1, paddingHorizontal: space.screenGutter, paddingBottom: space.xxl, gap: space.md },
-  footer: { paddingHorizontal: space.screenGutter, paddingTop: space.md, paddingBottom: space.xxl },
+  footer: { paddingHorizontal: space.screenGutter, paddingTop: space.md, paddingBottom: space.xxl, gap: space.sm },
+  hint: { ...type.caption, textAlign: "center" },
   header: { gap: space.screenGutter },
   summaryCard: { gap: space.md, padding: space.xl },
   summaryValue: { ...type.body },

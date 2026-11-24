@@ -1,13 +1,15 @@
 import { useCallback, type ReactNode } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { DownloadButton } from "@/features/files/DownloadButton";
 import { formatTimeRange, lessonBadge } from "@/features/student/lessonStatus";
+import { PracticeRecordingDownload } from "@/features/student/PracticeRecordingDownload";
 import { studentService, type LessonAttachment } from "@/features/student/studentService";
 import { useResource } from "@/hooks/use-resource";
-import { formatFileSize, formatFullDate } from "@/lib/format";
+import { formatFileSize, formatFullDate, formatMinutes } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
+import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { ScreenHeader } from "@/ui/ScreenHeader";
 import { ScreenState } from "@/ui/ScreenState";
@@ -16,9 +18,14 @@ import { colors, radius, space, type } from "@/ui/theme";
 
 export default function LessonDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const fetchLesson = useCallback(() => studentService.lesson(id), [id]);
   const detail = useResource(fetchLesson, id);
   const lesson = detail.data?.lesson;
+  const practices = useResource(studentService.practices, "practices");
+  // Lessons answered before the one-answer rule may hold several practices; show them all.
+  const answers = practices.data?.filter((practice) => practice.lessonId === id) ?? [];
+  const canAnswer = !answers.length && (practices.data !== undefined || !!practices.error) && lesson?.status !== "CANCELED";
 
   return (
     <View style={styles.screen}>
@@ -43,7 +50,23 @@ export default function LessonDetail() {
 
           <Section title="Tarefa para casa">
             <Text style={styles.body}>{lesson.homework?.trim() || "Nenhuma tarefa informada."}</Text>
+            {canAnswer && (
+              <Button label="Responder prática" icon="musical-notes-outline"
+                onPress={() => router.push({ pathname: "/(student)/practice/register", params: { lessonId: lesson.id } })} />
+            )}
           </Section>
+
+          {answers.length ? (
+            <Section title={answers.length > 1 ? "Suas práticas" : "Sua prática"}>
+              {answers.map((answer) => (
+                <View key={answer.id} style={styles.answer}>
+                  <Text style={styles.body}>{formatFullDate(answer.date)} · {formatMinutes(answer.durationMin)}</Text>
+                  {answer.notes ? <Text style={styles.body}>{answer.notes}</Text> : null}
+                  <PracticeRecordingDownload practice={answer} download={studentService.downloadPracticeRecording} />
+                </View>
+              ))}
+            </Section>
+          ) : null}
 
           <Section title="Anexos">
             {detail.data.attachments.length ? (
@@ -108,4 +131,5 @@ const styles = StyleSheet.create({
   caption: { ...type.caption },
   attachment: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.field },
   download: { flex: 1 },
+  answer: { gap: space.xs },
 });

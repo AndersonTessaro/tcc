@@ -70,7 +70,7 @@ public class StudentController {
     }
 
     public record RegisterPractice(@Min(1) @Max(1440) int durationMin, LocalDate date, @Size(max = 500) String notes,
-                                   @Size(max = 255) String difficulty, @Min(1) @Max(5) Integer rating) {}
+                                   @Size(max = 255) String difficulty, @Min(1) @Max(5) Integer rating, UUID lessonId) {}
     public record AttendanceResponse(LocalDate date, AttendanceStatus status) {}
     public record NewGoal(@NotBlank @Size(max = 150) String title, @Size(max = 500) String description,
                           @NotNull GoalType type, @NotNull GoalPeriod period, @Min(1) int target) {
@@ -137,7 +137,7 @@ public class StudentController {
     @PreAuthorize("hasAuthority('practice.register')")
     public ProgressResponse registerPractice(@Valid @RequestBody RegisterPractice r) {
         return ProgressResponse.of(practice.register(r.durationMin(), r.date(),
-            r.notes(), r.difficulty(), r.rating()));
+            r.notes(), r.difficulty(), r.rating(), r.lessonId()));
     }
 
     @PostMapping(value = "/practices/{id}/recording", consumes = "multipart/form-data")

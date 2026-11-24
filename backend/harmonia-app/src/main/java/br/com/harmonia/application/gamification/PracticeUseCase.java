@@ -3,6 +3,12 @@ package br.com.harmonia.application.gamification;
 import br.com.harmonia.application.context.CurrentUserService;
 import br.com.harmonia.application.gamification.port.PracticeRepository;
 import br.com.harmonia.application.gamification.port.ProgressRepository;
+import br.com.harmonia.application.lesson.port.LessonRepository;
+import br.com.harmonia.domain.common.DuplicateResourceException;
+import br.com.harmonia.domain.common.ResourceNotFoundException;
+import br.com.harmonia.infrastructure.persistence.lesson.Lesson;
+import br.com.harmonia.infrastructure.persistence.lesson.LessonStatus;
+import br.com.harmonia.lessoncore.DomainValidationException;
 import br.com.harmonia.domain.gamification.GamificationService;
 import br.com.harmonia.domain.gamification.PracticeEntryRule;
 import br.com.harmonia.infrastructure.persistence.gamification.Practice;
@@ -24,16 +30,19 @@ import java.util.UUID;
 public class PracticeUseCase {
     private final PracticeRepository practices;
     private final ProgressRepository progresses;
+    private final LessonRepository lessons;
     private final CurrentUserService current;
     private final ApplicationEventPublisher events;
     private final GoalProgressService goalProgress;
     private final Clock clock;
     private final GamificationService gamification = new GamificationService();
 
-    public PracticeUseCase(PracticeRepository practices, ProgressRepository progresses, CurrentUserService current,
-                           ApplicationEventPublisher events, GoalProgressService goalProgress, Clock clock) {
+    public PracticeUseCase(PracticeRepository practices, ProgressRepository progresses, LessonRepository lessons,
+                           CurrentUserService current, ApplicationEventPublisher events, GoalProgressService goalProgress,
+                           Clock clock) {
         this.practices = practices;
         this.progresses = progresses;
+        this.lessons = lessons;
         this.current = current;
         this.events = events;
         this.goalProgress = goalProgress;
@@ -44,8 +53,9 @@ public class PracticeUseCase {
 
     @Transactional
     public PracticeRegistration register(int durationMin, LocalDate requestedDate, String notes, String difficulty,
-                                         Integer rating) {
+                                         Integer rating, UUID lessonId) {
         Student student = current.currentStudent();
+        Lesson lesson = lessonId == null ? null : answerableLesson(lessonId, student);
         LocalDate today = LocalDate.now(clock);
         LocalDate date = requestedDate == null ? today : requestedDate;
         List<Practice> sameDay = practices.findByStudentIdAndDateBetween(student.getId(), date, date);
@@ -60,6 +70,10 @@ public class PracticeUseCase {
         practice.setDifficulty(difficulty);
         practice.setRating(rating);
         practice.setXpEarned(xp);
+        if (lesson != null) {
+            practice.setLesson(lesson);
+            practice.setInstrument(lesson.getEnrollment().getInstrument());
+        }
         Practice savedPractice = practices.save(practice);
 
         Progress prog = progresses.findByStudentId(student.getId()).orElseGet(() -> {
@@ -77,6 +91,18 @@ public class PracticeUseCase {
         events.publishEvent(new PracticeRecordedEvent(student.getId(), savedPractice.getId(), durationMin, date));
         goalProgress.notifyReached(student.getId(), facts -> facts.withoutPractice(date, durationMin));
         return new PracticeRegistration(savedPractice, savedProgress);
+    }
+
+    private Lesson answerableLesson(UUID lessonId, Student student) {
+        Lesson lesson = lessons.findById(lessonId)
+            .filter(found -> found.getEnrollment().getStudent().getId().equals(student.getId()))
+            .orElseThrow(() -> new ResourceNotFoundException("Lesson"));
+        if (lesson.getStatus() == LessonStatus.CANCELED)
+            throw new DomainValidationException("A canceled lesson cannot receive practice");
+        // ponytail: check-then-insert; two simultaneous answers could both pass. Add a partial unique index if that matters.
+        if (practices.existsByLessonId(lessonId))
+            throw new DuplicateResourceException("This lesson already has a practice answer");
+        return lesson;
     }
 
     public int weeklyPracticeMin(UUID studentId) {

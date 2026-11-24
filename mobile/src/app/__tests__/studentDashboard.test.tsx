@@ -28,8 +28,7 @@ it("shows XP progress from server bounds and opens the practice register from th
   expect(screen.getByText("Nenhuma aula agendada")).toBeVisible();
   expect(screen.queryByLabelText("Notificações")).toBeNull();
 
-  await fireEvent.press(screen.getByRole("button", { name: "Registrar prática" }));
-  expect(mockPush).toHaveBeenCalledWith("/(student)/practice/register");
+  expect(screen.queryByRole("button", { name: "Registrar prática" })).toBeNull();
 
   expect(screen.queryByText("Ver minhas metas")).toBeNull();
   expect(screen.queryByRole("button", { name: /Prática semanal/ })).toBeNull();

@@ -18,7 +18,9 @@ export const lessonStatusLabel = (status: LessonStatus) => STATUS_LABEL[status];
 
 export const hhmm = (time: string) => time.slice(0, 5);
 
-export type LessonActions = { canComplete: boolean; canCancel: boolean; canReplace: boolean; canEdit: boolean };
+export type LessonActions = { canComplete: boolean; canCancel: boolean; canReplace: boolean; canReschedule: boolean; canFill: boolean };
+
+export type LessonSection = "schedule" | "content" | "practice";
 
 export function lessonActions(
   lesson: Pick<TeacherLesson, "status" | "date"> & Partial<Pick<TeacherLesson, "startTime">>,
@@ -30,7 +32,8 @@ export function lessonActions(
     canComplete: scheduled && canRecordAttendance(lesson, today, nowTime),
     canCancel: scheduled,
     canReplace: !scheduled,
-    canEdit: lesson.status !== "CANCELED",
+    canReschedule: scheduled,
+    canFill: lesson.status !== "CANCELED",
   };
 }
 

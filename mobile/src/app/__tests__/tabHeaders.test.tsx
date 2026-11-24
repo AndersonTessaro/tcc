@@ -24,6 +24,10 @@ jest.mock("@/features/teacher/teacherService", () => ({ teacherService: {
   students: jest.fn().mockResolvedValue([]), enrollments: jest.fn().mockResolvedValue([]), schedule: jest.fn().mockResolvedValue([]),
 } }));
 jest.mock("@/features/notifications/notificationService", () => ({ notificationService: { unreadCount: jest.fn().mockResolvedValue({ unreadCount: 0 }) } }));
+jest.mock("@/features/chat/chatService", () => ({
+  teacherChatService: { unreadCount: jest.fn(async () => ({ count: 0 })) },
+  studentChatService: { unreadCount: jest.fn(async () => ({ count: 0 })) },
+}));
 
 it.each([
   [StudentDashboard, "Olá, Ana!"], [StudentLessons, "Minhas aulas"], [StudentPractice, "Práticas em casa"],

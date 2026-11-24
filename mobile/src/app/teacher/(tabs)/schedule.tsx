@@ -7,6 +7,7 @@ import { MonthCalendar } from "@/features/teacher/MonthCalendar";
 import { useLessonActions } from "@/features/teacher/useLessonActions";
 import { useTabScrollToTop } from "@/hooks/use-tab-scroll-to-top";
 import { validateDate } from "@/features/teacher/lessonForm";
+import type { LessonSection } from "@/features/teacher/agenda";
 import { useResource } from "@/hooks/use-resource";
 import { formatFullDate, relativeDayLabel, todayIso } from "@/lib/format";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
@@ -40,7 +41,7 @@ export default function Schedule() {
   const newLesson = () => router.push({ pathname: "/teacher/new-lesson", params: { date } });
   const replace = (lesson: TeacherLesson) =>
     router.push({ pathname: "/teacher/makeup/[lessonId]", params: { lessonId: lesson.id, studentName: lesson.studentName, instrument: lesson.instrument, originalDate: lesson.date } });
-  const edit = (lesson: TeacherLesson) => router.push({ pathname: "/teacher/lesson/[id]", params: { id: lesson.id } });
+  const open = (lesson: TeacherLesson, section: LessonSection) => router.push({ pathname: "/teacher/lesson/[id]", params: { id: lesson.id, section } });
 
   const header = (
     <View style={styles.headerBlock}>
@@ -80,7 +81,7 @@ export default function Schedule() {
             onMark={markAttendance}
             onChangeStatus={changeStatus}
             onReplace={replace}
-            onEdit={edit}
+            onOpen={open}
           />
         )}
       />

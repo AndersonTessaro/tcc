@@ -1,3 +1,4 @@
+import { colors } from "@/ui/theme";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import More from "@/app/teacher/(tabs)/more";
 import Profile from "@/app/teacher/profile";
@@ -5,6 +6,7 @@ import Classes from "@/app/teacher/classes";
 import Makeups from "@/app/teacher/makeups";
 import Finance from "@/app/teacher/finance";
 import Settings from "@/app/teacher/settings";
+import StudentSettings from "@/app/(student)/settings";
 import Help from "@/app/teacher/help";
 import { accountService, type Account } from "@/features/account/accountService";
 import { teacherService, type TeacherMakeup } from "@/features/teacher/teacherService";
@@ -13,6 +15,7 @@ import { ApiError } from "@/lib/http/apiError";
 import { tokenStorage } from "@/lib/http/tokenStorage";
 import { confirm } from "@/lib/confirm";
 import { authService } from "@/features/auth/authService";
+import { teacherChatService } from "@/features/chat/chatService";
 
 const mockPush = jest.fn();
 const mockLogout = jest.fn();
@@ -25,6 +28,7 @@ jest.mock("@/hooks/use-tab-scroll-to-top", () => ({ useTabScrollToTop: jest.fn()
 jest.mock("@/features/auth/useAuth", () => ({ useAuth: () => ({ user: { displayName: "Nome antigo", username: "teacher" }, logout: mockLogout }) }));
 jest.mock("@/features/auth/authService", () => ({ authService: { logout: jest.fn() } }));
 jest.mock("@/features/account/accountService", () => ({ accountService: { get: jest.fn(), update: jest.fn(), changePassword: jest.fn() } }));
+jest.mock("@/features/chat/chatService", () => ({ teacherChatService: { unreadCount: jest.fn() } }));
 jest.mock("@/features/teacher/teacherService", () => ({ teacherService: { enrollments: jest.fn(), finance: jest.fn(), makeups: jest.fn() } }));
 jest.mock("@/ui/Toast", () => ({ useToast: () => ({ show: mockToast }) }));
 jest.mock("@/lib/http/tokenStorage", () => ({ tokenStorage: { clear: jest.fn() } }));
@@ -45,6 +49,7 @@ const makeup: TeacherMakeup = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  jest.mocked(teacherChatService.unreadCount).mockResolvedValue({ count: 0 });
   account.get.mockResolvedValue(profile);
   account.update.mockResolvedValue(profile);
   account.changePassword.mockResolvedValue(undefined);
@@ -60,17 +65,18 @@ it("shows the Figma menu in order and navigates to every screen", async () => {
   await render(<More />);
   expect(await screen.findByText("Maria Souza")).toBeVisible();
   expect(screen.getAllByRole("button").map((button) => button.props.accessibilityLabel)).toEqual([
-    "Ver perfil", "Turmas", "Horários", "Reposições", "Histórico de aulas", "Financeiro", "Configurações", "Ajuda", "Sair",
+    "Ver perfil", "Chat", "Turmas", "Horários", "Reposições", "Histórico de aulas", "Financeiro", "Configurações", "Ajuda", "Sair",
   ]);
   for (const [label, route] of [
-    ["Ver perfil", "profile"], ["Turmas", "classes"], ["Horários", "schedules"], ["Reposições", "makeups"], ["Histórico de aulas", "history"],
+    ["Ver perfil", "profile"], ["Chat", "chats"], ["Turmas", "classes"], ["Horários", "schedules"], ["Reposições", "makeups"], ["Histórico de aulas", "history"],
     ["Financeiro", "finance"], ["Configurações", "settings"], ["Ajuda", "help"],
   ]) {
     await fireEvent.press(screen.getByRole("button", { name: label }));
     expect(mockPush).toHaveBeenLastCalledWith(`/teacher/${route}`);
   }
   await fireEvent.press(screen.getByRole("button", { name: "Sair" }));
-  expect(authService.logout).toHaveBeenCalled();
+  expect(authService.logout).not.toHaveBeenCalled();
+  expect(screen.getByText("Sair")).toHaveStyle({ color: colors.danger });
   expect(mockLogout).toHaveBeenCalled();
 });
 
@@ -206,14 +212,22 @@ it("shows wrong current password 422 on its field and keeps the session", async 
   expect(tokenStorage.clear).not.toHaveBeenCalled();
 });
 
-it("changes the password, clears local tokens and logs out after success", async () => {
+it("changes the password and delegates sign-out to the provider after success", async () => {
   await render(<Settings />);
   await fillPasswords();
   await fireEvent.press(screen.getByRole("button", { name: "Trocar senha" }));
   await waitFor(() => expect(mockLogout).toHaveBeenCalledTimes(1));
   expect(account.changePassword).toHaveBeenCalledWith({ currentPassword: "Current@123", newPassword: "Changed@123" });
   expect(mockToast).toHaveBeenCalledWith("Senha alterada. Entre novamente.", "success");
-  expect(tokenStorage.clear).toHaveBeenCalledTimes(1);
+  expect(tokenStorage.clear).not.toHaveBeenCalled();
+});
+
+it("lets a student change the password from the student settings route", async () => {
+  await render(<StudentSettings />);
+  await fillPasswords();
+  await fireEvent.press(screen.getByRole("button", { name: "Trocar senha" }));
+  await waitFor(() => expect(mockLogout).toHaveBeenCalledTimes(1));
+  expect(account.changePassword).toHaveBeenCalledWith({ currentPassword: "Current@123", newPassword: "Changed@123" });
 });
 
 it.each([
@@ -247,13 +261,4 @@ it("updates pristine profile fields on refresh and preserves unsaved edits", asy
   account.get.mockResolvedValue({ ...updated, displayName: "Outro nome" });
   await act(() => screen.getByLabelText("Perfil").props.refreshControl.props.onRefresh());
   expect(screen.getByLabelText("Nome")).toHaveProp("value", "Rascunho local");
-});
-
-it("logs out even when clearing native token storage fails", async () => {
-  jest.mocked(tokenStorage.clear).mockRejectedValueOnce(new Error("Storage unavailable"));
-  await render(<Settings />);
-  await fillPasswords();
-  await fireEvent.press(screen.getByRole("button", { name: "Trocar senha" }));
-  expect(mockLogout).toHaveBeenCalledTimes(1);
-  expect(mockToast).toHaveBeenCalledWith("Não foi possível limpar a sessão salva. A senha já foi alterada.", "error");
 });

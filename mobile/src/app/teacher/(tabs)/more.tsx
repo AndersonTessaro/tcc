@@ -4,8 +4,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/features/auth/useAuth";
 import { accountService } from "@/features/account/accountService";
+import { ChatMenuItem } from "@/features/chat/ChatMenuItem";
 import { useResource } from "@/hooks/use-resource";
-import { authService } from "@/features/auth/authService";
 import { useTabScrollToTop } from "@/hooks/use-tab-scroll-to-top";
 import { confirm } from "@/lib/confirm";
 import { Card } from "@/ui/Card";
@@ -26,8 +26,7 @@ export default function More() {
 
   const signOut = async () => {
     if (!(await confirm({ title: "Sair da conta?", message: "Você precisará entrar novamente.", confirmLabel: "Sair", destructive: true }))) return;
-    await authService.logout().catch(() => undefined);
-    logout();
+    await logout();
   };
 
   const icon = (name: MenuIcon, color: string = colors.text) => <Ionicons name={name} size={26} color={color} accessible={false} />;
@@ -49,6 +48,7 @@ export default function More() {
         </Pressable>
 
         <View>
+          <ChatMenuItem role="teacher" />
           <ListRow variant="plain" title="Turmas" accessibilityLabel="Turmas" leading={icon("people-outline")} onPress={() => router.push("/teacher/classes")} />
           <ListRow variant="plain" title="Horários" accessibilityLabel="Horários" leading={icon("time-outline")} onPress={() => router.push("/teacher/schedules")} />
           <ListRow variant="plain" title="Reposições" accessibilityLabel="Reposições" leading={icon("repeat")} onPress={() => router.push("/teacher/makeups")} />
@@ -56,7 +56,7 @@ export default function More() {
           <ListRow variant="plain" title="Financeiro" accessibilityLabel="Financeiro" leading={icon("wallet-outline")} onPress={() => router.push("/teacher/finance")} />
           <ListRow variant="plain" title="Configurações" accessibilityLabel="Configurações" leading={icon("settings-outline")} onPress={() => router.push("/teacher/settings")} />
           <ListRow variant="plain" title="Ajuda" accessibilityLabel="Ajuda" leading={icon("help-circle-outline")} onPress={() => router.push("/teacher/help")} />
-          <ListRow variant="plain" title="Sair" accessibilityLabel="Sair" leading={icon("log-out-outline")} onPress={signOut} />
+          <ListRow variant="plain" title="Sair" tone="danger" accessibilityLabel="Sair" leading={icon("log-out-outline")} onPress={signOut} />
         </View>
       </ScrollView>
     </View>

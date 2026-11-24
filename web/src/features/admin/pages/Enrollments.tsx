@@ -9,6 +9,7 @@ import { OptionSelect } from "../components/OptionSelect";
 import { useAdminList } from "../hooks/useAdminList";
 import { useCreateDrawer } from "../hooks/useCreateDrawer";
 import { brl } from "../format";
+import { confirmDialog } from "@/components/confirm";
 
 type StatusFilter = EnrollmentStatus | "";
 
@@ -114,7 +115,11 @@ function EnrollmentEditor({ enrollment, onSaved }: { enrollment: EnrollmentDto; 
       await onSaved();
       return;
     }
-    if (statusChanged && status === "CLOSED" && !window.confirm(`Encerrar a matrícula de ${enrollment.student.name}?`)) return;
+    if (statusChanged && status === "CLOSED" && !(await confirmDialog({
+      title: "Encerrar matrícula?",
+      message: `A matrícula de ${enrollment.student.name} deixa de estar ativa e sai das listas do professor.`,
+      confirmLabel: "Encerrar matrícula",
+    }))) return;
     setSaving(true);
     try {
       if (statusChanged) await adminService.setEnrollmentStatus(enrollment.id, status);

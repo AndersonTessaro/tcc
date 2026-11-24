@@ -1,5 +1,6 @@
 package br.com.harmonia.application.admin;
 
+import br.com.harmonia.application.gamification.port.PracticeRepository;
 import br.com.harmonia.application.profile.port.*;
 import br.com.harmonia.application.security.port.RoleRepository;
 import br.com.harmonia.application.security.port.UserRepository;
@@ -23,7 +24,8 @@ class AdminEnrollmentsUseCaseTest {
     private final EnrollmentRepository enrollments = mock(EnrollmentRepository.class);
     private final AdminRegistrationUseCase uc = new AdminRegistrationUseCase(mock(UserRepository.class),
         mock(RoleRepository.class), mock(StudentRepository.class), mock(TeacherRepository.class),
-        mock(InstrumentRepository.class), enrollments, mock(PasswordEncoder.class), current, mock(SchoolRepository.class));
+        mock(InstrumentRepository.class), enrollments, mock(PasswordEncoder.class), current, mock(SchoolRepository.class),
+        mock(ClassGroupRepository.class), mock(PracticeRepository.class));
 
     @org.junit.jupiter.api.BeforeEach
     void allowSystemAdmin() {

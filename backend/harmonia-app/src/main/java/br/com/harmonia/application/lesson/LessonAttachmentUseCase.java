@@ -16,7 +16,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.Arrays;
 import java.util.UUID;
 
 @Service
@@ -44,14 +43,18 @@ public class LessonAttachmentUseCase {
         Lesson lesson = teacherLesson(lessonId);
         lifecyclePolicy.validateContentEdit(LessonStatuses.toSessionStatus(lesson.getStatus()));
         String fileName = displayName(file.getOriginalFilename());
-        if (file.getSize() > LessonAttachmentRule.MAX_BYTES)
-            throw new org.springframework.web.multipart.MaxUploadSizeExceededException(LessonAttachmentRule.MAX_BYTES);
+        long limit = LessonAttachmentRule.maxBytes(fileName, file.getContentType());
+        if (file.getSize() > limit)
+            throw new org.springframework.web.multipart.MaxUploadSizeExceededException(limit);
         try {
-            byte[] content = file.getBytes();
-            LessonAttachmentRule.validate(fileName, file.getContentType(), file.getSize(),
-                Arrays.copyOf(content, Math.min(content.length, LessonAttachmentRule.HEAD_BYTES)),
-                attachments.countByLessonId(lessonId));
-            String path = storage.save(fileName, content);
+            try (var header = file.getInputStream()) {
+                LessonAttachmentRule.validate(fileName, file.getContentType(), file.getSize(),
+                    header.readNBytes(LessonAttachmentRule.HEAD_BYTES), attachments.countByLessonId(lessonId));
+            }
+            String path;
+            try (var content = file.getInputStream()) {
+                path = storage.save(fileName, content, file.getSize());
+            }
             StorageTransactions.deleteOnRollback(storage, path);
             LessonAttachment attachment = new LessonAttachment();
             attachment.setLesson(lesson);

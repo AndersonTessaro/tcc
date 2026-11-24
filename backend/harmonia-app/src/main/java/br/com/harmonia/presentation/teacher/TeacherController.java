@@ -8,6 +8,8 @@ import br.com.harmonia.application.material.TeacherMaterialUseCase;
 import br.com.harmonia.application.teacher.TeacherReportUseCase;
 import br.com.harmonia.application.teacher.TeacherUseCase;
 import br.com.harmonia.domain.report.ReportPeriod;
+import br.com.harmonia.lessoncore.LessonRecurrence;
+import br.com.harmonia.presentation.response.CreatedLessonResponse;
 import br.com.harmonia.presentation.response.EnrollmentOption;
 import br.com.harmonia.presentation.response.AttendanceResponse;
 import br.com.harmonia.presentation.response.AttachmentResponse;
@@ -61,7 +63,8 @@ public class TeacherController {
 
     public record NewLesson(@NotNull UUID enrollmentId, @NotNull LocalDate date,
                             @NotNull LocalTime startTime, @NotNull LocalTime endTime,
-                            @Size(max = 1000) String content, @Size(max = 1000) String homework) {}
+                            @Size(max = 1000) String content, @Size(max = 1000) String homework,
+                            LessonRecurrence recurrence, LocalDate repeatUntil) {}
     public record UpdateLesson(@NotNull LocalDate date, @NotNull LocalTime startTime, @NotNull LocalTime endTime,
                                @Size(max = 1000) String content, @Size(max = 1000) String homework) {}
     public record RegisterAttendance(@NotNull AttendanceStatus status, String justification) {}
@@ -123,9 +126,10 @@ public class TeacherController {
 
     @PostMapping("/lessons")
     @PreAuthorize("hasAuthority('lesson.manage')")
-    public LessonResponse newLesson(@Valid @RequestBody NewLesson r) {
-        return LessonResponse.of(lesson.register(r.enrollmentId(), r.date(), r.startTime(), r.endTime(),
-            r.content(), r.homework()));
+    public CreatedLessonResponse newLesson(@Valid @RequestBody NewLesson r) {
+        var registration = lesson.register(r.enrollmentId(), r.date(), r.startTime(), r.endTime(),
+            r.content(), r.homework(), r.recurrence(), r.repeatUntil());
+        return new CreatedLessonResponse(LessonResponse.of(registration.lesson()), registration.occurrences());
     }
 
     @GetMapping("/lessons/{id}")

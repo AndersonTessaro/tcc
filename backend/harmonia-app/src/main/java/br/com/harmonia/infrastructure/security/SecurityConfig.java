@@ -69,7 +69,7 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(a -> a
                 .requestMatchers("/auth/login", "/auth/refresh", "/auth/logout",
-                                 "/auth/forgot-password", "/auth/reset-password").permitAll()
+                                 "/auth/forgot-password", "/auth/reset-password", "/terms").permitAll()
                 .anyRequest().authenticated())
             .oauth2ResourceServer(o -> o.bearerTokenResolver(resolver).jwt(j -> j.jwtAuthenticationConverter(conv)));
         return http.build();

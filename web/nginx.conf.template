@@ -12,6 +12,9 @@ server {
         # Backend scopes the refresh cookie to /auth; the browser sees it under /api/auth.
         proxy_cookie_path /auth /api/auth;
         client_max_body_size 51m;
+        # API scales to zero; nginx's 60 s default gives up before the JVM finishes a cold start.
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
     }
 
     location / {

@@ -36,7 +36,16 @@ async function post(request: APIRequestContext, path: string, token: string, dat
   return res.json();
 }
 
+async function acceptTerms(page: Page, user: string, password: string) {
+  const res = await page.request.post(`${API}/auth/login`, { data: { login: user, password } });
+  if (!res.ok()) return;
+  const bearer = (await res.json()).accessToken;
+  const { version } = await (await page.request.get(`${API}/terms`)).json();
+  await page.request.post(`${API}/account/terms`, { data: { version }, headers: { Authorization: `Bearer ${bearer}` } });
+}
+
 async function login(page: Page, user: string, password = PASSWORD) {
+  await acceptTerms(page, user, password);
   await page.goto("/login");
   await page.getByRole("textbox", { name: "Usuário ou e-mail" }).fill(user);
   await page.getByRole("textbox", { name: "Senha" }).fill(password);
@@ -179,12 +188,11 @@ test.describe.serial("Painel web: admin do sistema e gestor da escola", () => {
     await loginAs(page, ADMIN.login, ADMIN.password);
     await menu(page).getByRole("link", { name: "Escolas" }).click();
     await page.getByRole("button", { name: `Editar ${schoolA}` }).click();
-    page.once("dialog", (dialog) => {
-      expect(dialog.message()).toContain("não conseguirão mais entrar");
-      void dialog.accept();
-    });
     await page.getByRole("dialog").getByText("Escola ativa").click();
     await page.getByRole("dialog").getByRole("button", { name: /Salvar/ }).click();
+    const confirm = page.getByRole("alertdialog", { name: "Desativar escola?" });
+    await expect(confirm).toContainText("não conseguirão mais entrar");
+    await confirm.getByRole("button", { name: "Desativar escola" }).click();
     await expect(page.getByRole("row", { name: new RegExp(schoolA) }).getByText("Inativa")).toBeVisible();
     await expect(page.getByRole("button", { name: `Criar gestor de ${schoolA}` })).toBeDisabled();
 

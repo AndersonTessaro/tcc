@@ -23,7 +23,21 @@ async function post(request: APIRequestContext, path: string, token: string, dat
   return res.json();
 }
 
+async function acceptTerms(page: Page, user: string, password: string) {
+  const res = await page.request.post(`${API}/auth/login`, { data: { login: user, password } });
+  if (!res.ok()) return;
+  const bearer = (await res.json()).accessToken;
+  const { version } = await (await page.request.get(`${API}/terms`)).json();
+  await page.request.post(`${API}/account/terms`, { data: { version }, headers: { Authorization: `Bearer ${bearer}` } });
+}
+
+async function answerNextLesson(page: Page) {
+  await page.getByRole("button", { name: /Próxima aula/ }).click();
+  await page.getByRole("button", { name: "Responder prática" }).click();
+}
+
 async function login(page: Page, user: string, password = PASSWORD) {
+  await acceptTerms(page, user, password);
   await page.goto("/login");
   await page.getByRole("textbox", { name: "E-mail ou usuário" }).fill(user);
   await page.getByRole("textbox", { name: "Senha" }).fill(password);
@@ -69,10 +83,9 @@ test.describe.serial("Fluxo da escola: professor e aluno", () => {
     await page.getByRole("radio", { name: new RegExp(student.name) }).click();
     await page.getByRole("textbox", { name: "Data" }).fill(isoDate(1));
     await page.getByRole("textbox", { name: "Início" }).fill("15:00");
-    await page.getByRole("textbox", { name: "Conteúdo trabalhado" }).fill(lesson.content);
-    await page.getByRole("textbox", { name: "Tarefa para casa" }).fill(lesson.homework);
+    await expect(page.getByRole("textbox", { name: "Conteúdo trabalhado" })).toHaveCount(0);
+    await expect(page.getByText("Situação da aula")).toHaveCount(0);
     await expect(page.getByText("Horário livre")).toBeVisible();
-    await expect(page.getByText(/a aula nasce agendada/)).toBeVisible();
     await page.getByRole("button", { name: /Agendar aula/ }).click();
 
     await expect(page).toHaveURL(/teacher\/schedule/);
@@ -81,8 +94,18 @@ test.describe.serial("Fluxo da escola: professor e aluno", () => {
     const [y, m, d] = isoDate(1).split("-");
     if (d === "01") await page.getByRole("button", { name: "Próximo mês" }).click();
     await page.getByRole("button", { name: new RegExp(`^${d}/${m}/${y}`) }).click();
+
+    await page.getByRole("button", { name: "Conteúdo", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Conteúdo da aula" })).toBeVisible();
+    await page.getByRole("textbox", { name: "Conteúdo trabalhado" }).fill(lesson.content);
+    await page.getByRole("button", { name: "Salvar aula" }).click();
     await expect(page.getByText(`Conteúdo: ${lesson.content}`)).toBeVisible();
-    await expect(page.getByText(`Tarefa: ${lesson.homework}`)).toBeVisible();
+
+    await page.getByRole("button", { name: "Prática", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Prática do aluno" })).toBeVisible();
+    await page.getByRole("textbox", { name: "Prática para o aluno" }).fill(lesson.homework);
+    await page.getByRole("button", { name: "Salvar aula" }).click();
+    await expect(page.getByText(`Prática: ${lesson.homework}`)).toBeVisible();
   });
 
   test("aula repetida no mesmo horário é recusada", async ({ page }) => {
@@ -109,7 +132,7 @@ test.describe.serial("Fluxo da escola: professor e aluno", () => {
 
   test("aluno não registra prática fora dos limites", async ({ page }) => {
     await login(page, student.username);
-    await page.getByRole("button", { name: "Registrar prática" }).first().click();
+    await answerNextLesson(page);
     const minutes = page.getByRole("textbox", { name: "Tempo de prática em minutos" });
     for (const invalid of ["0", "2000", "abc"]) {
       await minutes.fill(invalid);
@@ -129,7 +152,7 @@ test.describe.serial("Fluxo da escola: professor e aluno", () => {
     await expect(page.getByText("1 h de prática por semana")).toBeVisible();
 
     await page.getByRole("tab", { name: "Início" }).click();
-    await page.getByRole("button", { name: "Registrar prática" }).first().click();
+    await answerNextLesson(page);
     await page.getByRole("radio", { name: "30 min" }).click();
     await page.getByRole("textbox", { name: "O que praticou? (opcional)" }).fill(lesson.content);
     await page.getByRole("radio", { name: "Avaliação 4 de 5" }).click();

@@ -14,6 +14,7 @@ import { ListState } from "../components/ListState";
 import { OptionSelect } from "../components/OptionSelect";
 import { useAdminList } from "../hooks/useAdminList";
 import { useCreateDrawer } from "../hooks/useCreateDrawer";
+import { confirmDialog } from "@/components/confirm";
 
 const loadOptions = async () => {
   const [teachers, enrollments] = await Promise.all([adminService.teachers(), adminService.enrollments("ACTIVE")]);
@@ -51,7 +52,12 @@ export default function Agenda() {
   };
   const changeStatus = async (lesson: LessonDto, status: LessonStatus) => {
     const action = status === "DONE" ? "Concluir" : "Cancelar";
-    if (!window.confirm(`${action} a aula de ${lesson.studentName} em ${formatDate(lesson.date)}? Esta mudança não pode ser desfeita.`)) return;
+    if (!(await confirmDialog({
+      title: `${action} aula?`,
+      message: `Aula de ${lesson.studentName} em ${formatDate(lesson.date)}. Esta mudança não pode ser desfeita.`,
+      confirmLabel: `${action} aula`,
+      tone: status === "DONE" ? "primary" : "danger",
+    }))) return;
     setBusy(true);
     try {
       await agendaService.setStatus(lesson.id, status);

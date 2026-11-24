@@ -8,7 +8,7 @@ export function SchoolSelect({ schools, loading, error, value, onChange }: {
   const active = schools.filter((school) => school.active);
   return (
     <div className="space-y-2">
-      <OptionSelect label="Escola" value={value} onChange={onChange} disabled={loading || !!error}
+      <OptionSelect label="Escola" value={value} onChange={onChange} disabled={loading || !!error} searchLabel="Buscar escola"
         options={active.map((school) => ({ id: school.id, label: school.name }))} />
       <ListState loading={loading} error={error} empty={!active.length} emptyMessage="Nenhuma escola ativa. Cadastre ou ative uma escola para continuar." />
     </div>

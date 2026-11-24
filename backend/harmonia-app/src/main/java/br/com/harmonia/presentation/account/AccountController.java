@@ -45,6 +45,7 @@ public class AccountController {
     }
 
     public record UpdateAccount(@NotBlank @Size(max = 120) String displayName, @Size(max = 500) String bio) {}
+    public record AcceptTerms(@NotBlank String version) {}
     public record ChangePassword(@NotBlank String currentPassword, @NotBlank @Size(min = 8) String newPassword) {
         @AssertTrue(message = "password must contain at most 72 UTF-8 bytes")
         public boolean isPasswordWithinByteLimit() {
@@ -65,6 +66,12 @@ public class AccountController {
     @PutMapping("/password")
     public ResponseEntity<Void> password(@Valid @RequestBody ChangePassword request) {
         account.changePassword(request.currentPassword(), request.newPassword());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/terms")
+    public ResponseEntity<Void> acceptTerms(@Valid @RequestBody AcceptTerms request) {
+        account.acceptTerms(request.version());
         return ResponseEntity.noContent().build();
     }
 }

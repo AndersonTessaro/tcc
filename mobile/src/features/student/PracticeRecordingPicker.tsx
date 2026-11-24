@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
+import { AudioRecorderButton } from "@/features/files/AudioRecorderButton";
 import { formatFileSize } from "@/lib/format";
 import type { PickedFile } from "@/lib/http/formFile";
 import { Button } from "@/ui/Button";
@@ -24,20 +25,27 @@ export function PracticeRecordingPicker({ file, onChange, error, onError, disabl
   const toast = useToast();
   const pickingRef = useRef(false);
   const [picking, setPicking] = useState(false);
-  const pick = async (source: "video" | "audio") => {
+  const accept = (chosen: PickedFile) => {
+    const nextError = recordingError(chosen);
+    onError(nextError);
+    onChange(nextError ? null : chosen);
+  };
+  const pick = async (source: "video" | "camera" | "audio") => {
     if (disabled || pickingRef.current) return;
     pickingRef.current = true;
     setPicking(true);
     onPickingChange(true);
     try {
       let chosen: PickedFile | null = null;
-      if (source === "video") {
-        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (source === "video" || source === "camera") {
+        const camera = source === "camera";
+        const permission = camera ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permission.granted) {
-          toast.show("Permita o acesso à galeria para escolher um vídeo.", "error");
+          toast.show(camera ? "Permita o acesso à câmera para gravar um vídeo." : "Permita o acesso à galeria para escolher um vídeo.", "error");
           return;
         }
-        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["videos"], allowsEditing: false, quality: 1 });
+        const options: ImagePicker.ImagePickerOptions = { mediaTypes: ["videos"], allowsEditing: false, quality: 1 };
+        const result = camera ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
         const asset = result.canceled ? null : result.assets[0];
         if (asset) {
           let name = asset.fileName || asset.uri.split("/").pop() || "practice";
@@ -48,11 +56,7 @@ export function PracticeRecordingPicker({ file, onChange, error, onError, disabl
         const result = await DocumentPicker.getDocumentAsync({ type: "audio/*", copyToCacheDirectory: true });
         chosen = result.canceled ? null : result.assets[0];
       }
-      if (chosen) {
-        const nextError = recordingError(chosen);
-        onError(nextError);
-        onChange(nextError ? null : chosen);
-      }
+      if (chosen) accept(chosen);
     } catch {
       toast.show("Não foi possível abrir o seletor de arquivos.", "error");
     } finally {
@@ -79,10 +83,12 @@ export function PracticeRecordingPicker({ file, onChange, error, onError, disabl
           </View>
         </>
       ) : (
-        <>
-          <Button label="Vídeo da galeria" variant="secondary" icon="videocam-outline" onPress={() => pick("video")} disabled={disabled || picking} />
-          <Button label="Arquivo de áudio" variant="secondary" icon="musical-note-outline" onPress={() => pick("audio")} disabled={disabled || picking} />
-        </>
+        <View style={styles.actions}>
+          <AudioRecorderButton onRecorded={accept} disabled={disabled || picking} style={styles.choice} />
+          <Button label="Gravar vídeo" variant="secondary" icon="camera-outline" onPress={() => pick("camera")} disabled={disabled || picking} style={styles.choice} />
+          <Button label="Vídeo da galeria" variant="secondary" icon="videocam-outline" onPress={() => pick("video")} disabled={disabled || picking} style={styles.choice} />
+          <Button label="Arquivo de áudio" variant="secondary" icon="musical-note-outline" onPress={() => pick("audio")} disabled={disabled || picking} style={styles.choice} />
+        </View>
       )}
       <Text style={styles.hint}>Vídeo até 150 MB · áudio até 50 MB.</Text>
       {error ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
@@ -97,6 +103,7 @@ const styles = StyleSheet.create({
   fileName: { ...type.body, color: colors.muted, flex: 1 },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   action: { flexGrow: 1 },
+  choice: { flexGrow: 1, flexBasis: "45%" },
   hint: { ...type.caption },
   error: { ...type.caption, color: colors.danger },
 });

@@ -8,6 +8,8 @@ import { useAuth } from "@/features/auth/useAuth";
 import { colors } from "@/ui/theme";
 
 const activeTabs: Record<string, string> = {
+  chats: "more",
+  chat: "more",
   notifications: "dashboard",
   student: "students",
   "student-form": "students",

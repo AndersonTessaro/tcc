@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardScreen } from "@/ui/KeyboardScreen";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { confirm } from "@/lib/confirm";
 import { apiErrorMessage } from "@/lib/http/errorMessage";
@@ -82,7 +83,7 @@ export function GoalForm({ onSubmit, onSaved, onClose }: GoalFormProps) {
 
   return (
     <Modal visible transparent animationType={reducedMotion ? "none" : "fade"} onRequestClose={close}>
-      <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardScreen style={styles.backdrop}>
         <Pressable accessibilityRole="button" accessibilityLabel="Fechar" style={StyleSheet.absoluteFill} onPress={close} />
         <View accessibilityViewIsModal style={styles.editor}>
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -111,7 +112,7 @@ export function GoalForm({ onSubmit, onSaved, onClose }: GoalFormProps) {
             <Button label="Cancelar" variant="ghost" onPress={close} disabled={saving} />
           </ScrollView>
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardScreen>
     </Modal>
   );
 }

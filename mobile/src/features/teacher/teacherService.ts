@@ -1,3 +1,4 @@
+import type { LessonRecurrence } from "./lessonForm";
 import { api, MEDIA_TIMEOUT_MS } from "../../lib/http";
 import { appendFile, type PickedFile } from "../../lib/http/formFile";
 import type { LessonAttachment, MaterialSource, StudentPractice } from "../student/studentService";
@@ -198,9 +199,9 @@ export const teacherService = {
     date: string;
     startTime: string;
     endTime: string;
-    content?: string;
-    homework?: string;
-  }) => api.post<TeacherLesson>("/teacher/lessons", b),
+    recurrence?: LessonRecurrence;
+    repeatUntil?: string;
+  }) => api.post<TeacherLesson & { occurrences: number }>("/teacher/lessons", b),
   lesson: (id: string) => api.get<TeacherLessonDetail>(`/teacher/lessons/${id}`),
   updateLesson: (id: string, body: UpdateLesson) => api.put<TeacherLesson>(`/teacher/lessons/${id}`, body),
   uploadLessonAttachment: (lessonId: string, file: PickedFile) => {
@@ -219,7 +220,7 @@ export const teacherService = {
   history: (start: string, end: string) =>
     api.get<TeacherLesson[]>(`/teacher/lessons?start=${start}&end=${end}`),
   attendance: (lessonId: string, status: AttendanceStatus, justification?: string) =>
-    api.post<any>(`/teacher/lessons/${lessonId}/attendance`, { status, justification }),
+    api.post<unknown>(`/teacher/lessons/${lessonId}/attendance`, { status, justification }),
   schedule: (date: string) => api.get<TeacherLesson[]>(`/teacher/schedule?date=${date}`),
   changeLessonStatus: (lessonId: string, status: LessonStatus) =>
     api.patch<TeacherLesson>(`/teacher/lessons/${lessonId}/status`, { status }),

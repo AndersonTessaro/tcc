@@ -15,7 +15,8 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 44, right: 0, bottom: 0, left: 0 }),
 }));
 jest.mock("@/features/student/studentService", () => ({
-  studentService: { lessons: jest.fn(), lesson: jest.fn(), downloadLessonAttachment: jest.fn() },
+  studentService: { lessons: jest.fn(), lesson: jest.fn(), downloadLessonAttachment: jest.fn(),
+    practices: jest.fn().mockResolvedValue([]), downloadPracticeRecording: jest.fn() },
 }));
 const mockShow = jest.fn();
 jest.mock("@/ui/Toast", () => ({ useToast: () => ({ show: mockShow }) }));
@@ -105,4 +106,39 @@ it("downloads a lesson attachment through the student endpoint", async () => {
 
   await waitFor(() => expect(saveDownload).toHaveBeenCalledWith(bytes, "Exercícios.pdf", "application/pdf"));
   expect(service.downloadLessonAttachment).toHaveBeenCalledWith("lesson-1", "attachment-1");
+});
+
+it("answers the lesson homework with a practice", async () => {
+  service.lesson.mockResolvedValue({ lesson, attachments: [] });
+  await render(<LessonDetail />);
+
+  await fireEvent.press(await screen.findByRole("button", { name: "Responder prática" }));
+
+  expect(mockPush).toHaveBeenCalledWith({ pathname: "/(student)/practice/register", params: { lessonId: "lesson-1" } });
+});
+
+it("does not offer a practice answer for a canceled lesson", async () => {
+  service.lesson.mockResolvedValue({ lesson: { ...lesson, status: "CANCELED" }, attachments: [] });
+  await render(<LessonDetail />);
+
+  expect(await screen.findByText("Professor: Maria Santos")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Responder prática" })).toBeNull();
+});
+
+it("shows the student's own answer instead of offering a second one", async () => {
+  service.lesson.mockResolvedValue({ lesson, attachments: [] });
+  service.practices.mockResolvedValue([
+    { id: "p-1", date: "2026-07-02", durationMin: 20, notes: "Escalas com metrônomo", difficulty: null, rating: 4,
+      recording: { fileName: "gravacao-02-07-2026-10h00m00.webm", contentType: "audio/webm", sizeBytes: 2048, uploadedAt: "2026-07-02T10:00:00" },
+      lessonId: "lesson-1" },
+    { id: "p-2", date: "2026-07-03", durationMin: 15, notes: "Outra aula", difficulty: null, rating: null, recording: null, lessonId: "lesson-2" },
+  ]);
+  await render(<LessonDetail />);
+
+  expect(await screen.findByRole("header", { name: "Sua prática" })).toBeVisible();
+  expect(screen.getByText("02/07/2026 · 20min")).toBeVisible();
+  expect(screen.getByText("Escalas com metrônomo")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Baixar gravação gravacao-02-07-2026-10h00m00.webm" })).toBeVisible();
+  expect(screen.queryByText("Outra aula")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Responder prática" })).toBeNull();
 });

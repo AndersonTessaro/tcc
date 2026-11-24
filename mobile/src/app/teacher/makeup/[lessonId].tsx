@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardScreen } from "@/ui/KeyboardScreen";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { teacherService, type MakeupLink } from "@/features/teacher/teacherService";
 import { hhmm, scheduleHref } from "@/features/teacher/agenda";
@@ -79,7 +80,7 @@ export default function Makeup() {
   const backToSchedule = () => router.replace(scheduleHref(link?.newLesson.date ?? date));
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardScreen style={styles.screen}>
       <ScreenHeader title="Reposição" back />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         {contextStudent || contextDate ? (
@@ -122,7 +123,7 @@ export default function Makeup() {
           </>
         )}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
   );
 }
 

@@ -12,6 +12,7 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Clock;
 import java.time.Instant;
+import br.com.harmonia.application.lesson.port.LessonRepository;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
@@ -24,13 +25,14 @@ import static org.mockito.Mockito.*;
 class PracticeUseCaseTest {
     @Mock PracticeRepository practices;
     @Mock ProgressRepository progresses;
+    @Mock LessonRepository lessons;
     @Mock CurrentUserService current;
     @Mock ApplicationEventPublisher events;
     @Mock GoalProgressService goalProgress;
 
     private PracticeUseCase useCase(String instant) {
         Clock clock = Clock.fixed(Instant.parse(instant), ZoneId.of("America/Sao_Paulo"));
-        return new PracticeUseCase(practices, progresses, current, events, goalProgress, clock);
+        return new PracticeUseCase(practices, progresses, lessons, current, events, goalProgress, clock);
     }
 
     @Test

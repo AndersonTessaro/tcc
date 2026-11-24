@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { answerConfirm } from "@/test/dialog";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { toast } from "sonner";
 import { adminService } from "../adminService";
@@ -59,21 +60,20 @@ describe("Enrollments page", () => {
   });
 
   it("confirms closure before saving a status change", async () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     render(<Enrollments />);
     await screen.findByText("Piano - Iniciantes");
     const editor = openEditor();
     fireEvent.change(editor.getByLabelText("Status"), { target: { value: "CLOSED" } });
     fireEvent.click(editor.getByRole("button", { name: "Salvar alterações" }));
-    expect(confirm).toHaveBeenCalled();
+    await answerConfirm("Voltar");
     expect(service.setEnrollmentStatus).not.toHaveBeenCalled();
-    confirm.mockReturnValue(true);
     fireEvent.click(editor.getByRole("button", { name: "Salvar alterações" }));
+    expect(await screen.findByRole("alertdialog", { name: "Encerrar matrícula?" })).toBeInTheDocument();
+    await answerConfirm("Encerrar matrícula");
     await waitFor(() => expect(service.setEnrollmentStatus).toHaveBeenCalledWith("en-1", "CLOSED"));
     expect(service.setEnrollmentFee).not.toHaveBeenCalled();
     await waitFor(() => expect(service.enrollments).toHaveBeenCalledTimes(2));
     expect(screen.queryByRole("dialog")).toBeNull();
-    confirm.mockRestore();
   });
 
   it("edits the fee including clearing and zero", async () => {

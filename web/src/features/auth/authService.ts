@@ -7,7 +7,8 @@ export type AuthResponse = {
   authorities: string[];
 };
 
-export type Me = { username: string; authorities: string[]; displayName: string; schoolName?: string | null };
+export type Me = { username: string; authorities: string[]; displayName: string; schoolName?: string | null; termsAccepted?: boolean };
+export type Terms = { version: string; text: string };
 
 export const authService = {
   async login(login: string, password: string) {
@@ -16,6 +17,8 @@ export const authService = {
     return r;
   },
   me: () => api.get<Me>("/auth/me"),
+  terms: () => api.get<Terms>("/terms"),
+  acceptTerms: (version: string) => api.post<void>("/account/terms", { version }),
   forgot: (email: string) => api.post("/auth/forgot-password", { email }),
 };
 

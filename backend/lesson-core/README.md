@@ -11,6 +11,7 @@ O projeto consumidor converte suas entidades para os tipos do módulo, executa a
 - `WeeklyScheduleSlot`: representação de um horário semanal recorrente.
 - `SchedulingPolicy`: conflitos entre professor/aluno, tanto para aulas concretas quanto para horários recorrentes.
 - `LessonLifecyclePolicy`: transições de status, edição de conteúdo em `SCHEDULED`/`DONE` e reagendamento de `SCHEDULED` sem frequência para hoje ou uma data futura.
+- `LessonRecurrence`: inclusive weekly, biweekly and monthly occurrence dates, with month-end clamping from the original date, a twelve-month limit and a sixty-occurrence safety cap.
 - `AttendanceRecordingRule`: efeito de XP produzido por uma mudança de frequência.
 - `MakeupLinkValidator`: regras para vincular uma reposição à aula original.
 

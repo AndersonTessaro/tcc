@@ -26,6 +26,7 @@ public class AccountUseCase {
     private final StudentRepository students;
     private final RefreshTokenRepository tokens;
     private final PasswordEncoder encoder;
+    private final TermsCatalog terms;
 
     public record Instrument(UUID id, String name) {}
     public record TeacherProfile(String bio, List<Instrument> instruments) {}
@@ -34,13 +35,15 @@ public class AccountUseCase {
                           TeacherProfile teacher, StudentProfile student, boolean hasAvatar) {}
 
     public AccountUseCase(CurrentUserService current, UserRepository users, TeacherRepository teachers,
-                          StudentRepository students, RefreshTokenRepository tokens, PasswordEncoder encoder) {
+                          StudentRepository students, RefreshTokenRepository tokens, PasswordEncoder encoder,
+                          TermsCatalog terms) {
         this.current = current;
         this.users = users;
         this.teachers = teachers;
         this.students = students;
         this.tokens = tokens;
         this.encoder = encoder;
+        this.terms = terms;
     }
 
     public Account get() {
@@ -67,6 +70,14 @@ public class AccountUseCase {
         user.setPassword(encoder.encode(newPassword));
         LocalDateTime now = LocalDateTime.now();
         tokens.findByUserIdAndRevokedAtIsNull(user.getId()).forEach(token -> token.setRevokedAt(now));
+    }
+
+    @Transactional
+    public void acceptTerms(String version) {
+        if (!terms.isCurrent(version)) throw new DomainValidationException("Terms version is outdated");
+        User user = user();
+        user.setTermsVersion(version);
+        user.setTermsAcceptedAt(LocalDateTime.now());
     }
 
     private User user() {

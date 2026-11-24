@@ -41,7 +41,7 @@ class AccountUseCaseTest {
         user.setPassword("oldHash");
         when(current.userId()).thenReturn(user.getId());
         when(users.findById(user.getId())).thenReturn(Optional.of(user));
-        account = new AccountUseCase(current, users, teachers, students, tokens, encoder);
+        account = new AccountUseCase(current, users, teachers, students, tokens, encoder, new TermsCatalog());
     }
 
     @Test

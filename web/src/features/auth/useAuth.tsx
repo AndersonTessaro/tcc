@@ -4,13 +4,14 @@ import { authService } from "./authService";
 import { authEvents } from "@/lib/http/authEvents";
 import { authStorage } from "@/lib/http/authStorage";
 
-export type SessionUser = { username: string; authorities: string[]; displayName?: string; schoolName?: string | null };
+export type SessionUser = { username: string; authorities: string[]; displayName?: string; schoolName?: string | null; termsAccepted?: boolean };
 
 type AuthState = {
   user: SessionUser | null;
   loading: boolean;
   login: (login: string, password: string) => Promise<void>;
   logout: () => void;
+  acceptTerms: () => void;
 };
 
 const Ctx = createContext<AuthState | null>(null);
@@ -28,7 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     authService
       .me()
-      .then((m) => setUser({ username: m.username, authorities: m.authorities, displayName: m.displayName, schoolName: m.schoolName }))
+      .then((m) => setUser({ username: m.username, authorities: m.authorities, displayName: m.displayName,
+        schoolName: m.schoolName, termsAccepted: m.termsAccepted }))
       .catch(() => authStorage.clear())
       .finally(() => setLoading(false));
   }, []);
@@ -38,8 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (login: string, password: string) => {
     const r = await authService.login(login, password);
     setUser({ username: r.username, authorities: r.authorities });
-    // Only the sidebar subtitle needs it; a failure keeps the generic label.
-    authService.me().then((m) => setUser((u) => u && { ...u, schoolName: m.schoolName })).catch(() => undefined);
+    // A failure keeps the generic sidebar label and skips the terms gate until the next reload.
+    authService.me().then((m) => setUser((u) => u && { ...u, schoolName: m.schoolName, termsAccepted: m.termsAccepted }))
+      .catch(() => undefined);
   };
 
   const logout = () => {
@@ -47,7 +50,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  return <Ctx.Provider value={{ user, loading, login, logout }}>{children}</Ctx.Provider>;
+  const acceptTerms = () => setUser((u) => u && { ...u, termsAccepted: true });
+
+  return <Ctx.Provider value={{ user, loading, login, logout, acceptTerms }}>{children}</Ctx.Provider>;
 }
 
 export function useAuth() {

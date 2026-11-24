@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "Sonetto",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -22,7 +22,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./public/icon-192.png"
     },
     "plugins": [
       "expo-router",
@@ -43,9 +43,13 @@
         "expo-image-picker",
         {
           "photosPermission": "Permita acesso à galeria para enviar vídeos da sua prática.",
-          "cameraPermission": false,
-          "microphonePermission": false
+          "cameraPermission": "Permita acesso à câmera para gravar vídeos da aula e da prática.",
+          "microphonePermission": "Permita acesso ao microfone para gravar o som dos vídeos."
         }
+      ],
+      [
+        "expo-audio",
+        { "microphonePermission": "O Sonetto usa o microfone para gravar áudios da aula, da prática e do chat." }
       ]
     ],
     "experiments": {

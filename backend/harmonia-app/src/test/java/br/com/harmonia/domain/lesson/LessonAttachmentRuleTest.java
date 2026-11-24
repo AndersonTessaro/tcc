@@ -66,4 +66,22 @@ class LessonAttachmentRuleTest {
         assertThatCode(() -> LessonAttachmentRule.validate("score.pdf", "application/pdf",
             LessonAttachmentRule.MAX_BYTES, PDF, 9)).doesNotThrowAnyException();
     }
+
+    @Test
+    void validate_videoUpTo150Mb_accepts() {
+        assertThatCode(() -> LessonAttachmentRule.validate("aula.mp4", "video/mp4", LessonAttachmentRule.MAX_VIDEO_BYTES, MP4, 0))
+            .doesNotThrowAnyException();
+    }
+
+    @Test
+    void validate_videoAbove150Mb_rejects() {
+        assertThatThrownBy(() -> LessonAttachmentRule.validate("aula.mp4", "video/mp4", LessonAttachmentRule.MAX_VIDEO_BYTES + 1, MP4, 0))
+            .isInstanceOf(DomainValidationException.class).hasMessage("Attachment exceeds 150 MB");
+    }
+
+    @Test
+    void validate_largeFileDeclaredAsVideoWithoutVideoSignature_rejects() {
+        assertThatThrownBy(() -> LessonAttachmentRule.validate("aula.mp4", "video/mp4", LessonAttachmentRule.MAX_BYTES + 1, PDF, 0))
+            .isInstanceOf(DomainValidationException.class).hasMessage(INVALID_TYPE);
+    }
 }

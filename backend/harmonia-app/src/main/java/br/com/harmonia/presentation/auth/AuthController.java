@@ -1,5 +1,6 @@
 package br.com.harmonia.presentation.auth;
 
+import br.com.harmonia.application.account.TermsCatalog;
 import br.com.harmonia.application.security.AuthUseCase;
 import br.com.harmonia.application.security.PasswordResetUseCase;
 import br.com.harmonia.application.profile.port.SchoolRepository;
@@ -29,16 +30,18 @@ public class AuthController {
     private final PasswordResetUseCase reset;
     private final UserRepository users;
     private final SchoolRepository schools;
+    private final TermsCatalog terms;
     private final boolean cookieSecure;
     private final long refreshTtlDays;
 
     public AuthController(AuthUseCase auth, PasswordResetUseCase reset, UserRepository users, SchoolRepository schools,
-                          @Value("${app.cookie.secure:false}") boolean cookieSecure,
+                          TermsCatalog terms, @Value("${app.cookie.secure:false}") boolean cookieSecure,
                           @Value("${app.jwt.refresh-ttl-days}") long refreshTtlDays) {
         this.auth = auth;
         this.reset = reset;
         this.users = users;
         this.schools = schools;
+        this.terms = terms;
         this.cookieSecure = cookieSecure;
         this.refreshTtlDays = refreshTtlDays;
     }
@@ -98,6 +101,7 @@ public class AuthController {
         body.put("email", user.getEmail());
         body.put("displayName", user.getDisplayName());
         body.put("hasAvatar", user.hasAvatar());
+        body.put("termsAccepted", terms.isCurrent(user.getTermsVersion()));
         body.put("authorities", jwt.getClaimAsStringList("authorities"));
         body.put("schoolName", user.getSchoolId() == null ? null
             : schools.findById(user.getSchoolId()).map(School::getName).orElse(null));

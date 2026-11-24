@@ -10,9 +10,16 @@ type Deps = {
   onAuthFailure: () => void;
   fetchFn?: typeof fetch;
   timeoutMs?: number;
+  gatewayRetryDelaysMs?: number[];
 };
 
+type Send = (access: string | null, signal: AbortSignal) => Promise<Response>;
+
 const DEFAULT_TIMEOUT_MS = 20_000;
+// Azure answers 502/503/504 while the API replica scales between zero and one; a GET is safe to repeat.
+const GATEWAY_RETRY_DELAYS_MS = [1000, 2000, 4000, 8000];
+const isGatewayError = (status: number) => status >= 502 && status <= 504;
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class RequestTimeoutError extends Error {
   constructor() {
@@ -42,6 +49,16 @@ export function createApiClient(deps: Deps) {
   const timeoutMs = deps.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   let refreshing: Promise<boolean> | null = null;
 
+  const retryingGateway = (send: Send): Send => async (access, signal) => {
+    let res = await send(access, signal);
+    for (const delay of deps.gatewayRetryDelaysMs ?? GATEWAY_RETRY_DELAYS_MS) {
+      if (!isGatewayError(res.status) || signal.aborted) break;
+      await wait(delay);
+      res = await send(access, signal);
+    }
+    return res;
+  };
+
   // The refresh token travels as an httpOnly cookie, so this carries no body.
   async function refresh(): Promise<boolean> {
     const capturedAccess = await deps.getAccessToken();
@@ -66,7 +83,7 @@ export function createApiClient(deps: Deps) {
 
   // Sends a request, retrying once after refreshing the token on 401.
   async function dispatch<T>(
-    send: (access: string | null, signal: AbortSignal) => Promise<Response>,
+    send: Send,
     auth: boolean,
     read: (response: Response) => Promise<T> = (response) => response.json(),
     requestTimeoutMs = timeoutMs,
@@ -106,18 +123,19 @@ export function createApiClient(deps: Deps) {
     body?: unknown,
     opts?: RequestOptions,
   ): Promise<T> {
+    const send: Send = (access, signal) =>
+      doFetch(`${deps.baseUrl}${path}`, {
+        method,
+        credentials: "include",
+        signal,
+        headers: {
+          "Content-Type": "application/json",
+          ...(access ? { Authorization: `Bearer ${access}` } : {}),
+        },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
     return dispatch<T>(
-      (access, signal) =>
-        doFetch(`${deps.baseUrl}${path}`, {
-          method,
-          credentials: "include",
-          signal,
-          headers: {
-            "Content-Type": "application/json",
-            ...(access ? { Authorization: `Bearer ${access}` } : {}),
-          },
-          body: body === undefined ? undefined : JSON.stringify(body),
-        }),
+      method === "GET" ? retryingGateway(send) : send,
       opts?.auth ?? true,
       undefined,
       opts?.timeoutMs,
@@ -143,11 +161,11 @@ export function createApiClient(deps: Deps) {
 
   return {
     get: <T>(p: string) => request<T>("GET", p),
-    getBytes: (p: string, opts?: RequestOptions) => dispatch<ArrayBuffer>((access, signal) => doFetch(`${deps.baseUrl}${p}`, {
+    getBytes: (p: string, opts?: RequestOptions) => dispatch<ArrayBuffer>(retryingGateway((access, signal) => doFetch(`${deps.baseUrl}${p}`, {
       credentials: "include",
       signal,
       headers: access ? { Authorization: `Bearer ${access}` } : {},
-    }), opts?.auth ?? true, (response) => response.arrayBuffer(), opts?.timeoutMs),
+    })), opts?.auth ?? true, (response) => response.arrayBuffer(), opts?.timeoutMs),
     post: <T>(p: string, b?: unknown, opts?: RequestOptions) => request<T>("POST", p, b, opts),
     put: <T>(p: string, b?: unknown) => request<T>("PUT", p, b),
     patch: <T>(p: string, b?: unknown) => request<T>("PATCH", p, b),

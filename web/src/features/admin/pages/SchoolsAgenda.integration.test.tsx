@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { answerConfirm } from "@/test/dialog";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { toast } from "sonner";
 
@@ -142,12 +143,12 @@ describe("schools, school access and agenda through HTTP", () => {
     expect(screen.queryByRole("navigation")).toBeNull();
   });
 
-  it("keeps instruments read-only for MANAGER", async () => {
+  it("lets MANAGER create instruments but not delete them", async () => {
     role = "MANAGER";
     await renderApp("/admin/instruments");
     expect(await screen.findByText("Piano")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Criar instrumento" })).toBeNull();
-    expect(screen.queryByLabelText("Nome do instrumento")).toBeNull();
+    expect(screen.getByRole("button", { name: "Criar instrumento" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Excluir instrumento Piano" })).toBeNull();
   });
 
   it("creates a school and a manager with the exact bodies", async () => {
@@ -170,16 +171,18 @@ describe("schools, school access and agenda through HTTP", () => {
   });
 
   it("renames and deactivates a school after confirmation", async () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
     await renderApp("/admin/schools");
     fireEvent.click(await screen.findByRole("button", { name: `Editar ${school.name}` }));
     fireEvent.change(screen.getByLabelText("Nome da escola"), { target: { value: "Sonetto" } });
     fireEvent.click(screen.getByLabelText("Escola ativa"));
     fireEvent.click(screen.getByRole("button", { name: "Salvar escola" }));
+    expect(await screen.findByRole("alertdialog", { name: "Desativar escola?" }))
+      .toHaveAccessibleDescription(expect.stringContaining("não conseguirão mais entrar"));
+    await answerConfirm("Voltar");
     expect(requests(`/admin/schools/${school.id}`, "PUT")).toHaveLength(0);
     fireEvent.click(screen.getByRole("button", { name: "Salvar escola" }));
+    await answerConfirm("Desativar escola");
     await waitFor(() => expect(requests(`/admin/schools/${school.id}`, "PUT")).toHaveLength(1));
-    expect(confirm).toHaveBeenCalled();
     expect(bodyOf(`/admin/schools/${school.id}`, "PUT")).toEqual({ name: "Sonetto", active: false });
   });
 
@@ -303,16 +306,17 @@ describe("schools, school access and agenda through HTTP", () => {
   });
 
   it("changes status only after confirmation", async () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
     await openLessonForm();
     fireEvent.click(screen.getByRole("button", { name: "Fechar painel" }));
     const cancel = within(screen.getByRole("region", { name: "Segunda-feira, 01/04/2030" })).getByRole("button", { name: "Cancelar" });
     fireEvent.click(cancel);
+    expect(await screen.findByRole("alertdialog", { name: "Cancelar aula?" })).toBeInTheDocument();
+    await answerConfirm("Voltar");
     expect(requests("/teacher/lessons/lesson-1/status", "PATCH")).toHaveLength(0);
     fireEvent.click(cancel);
+    await answerConfirm("Cancelar aula");
     await waitFor(() => expect(requests("/teacher/lessons/lesson-1/status", "PATCH")).toHaveLength(1));
     expect(bodyOf("/teacher/lessons/lesson-1/status", "PATCH")).toEqual({ status: "CANCELED" });
-    expect(confirm).toHaveBeenCalledTimes(2);
   });
 
   it("registers excused attendance for a past lesson", async () => {

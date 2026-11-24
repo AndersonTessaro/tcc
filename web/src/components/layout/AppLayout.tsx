@@ -27,12 +27,9 @@ const NAV_GROUPS: { title: string; items: { to: string; label: string; adminOnly
 function Wordmark({ subtitle }: { subtitle: string }) {
   return (
     <div className="px-3 pt-2">
-      <div className="relative py-1">
-        <svg className="absolute inset-0 h-full w-full text-primary/25" aria-hidden="true"
-          preserveAspectRatio="none" viewBox="0 0 100 36">
-          {[1, 9.5, 18, 26.5, 35].map((y) => <line key={y} x1="0" x2="100" y1={y} y2={y} stroke="currentColor" strokeWidth="0.6" vectorEffect="non-scaling-stroke" />)}
-        </svg>
-        <p className="relative text-xl font-extrabold tracking-tight text-ink">Harmonia</p>
+      <div className="relative flex items-center gap-2 py-1">
+        <img src="/logo.svg" alt="" className="h-7 w-7 shrink-0" />
+        <p className="relative text-xl font-extrabold tracking-tight text-ink">Sonetto</p>
       </div>
       <p className="mt-2 truncate text-xs font-medium text-ink-muted">{subtitle}</p>
     </div>
@@ -84,7 +81,10 @@ export default function AppLayout() {
   return (
     <div className="min-h-screen bg-canvas md:flex">
       <div className="flex items-center justify-between border-b border-line bg-white px-4 py-3 md:hidden">
-        <p className="text-lg font-extrabold text-ink">Harmonia</p>
+        <div className="flex items-center gap-2">
+          <img src="/logo.svg" alt="" className="h-7 w-7 shrink-0" />
+          <p className="text-lg font-extrabold text-ink">Sonetto</p>
+        </div>
         <button type="button" aria-expanded={menuOpen} aria-controls="admin-menu" onClick={() => setMenuOpen(!menuOpen)}
           className="rounded-lg border border-line px-3 py-1.5 text-sm font-semibold text-ink">
           {menuOpen ? "Fechar menu" : "Menu"}

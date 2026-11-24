@@ -20,7 +20,7 @@ const USERS = [
   {
     id: "u-1",
     username: "admin",
-    email: "admin@harmonia.local",
+    email: "admin@sonetto.local",
     displayName: "Administrador",
     active: true,
     roles: [{ id: 1, name: "ADMIN", description: "", permissions: [] }],

@@ -1,8 +1,8 @@
 package br.com.harmonia.presentation.admin;
 
 import br.com.harmonia.application.finance.FinanceUseCase;
-import br.com.harmonia.infrastructure.persistence.finance.FinancialTransaction;
 import br.com.harmonia.infrastructure.persistence.finance.TransactionType;
+import br.com.harmonia.presentation.response.TransactionResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -29,8 +29,8 @@ public class FinanceController {
                                  String description, String category, LocalDate date, UUID studentId, UUID schoolId) {}
 
     @GetMapping("/transactions")
-    public List<FinancialTransaction> list() {
-        return uc.list();
+    public List<TransactionResponse> list() {
+        return uc.list().stream().map(TransactionResponse::of).toList();
     }
 
     @GetMapping("/balance")
@@ -39,7 +39,7 @@ public class FinanceController {
     }
 
     @PostMapping("/transactions")
-    public FinancialTransaction create(@Valid @RequestBody NewTransaction r) {
-        return uc.create(r.type(), r.amount(), r.description(), r.category(), r.date(), r.studentId(), r.schoolId());
+    public TransactionResponse create(@Valid @RequestBody NewTransaction r) {
+        return TransactionResponse.of(uc.create(r.type(), r.amount(), r.description(), r.category(), r.date(), r.studentId(), r.schoolId()));
     }
 }
